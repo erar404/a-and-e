@@ -1,0 +1,10 @@
+# exclude the ORIGINAL heavy/incompatible videos — the site uses the
+# web-optimized copies (img_2629.mp4, vid_*.mp4, worthy_holy.mp4) instead
+static/IMG_2629.MOV
+static/Worthy Holy.mp4
+static/Vid *.mp4
+
+Dockerfile
+.dockerignore
+README.md
+.git

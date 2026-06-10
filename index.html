@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Walong Buwan — para sa'yo, Mahal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=La+Belle+Aurore&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- film grain + vignette atmosphere -->
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <!-- drifting dust motes -->
+  <div class="motes" aria-hidden="true">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+
+  <!-- looping music -->
+  <audio id="music" src="static/music.mp3" loop preload="auto"></audio>
+
+  <!-- music toggle -->
+  <button id="music-toggle" class="music-toggle" aria-label="Toggle music" hidden>
+    <span class="bars"><i></i><i></i><i></i><i></i></span>
+  </button>
+
+  <!-- ═══════════ entry ═══════════ -->
+  <div id="entry" class="entry">
+    <div class="entry-inner">
+      <p class="kicker">para sa'yo, mahal</p>
+      <h1 class="entry-title">Walong<br /><em>Buwan</em></h1>
+      <p class="entry-sub">eight months of us — and counting</p>
+      <button id="open-btn" class="open-btn">
+        <span class="open-heart">♡</span>
+        <span class="open-text">buksan mo</span>
+      </button>
+      <p class="entry-hint">best experienced with sound on&nbsp;♪</p>
+    </div>
+  </div>
+
+  <main id="story" hidden>
+
+    <!-- ═══════════ chapter one: the first ═══════════ -->
+    <section class="first" id="first">
+      <p class="kicker reveal">where it all began</p>
+      <h2 class="display reveal">This is the first video<br />I ever took <em>with you in it.</em></h2>
+      <p class="lede reveal">
+        I didn't know it then, but I was already keeping you safe in little
+        squares of light — as if some part of me knew I'd want to come back
+        to this moment for the rest of my life.
+      </p>
+
+      <div class="firsts reveal">
+        <figure class="polaroid tilt-l">
+          <div class="media">
+            <video id="first-video" src="static/First_vid.mp4" loop muted autoplay playsinline></video>
+            <button id="vid-sound" class="vid-sound" aria-label="Toggle video sound">unmute</button>
+          </div>
+          <figcaption>the very first video</figcaption>
+        </figure>
+        <figure class="polaroid tilt-r">
+          <div class="media">
+            <img src="static/first_pic.jpg" alt="Our first picture together" loading="lazy" />
+          </div>
+          <figcaption>…and the very first picture</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ═══════════ interlude ═══════════ -->
+    <section class="interlude" id="history">
+      <p class="interlude-line reveal">…and the rest</p>
+      <p class="interlude-line big reveal"><em>was history.</em></p>
+    </section>
+
+    <!-- ═══════════ the archive ═══════════ -->
+    <section class="gallery" id="gallery">
+      <p class="kicker reveal">our little archive</p>
+      <h2 class="display reveal">Every frame, <em>a keepsake.</em></h2>
+      <p class="lede reveal">drag the photos away — there's always another moment underneath.</p>
+
+      <div class="deck-wrap reveal">
+        <button class="deck-nav prev" id="deck-prev" aria-label="Previous photo">‹</button>
+        <div class="deck" id="deck" aria-label="Photo slideshow"></div>
+        <button class="deck-nav next" id="deck-next" aria-label="Next photo">›</button>
+      </div>
+      <p class="deck-counter"><span id="deck-count">1</span> <span class="of">of</span> <span id="deck-total">—</span></p>
+      <p class="deck-hint">✦ drag, swipe, or use the arrows ✦</p>
+    </section>
+
+    <!-- ═══════════ moving memories ═══════════ -->
+    <section class="clips" id="clips">
+      <p class="kicker reveal">mga gumagalaw na alaala</p>
+      <h2 class="display reveal">Some moments <em>refused to stay still.</em></h2>
+      <p class="lede reveal">tap a clip to play it — the music will politely step aside.</p>
+
+      <div class="clip-row reveal">
+        <figure class="polaroid clip tilt-l">
+          <div class="media">
+            <video src="static/img_2629.mp4" preload="metadata" playsinline></video>
+            <button class="clip-play" aria-label="Play clip">▶</button>
+          </div>
+          <figcaption>a little moment i kept</figcaption>
+        </figure>
+        <figure class="polaroid clip tilt-r">
+          <div class="media">
+            <video src="static/vid_20250806.mp4" preload="metadata" playsinline></video>
+            <button class="clip-play" aria-label="Play clip">▶</button>
+          </div>
+          <figcaption>august 6, 2025</figcaption>
+        </figure>
+        <figure class="polaroid clip tilt-l">
+          <div class="media">
+            <video src="static/vid_20251219.mp4" preload="metadata" playsinline></video>
+            <button class="clip-play" aria-label="Play clip">▶</button>
+          </div>
+          <figcaption>december 19, 2025</figcaption>
+        </figure>
+        <figure class="polaroid clip tilt-r">
+          <div class="media">
+            <video src="static/worthy_holy.mp4" preload="metadata" playsinline></video>
+            <button class="clip-play" aria-label="Play clip">▶</button>
+          </div>
+          <figcaption>worthy, holy ♪</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ═══════════ the poems ═══════════ -->
+    <section class="poems" id="poems">
+      <p class="kicker reveal">mga tula, isinulat para sa'yo</p>
+      <h2 class="display reveal">Words I couldn't <em>keep to myself.</em></h2>
+      <p class="lede reveal">each one sealed for you — tap a card to open it.</p>
+      <div class="poem-grid" id="poem-grid"></div>
+    </section>
+
+    <!-- ═══════════ the letter ═══════════ -->
+    <section class="letter-section" id="letter">
+      <p class="kicker reveal">isang huling mensahe</p>
+      <div class="letter reveal">
+        <p class="letter-salutation">Mahal,</p>
+        <h2 class="letter-title">Happy 8th<br />Monthsary!</h2>
+        <p>
+          Sorry eto lang ang nakayanan ko ngayong buwan. Nawa di ka pa
+          nagsasawa sakin at sa mga pinag gagawa ko sa buhay.
+        </p>
+        <p>
+          Aaminin ko, namimiss kita. Namimiss ko yung dating usapan at
+          pananabik natin makausap ang isa't isa. Pero alam ko naman na
+          marami ka lang iniisip ngayon. Nawa maalala mo na andito lang ako
+          na handa makinig at sumuporta sa bawat desisyon mong gagawin.
+        </p>
+        <p>
+          Mahal na mahal kita at kitakits mamaya, at sa marami pang bukas na
+          darating. Mahal na mahal kita.
+        </p>
+        <p class="letter-aside">hehe nasabi ko na bang mahal na mahal kita? hahaha</p>
+        <p>
+          I will always be proud of you.
+        </p>
+        <p class="letter-sign">I love you so much. ♡</p>
+      </div>
+      <p class="footer-note reveal">walong buwan na, at marami pang darating · ♡</p>
+    </section>
+
+  </main>
+
+  <script src="photos.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
