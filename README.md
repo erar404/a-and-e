@@ -39,12 +39,19 @@ That's it — Cloud Run builds the Dockerfile, injects `PORT`, and gives you a U
 
 - **Music autoplay**: browsers block autoplay, so the site opens with a
   "buksan mo" entry screen — the click starts the music. This is intentional.
-- **Photos are heavy** (~528 MB of JPGs). The site lazy-loads them a few at a
-  time so it still feels fast, but if you want faster first paint and a smaller
-  Docker image, batch-resize them to ~1600px before deploying, e.g. with
-  [ImageMagick](https://imagemagick.org): `magick mogrify -resize 1600x1600 -quality 82 static/*.jpg`
-- **Adding/removing photos**: drop JPGs in `static/`, then regenerate
-  `photos.js` (it's just an array of paths).
+- **Preloader**: the entry screen holds the "buksan mo" button behind a
+  progress line until the fonts, first video/picture, music, and the first six
+  deck photos are buffered (per-item grace timeouts plus a 12s hard deadline,
+  so nobody can get stuck on the loading screen).
+- **Photos & the intro video are served from `static/opt/`** — web-sized
+  copies (~17 MB total vs ~540 MB of originals), generated with
+  `ffmpeg -i IN.jpg -vf "scale=w='min(1200,iw)':h=-2" -q:v 4 static/opt/OUT.jpg`.
+  Originals stay on disk but are excluded from the Docker image.
+- **The live counter**: the "Loving you, down to the second" section counts up
+  from `LOVE_START` in `script.js` — set to **October 11, 2025, 10:30 PM PH time**.
+- **Adding/removing photos**: drop the JPG in `static/`, create its optimized
+  copy in `static/opt/` (command above), then regenerate `photos.js` (it's
+  just an array of `static/opt/...` paths).
 - **Editing poems**: edit `static/poems.txt.txt` — poems separated by a line
   containing `--`. The cards build themselves.
 - **Video clips**: the "moving memories" section plays web-optimized copies of

@@ -3,8 +3,16 @@
 static/IMG_2629.MOV
 static/Worthy Holy.mp4
 static/Vid *.mp4
+static/First_vid.mp4
+
+# exclude the ORIGINAL full-resolution photos (~528 MB) — the site uses
+# the web-sized copies in static/opt/ (~12 MB)
+static/1*.jpg
+static/first_pic.jpg
 
 Dockerfile
 .dockerignore
 README.md
+PRODUCT.md
+_shots
 .git

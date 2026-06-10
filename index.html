@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Walong Buwan — para sa'yo, Mahal</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d4a0a4' d='M12 21s-7.5-4.7-10-9.3C.5 8.6 2.3 5 5.7 5c2 0 3.6 1.2 4.3 2.4h4c.7-1.2 2.3-2.4 4.3-2.4 3.4 0 5.2 3.6 3.7 6.7C19.5 16.3 12 21 12 21z'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -17,6 +18,15 @@
   <!-- film grain + vignette atmosphere -->
   <div class="grain" aria-hidden="true"></div>
   <div class="vignette" aria-hidden="true"></div>
+
+  <!-- ambient aurora glow -->
+  <div class="aurora" aria-hidden="true"><i></i><i></i></div>
+
+  <!-- falling rose petals -->
+  <div class="petals" id="petals" aria-hidden="true"></div>
+
+  <!-- scroll progress thread -->
+  <div class="thread" aria-hidden="true"><i id="thread-bar"></i></div>
 
   <!-- drifting dust motes -->
   <div class="motes" aria-hidden="true">
@@ -33,14 +43,23 @@
 
   <!-- ═══════════ entry ═══════════ -->
   <div id="entry" class="entry">
+    <div class="curtain curtain-l" aria-hidden="true"></div>
+    <div class="curtain curtain-r" aria-hidden="true"></div>
     <div class="entry-inner">
       <p class="kicker">para sa'yo, mahal</p>
       <h1 class="entry-title">Walong<br /><em>Buwan</em></h1>
       <p class="entry-sub">eight months of us — and counting</p>
-      <button id="open-btn" class="open-btn">
-        <span class="open-heart">♡</span>
-        <span class="open-text">buksan mo</span>
-      </button>
+      <div class="entry-action">
+        <div id="loader" class="loader">
+          <p class="loader-cap">hinahanda ang mga alaala…</p>
+          <div class="loader-line"><i id="loader-fill"></i></div>
+          <p class="loader-pct"><span id="loader-num">0</span>%</p>
+        </div>
+        <button id="open-btn" class="open-btn is-loading">
+          <span class="open-heart">♡</span>
+          <span class="open-text">buksan mo</span>
+        </button>
+      </div>
       <p class="entry-hint">best experienced with sound on&nbsp;♪</p>
     </div>
   </div>
@@ -58,16 +77,16 @@
       </p>
 
       <div class="firsts reveal">
-        <figure class="polaroid tilt-l">
+        <figure class="polaroid tilt-l" data-par="-0.05">
           <div class="media">
-            <video id="first-video" src="static/First_vid.mp4" loop muted autoplay playsinline></video>
+            <video id="first-video" src="static/opt/first_vid.mp4" preload="auto" loop muted autoplay playsinline></video>
             <button id="vid-sound" class="vid-sound" aria-label="Toggle video sound">unmute</button>
           </div>
           <figcaption>the very first video</figcaption>
         </figure>
-        <figure class="polaroid tilt-r">
+        <figure class="polaroid tilt-r" data-par="0.045">
           <div class="media">
-            <img src="static/first_pic.jpg" alt="Our first picture together" loading="lazy" />
+            <img src="static/opt/first_pic.jpg" alt="Our first picture together" loading="lazy" />
           </div>
           <figcaption>…and the very first picture</figcaption>
         </figure>
@@ -76,8 +95,35 @@
 
     <!-- ═══════════ interlude ═══════════ -->
     <section class="interlude" id="history">
-      <p class="interlude-line reveal">…and the rest</p>
-      <p class="interlude-line big reveal"><em>was history.</em></p>
+      <div class="interlude-sticky">
+        <p class="interlude-line reveal">…and the rest</p>
+        <p class="interlude-line big reveal"><em>was history.</em></p>
+      </div>
+    </section>
+
+    <!-- ═══════════ the count ═══════════ -->
+    <section class="counter" id="counter">
+      <p class="kicker reveal">bawat segundo, binibilang</p>
+      <h2 class="display reveal">Loving you,<br /><em>down to the second.</em></h2>
+      <div class="count-row reveal">
+        <div class="count-cell">
+          <span class="count-num" id="c-days">0</span>
+          <span class="count-label">days</span>
+        </div>
+        <div class="count-cell">
+          <span class="count-num" id="c-hours">00</span>
+          <span class="count-label">hours</span>
+        </div>
+        <div class="count-cell">
+          <span class="count-num" id="c-mins">00</span>
+          <span class="count-label">minutes</span>
+        </div>
+        <div class="count-cell">
+          <span class="count-num live" id="c-secs">00</span>
+          <span class="count-label">seconds</span>
+        </div>
+      </div>
+      <p class="count-note reveal">— at tumatakbo pa rin, mahal</p>
     </section>
 
     <!-- ═══════════ the archive ═══════════ -->
@@ -102,28 +148,28 @@
       <p class="lede reveal">tap a clip to play it — the music will politely step aside.</p>
 
       <div class="clip-row reveal">
-        <figure class="polaroid clip tilt-l">
+        <figure class="polaroid clip tilt-l" data-par="-0.035">
           <div class="media">
             <video src="static/img_2629.mp4" preload="metadata" playsinline></video>
             <button class="clip-play" aria-label="Play clip">▶</button>
           </div>
           <figcaption>a little moment i kept</figcaption>
         </figure>
-        <figure class="polaroid clip tilt-r">
+        <figure class="polaroid clip tilt-r" data-par="0.03">
           <div class="media">
             <video src="static/vid_20250806.mp4" preload="metadata" playsinline></video>
             <button class="clip-play" aria-label="Play clip">▶</button>
           </div>
           <figcaption>august 6, 2025</figcaption>
         </figure>
-        <figure class="polaroid clip tilt-l">
+        <figure class="polaroid clip tilt-l" data-par="-0.025">
           <div class="media">
             <video src="static/vid_20251219.mp4" preload="metadata" playsinline></video>
             <button class="clip-play" aria-label="Play clip">▶</button>
           </div>
           <figcaption>december 19, 2025</figcaption>
         </figure>
-        <figure class="polaroid clip tilt-r">
+        <figure class="polaroid clip tilt-r" data-par="0.04">
           <div class="media">
             <video src="static/worthy_holy.mp4" preload="metadata" playsinline></video>
             <button class="clip-play" aria-label="Play clip">▶</button>
