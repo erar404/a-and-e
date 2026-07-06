@@ -11,6 +11,18 @@ const ACCOUNTS = { Erwin: "erwin@eanda.chat", Alliah: "alliah@eanda.chat" };
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+/* phones throttle background timers, which can let the auth token expire;
+   pause/resume the refresh loop with tab visibility so it never goes stale */
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) sb.auth.stopAutoRefresh();
+  else sb.auth.startAutoRefresh();
+});
+
+/* signed out anywhere (another tab, expiry)? fall back to the login screen */
+sb.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_OUT") showLogin("nawala ang session, mahal — pasok ka ulit ♡");
+});
+
 const loginEl = document.getElementById("login");
 const chatEl = document.getElementById("chat");
 const stepWho = document.getElementById("step-who");
@@ -79,7 +91,7 @@ async function enterChat() {
   if (error || !members || !members.length) {
     // logged in but not one of us two — RLS shows nothing
     await sb.auth.signOut();
-    location.reload();
+    showLogin("para lang sa aming dalawa ito ♡");
     return;
   }
   names = Object.fromEntries(members.map((m) => [m.user_id, m.display_name]));
@@ -98,6 +110,8 @@ async function enterChat() {
   renderAll();
   markRead();
 
+  // re-login shouldn't stack a second subscription
+  sb.removeAllChannels();
   sb.channel("usap-tayo")
     .on(
       "postgres_changes",
@@ -121,16 +135,46 @@ async function enterChat() {
     .subscribe();
 }
 
+/* back to the login screen without losing our place */
+function showLogin(note) {
+  chatEl.hidden = true;
+  loginEl.hidden = false;
+  stepPass.hidden = true;
+  stepWho.hidden = false;
+  loginErr.hidden = true;
+  const noteEl = document.getElementById("login-note");
+  if (noteEl) {
+    noteEl.textContent = note || "";
+    noteEl.hidden = !note;
+  }
+}
+
 composer.addEventListener("submit", async (e) => {
   e.preventDefault();
   const body = input.value.trim();
   if (!body) return;
   input.value = "";
   autosize();
-  const { error } = await sb.from("chat_messages").insert({ sender_id: me, body });
+
+  let { error } = await sb.from("chat_messages").insert({ sender_id: me, body });
+
   if (error) {
-    input.value = body; // give the words back if it failed
-    autosize();
+    // most likely a stale session — check it before giving up
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      input.value = body; // keep her words safe
+      autosize();
+      showLogin("na-expire ang session, mahal — pasok ka ulit at nandiyan pa rin ang mensahe mo ♡");
+      return;
+    }
+    // session is fine (probably just refreshed) — try once more
+    ({ error } = await sb.from("chat_messages").insert({ sender_id: me, body }));
+    if (error) {
+      input.value = body;
+      autosize();
+      composer.classList.add("failed");
+      setTimeout(() => composer.classList.remove("failed"), 1200);
+    }
   }
 });
 

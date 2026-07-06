@@ -111,6 +111,13 @@ body {
 
 .login-title em { font-style: italic; font-weight: 400; color: var(--rose); }
 
+.login-note {
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.05rem;
+  color: var(--gold);
+  margin: -1.4rem 0 1.8rem;
+}
+
 .login-q {
   font-style: italic;
   color: var(--cream-dim);
@@ -370,6 +377,14 @@ body {
 }
 
 .composer textarea:focus { border-color: var(--rose); }
+
+.composer.failed textarea { border-color: #c96a6a; animation: shake 0.4s ease; }
+
+@keyframes shake {
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
 
 .composer textarea::placeholder { color: var(--ink-soft); font-style: italic; }
 
