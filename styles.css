@@ -928,6 +928,19 @@ section {
   color: var(--ink-soft);
 }
 
+/* a quiet door to our private chat */
+.chat-link { margin-top: 1.6rem; }
+
+.chat-link a {
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.2rem;
+  color: var(--gold);
+  text-decoration: none;
+  transition: color 0.35s;
+}
+
+.chat-link a:hover { color: var(--rose); }
+
 /* ─── responsive ─── */
 
 @media (max-width: 640px) {
@@ -940,6 +953,324 @@ section {
 @media (max-width: 480px) {
   .count-cell { padding: 0 0.9rem; }
 }
+
+/* ─── cloud slideshow (straight from Google Drive) ─── */
+
+.cine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.8rem, 4vw, 2.6rem);
+  margin-top: 4.5rem;
+}
+
+.cine-stage {
+  position: relative;
+  width: min(88vw, 760px);
+  aspect-ratio: 4 / 3;
+  background: #14100f;
+  padding: 0;
+  box-shadow: var(--shadow);
+  border: 10px solid var(--paper);
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.cine-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.cine-slide.on { opacity: 1; }
+
+.cine-back {
+  position: absolute;
+  inset: -30px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(24px) brightness(0.55);
+}
+
+.cine-img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.cine-slide.on .cine-img {
+  animation: ken-burns 9s ease-out forwards;
+}
+
+@keyframes ken-burns {
+  from { transform: scale(1); }
+  to   { transform: scale(1.06); }
+}
+
+.cine-slide.playing .cine-img,
+.cine-slide.playing .cine-play,
+.cine-slide.playing .cine-tag { visibility: hidden; }
+
+.cine-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.cine-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 1px solid rgba(246, 239, 226, 0.5);
+  background: rgba(20, 14, 18, 0.55);
+  backdrop-filter: blur(6px);
+  color: var(--cream);
+  font-size: 1.2rem;
+  padding-left: 5px;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.3s;
+}
+
+.cine-play:hover { background: rgba(212, 160, 164, 0.7); transform: scale(1.08); }
+
+.cine-album {
+  position: absolute;
+  left: 14px;
+  bottom: 10px;
+  max-width: 75%;
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.15rem;
+  color: rgba(246, 239, 226, 0.92);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+}
+
+.cine-slide.playing .cine-album { visibility: hidden; }
+
+.cine-tag {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(20, 14, 18, 0.6);
+  backdrop-filter: blur(6px);
+  color: var(--cream);
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.cine-nav {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(240, 228, 212, 0.25);
+  background: transparent;
+  color: var(--cream);
+  font-size: 1.7rem;
+  font-family: "Cormorant Garamond", serif;
+  cursor: pointer;
+  line-height: 1;
+  transition: border-color 0.4s, background 0.4s;
+  flex-shrink: 0;
+}
+
+.cine-nav:hover { border-color: var(--rose); background: rgba(212, 160, 164, 0.12); }
+
+.cine-count {
+  margin-top: 2.2rem;
+  font-size: 1.15rem;
+  letter-spacing: 0.18em;
+  color: var(--cream-dim);
+}
+
+.cine-count .of { font-style: italic; color: var(--ink-soft); }
+
+@media (max-width: 640px) {
+  .cine { flex-wrap: wrap; }
+  .cine-stage { width: 92vw; aspect-ratio: 3 / 4; order: -1; }
+  .cine-nav { width: 44px; height: 44px; font-size: 1.4rem; }
+}
+
+body.theme-anniversary .cine-stage { background: #efe6d4; }
+body.theme-anniversary .cine-nav { border-color: rgba(64, 45, 42, 0.3); color: var(--ink); }
+body.theme-anniversary .cine-play {
+  border-color: rgba(64, 45, 42, 0.3);
+  background: rgba(255, 246, 230, 0.6);
+  color: var(--ink);
+}
+body.theme-anniversary .cine-tag {
+  background: rgba(255, 246, 230, 0.75);
+  color: var(--ink);
+}
+
+/* ─── poem month tag (which monthsary unsealed it) ─── */
+
+.poem-month {
+  margin-top: -0.9rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+/* ─── monthsary greeting (appears on every 11th) ─── */
+
+.monthsary-greeting {
+  position: fixed;
+  left: 50%;
+  bottom: 2.2rem;
+  transform: translateX(-50%) rotate(-0.8deg);
+  z-index: 96;
+  max-width: min(88vw, 480px);
+  padding: 1rem 1.9rem;
+  background: var(--paper);
+  color: var(--ink);
+  text-align: center;
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.3rem;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  animation: greet-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.monthsary-greeting::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--paper-edge);
+  pointer-events: none;
+}
+
+.monthsary-greeting.leaving {
+  opacity: 0;
+  transform: translateX(-50%) translateY(16px) rotate(-0.8deg);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+@keyframes greet-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(24px) rotate(-0.8deg); }
+  to   { opacity: 1; transform: translateX(-50%) rotate(-0.8deg); }
+}
+
+/* ════════════════════════════════════════════
+   the twelfth month — a new chapter
+   the night the site was born in gives way to
+   a golden dawn on the first anniversary
+   ════════════════════════════════════════════ */
+
+body.theme-anniversary {
+  --bg: #f5ecdc;
+  --bg-soft: #eee0c8;
+  --cream: #402d2a;
+  --cream-dim: #7d6355;
+  --rose: #a94b59;
+  --gold: #9d762e;
+  --paper: #fffaf1;
+  --paper-edge: #e5d5b5;
+  --ink: #402d2a;
+  --ink-soft: #8a7160;
+  --shadow: 0 18px 45px -18px rgba(96, 60, 38, 0.38);
+  background-image: radial-gradient(ellipse 120% 80% at 50% -10%, #ffefd2 0%, var(--bg) 60%);
+}
+
+body.theme-anniversary ::selection { background: var(--rose); color: var(--paper); }
+
+body.theme-anniversary .grain { opacity: 0.032; }
+
+body.theme-anniversary .vignette {
+  background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 60%, rgba(120, 78, 42, 0.18) 100%);
+}
+
+/* the aurora becomes a sunrise */
+body.theme-anniversary .aurora i:first-child {
+  background: radial-gradient(circle, rgba(233, 150, 100, 0.35), transparent 65%);
+}
+
+body.theme-anniversary .aurora i:last-child {
+  background: radial-gradient(circle, rgba(214, 170, 80, 0.3), transparent 65%);
+}
+
+/* and the petals turn to gold */
+body.theme-anniversary .petals i {
+  background: linear-gradient(135deg, #e8c27a, #b78a3a);
+}
+
+body.theme-anniversary .curtain-l {
+  background: radial-gradient(ellipse 170% 95% at 100% 32%, #ffefd2 0%, var(--bg) 75%);
+}
+
+body.theme-anniversary .curtain-r {
+  background: radial-gradient(ellipse 170% 95% at 0% 32%, #ffefd2 0%, var(--bg) 75%);
+}
+
+body.theme-anniversary .entry-title em,
+body.theme-anniversary .interlude-line.big em {
+  color: transparent;
+  background: linear-gradient(115deg, var(--rose) 20%, var(--gold) 80%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+body.theme-anniversary .loader-line { background: rgba(64, 45, 42, 0.16); }
+
+body.theme-anniversary .open-btn { border-color: rgba(169, 75, 89, 0.55); color: var(--ink); }
+body.theme-anniversary .open-btn::before { border-color: rgba(169, 75, 89, 0.22); }
+body.theme-anniversary .open-btn:hover { background: rgba(169, 75, 89, 0.08); }
+
+body.theme-anniversary .music-toggle {
+  border-color: rgba(64, 45, 42, 0.3);
+  background: rgba(255, 250, 241, 0.6);
+}
+
+body.theme-anniversary .count-cell + .count-cell { border-left-color: rgba(64, 45, 42, 0.18); }
+
+body.theme-anniversary .deck-nav {
+  border-color: rgba(64, 45, 42, 0.3);
+  color: var(--ink);
+}
+
+body.theme-anniversary .polaroid .media,
+body.theme-anniversary .pcard .ph { background: #efe6d4; }
+
+body.theme-anniversary .vid-sound {
+  background: rgba(255, 246, 230, 0.78);
+  color: var(--ink);
+}
+
+body.theme-anniversary .clip-play {
+  border-color: rgba(64, 45, 42, 0.3);
+  background: rgba(255, 246, 230, 0.6);
+  color: var(--ink);
+}
+
+body.theme-anniversary .poem-front {
+  background: linear-gradient(160deg, #fdf4e3, #f3e3c6);
+  border-color: rgba(157, 118, 46, 0.4);
+}
+
+body.theme-anniversary .poem-num { color: var(--ink); }
+
+body.theme-anniversary .poem-seal {
+  background: radial-gradient(circle at 35% 30%, #d9a744, #9d762e 70%);
+  color: rgba(255, 250, 241, 0.95);
+}
+
+body.theme-anniversary .letter-title,
+body.theme-anniversary .letter-sign { color: #9d4350; }
+
+body.theme-anniversary .thread i { box-shadow: 0 0 12px rgba(169, 75, 89, 0.3); }
+
+body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
 
 @media (prefers-reduced-motion: reduce) {
   .grain, .motes i, .bars i, .open-btn::before, .aurora i, .petals i { animation: none; }

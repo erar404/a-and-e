@@ -35,6 +35,70 @@ That's it — Cloud Run builds the Dockerfile, injects `PORT`, and gives you a U
 2. Render Dashboard → **New → Web Service** → connect the repo.
 3. Runtime: **Docker**. No other settings needed (the container honors Render's `PORT`).
 
+## The monthsary engine 🌙→🌅
+
+The site rewrites itself **every 11th of the month at midnight (PH time)** —
+titles, the entry screen, the letter, the footer, and newly-unsealed poems.
+No code changes needed month to month; everything lives in two JSON files:
+
+- **`static/data/monthsary.json`** — the Tagalog count names (`counts`),
+  default text templates (`defaults`, with `{name}` `{english}` `{ordinalEn}`
+  placeholders), and per-month customizations (`months`). To write next
+  month's letter, add/edit `months["9"]` and fill in `letter.paragraphs`.
+  If a month has no entry, a sweet default letter shows instead.
+- **`static/data/poems.json`** — every poem with the `month` it unseals on.
+  Add `{ "month": 9, "text": "..." }` and the card appears by itself at
+  midnight of the 9th monthsary (`\n` = new line, `\n\n` = stanza break).
+
+Extras:
+
+- **Preview any month** with a query param: `http://localhost:8080/?month=12`.
+- **On the 11th itself**, a handwritten greeting card slides up after the
+  curtains open (per-month `greeting` in monthsary.json). If the page is open
+  when midnight strikes, everything flips live with a shower of petals.
+- **Month 12 = the first anniversary** switches the whole site to the
+  `anniversary` theme — the dark night becomes a golden dawn (a new chapter).
+  Any month can set `"theme"` in its `months` entry.
+- The old `static/poems.txt.txt` is no longer read; poems come from
+  `poems.json` now.
+- Keep `start` in monthsary.json, `FALLBACK_START` in `monthsary.js`, and
+  `LOVE_START` in `script.js` in sync if the start date ever changes.
+
+## The cloud slideshow ☁️
+
+The "mula sa ating ulap" section auto-plays every photo and video in our
+Google Drive folder — streamed straight from Drive, so nothing gets added
+to the repo or the Docker image.
+
+**One-time setup:** in Google Drive, right-click the folder → **Share** →
+General access → **"Anyone with the link" (Viewer)** → Done. (Required both
+for the sync script and for visitors' browsers to load the media. Note: this
+means anyone holding a file's link can view it.)
+
+**Refresh the list** whenever new files land in the folder:
+
+```powershell
+node tools/sync-drive-media.mjs
+```
+
+That regenerates `static/data/drive-media.json` (id + name + type per file).
+The slideshow crossfades photos every ~5.5s with a slow Ken Burns drift;
+videos show a play button and pause the rotation (and duck the music) while
+playing. If the JSON is empty the section hides itself, so the site never
+looks broken.
+
+## Usap Tayo — the private chat 💬
+
+`chat.html` is a two-person chat (reachable via the cursive "usap tayo ♡"
+link under the letter). Backend is Supabase (the bandapa project): auth +
+`chat_messages` table + realtime, all gated by Row Level Security so only
+the two `chat_members` accounts can read or write anything.
+
+- Login: tap your name, enter your birthdate (`MMDDYYYY`).
+- Messages deliver live (websockets), with Tagalog timestamps and a
+  "nakita ♡" seen indicator.
+- Full build/decision log lives in `CHAT_PLAN.md`.
+
 ## Notes
 
 - **Music autoplay**: browsers block autoplay, so the site opens with a

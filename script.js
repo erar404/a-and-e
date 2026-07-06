@@ -598,40 +598,67 @@ renderDeck();
 preload(0, VISIBLE + 2);
 resetAuto();
 
-/* ─── poems ─── */
+/* ─── poems (static/data/poems.json — each unseals on its month) ─── */
 
-const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+const ROMAN = [
+  "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII",
+  "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI", "XXII", "XXIII", "XXIV",
+];
 
-fetch("static/poems.txt.txt")
-  .then((r) => r.text())
-  .then((text) => {
-    const poems = text
-      .split(/\r?\n\s*--\s*\r?\n/)
-      .map((p) => p.trim())
-      .filter(Boolean);
+const poemGrid = document.getElementById("poem-grid");
+let allPoems = null;
 
-    const grid = document.getElementById("poem-grid");
-    poems.forEach((poem, idx) => {
-      const card = document.createElement("div");
-      card.className = "poem-card reveal";
-      card.style.transitionDelay = `${(idx % 4) * 0.12}s`;
-      card.innerHTML = `
-        <div class="poem-face poem-front">
-          <span class="poem-num">${ROMAN[idx] || idx + 1}</span>
-          <span class="poem-seal">♡</span>
-          <span class="poem-open-hint">tap to unseal</span>
-        </div>
-        <div class="poem-face poem-back">
-          <div class="poem-text"></div>
-          <div class="poem-foot">— para sa'yo, lagi</div>
-        </div>`;
-      card.querySelector(".poem-text").textContent = poem;
-      card.addEventListener("click", () => card.classList.toggle("open"));
-      grid.appendChild(card);
-    });
+function renderPoems() {
+  if (!allPoems) return;
+  const count = window.MONTHSARY ? window.MONTHSARY.count : Infinity;
+  const visible = allPoems.filter((p) => (p.month || 0) <= count);
+  const section = document.getElementById("poems");
+  if (!visible.length) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "";
+  poemGrid.innerHTML = "";
 
-    if (!entry.parentElement || entry.classList.contains("opening")) observeReveals();
+  visible.forEach((poem, idx) => {
+    const card = document.createElement("div");
+    card.className = "poem-card reveal";
+    card.style.transitionDelay = `${(idx % 4) * 0.12}s`;
+    card.innerHTML = `
+      <div class="poem-face poem-front">
+        <span class="poem-num">${ROMAN[idx] || idx + 1}</span>
+        <span class="poem-month"></span>
+        <span class="poem-seal">♡</span>
+        <span class="poem-open-hint">tap to unseal</span>
+      </div>
+      <div class="poem-face poem-back">
+        <div class="poem-text"></div>
+        <div class="poem-foot">— para sa'yo, lagi</div>
+      </div>`;
+    card.querySelector(".poem-text").textContent = poem.text;
+    const tag = card.querySelector(".poem-month");
+    if (poem.month && window.MONTHSARY) {
+      tag.textContent = window.MONTHSARY.countInfo(poem.month).name.toLowerCase();
+    } else {
+      tag.remove();
+    }
+    card.addEventListener("click", () => card.classList.toggle("open"));
+    poemGrid.appendChild(card);
+  });
+
+  if (!entry.parentElement || entry.classList.contains("opening")) observeReveals();
+}
+
+(window.MONTHSARY ? window.MONTHSARY.ready : Promise.resolve())
+  .then(() => fetch("static/data/poems.json"))
+  .then((r) => r.json())
+  .then((json) => {
+    allPoems = json.poems;
+    renderPoems();
   })
   .catch(() => {
     document.getElementById("poems").style.display = "none";
   });
+
+// a new poem (and everything else) appears when the month turns at midnight
+document.addEventListener("monthsary:change", renderPoems);

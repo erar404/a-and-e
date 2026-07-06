@@ -1,0 +1,85 @@
+{
+  "_readme": [
+    "Ito ang puso ng monthsary engine. Tuwing ika-11 ng buwan, hatinggabi (PH time),",
+    "kusang nagpapalit ang mga salita ng buong site gamit ang file na ito.",
+    "",
+    "counts   — ang bilang ng buwan sa Tagalog (1..12). Dagdagan kung lalagpas pa (13, 14, ...).",
+    "defaults — ang mga template kapag walang custom na entry ang buwan.",
+    "           Puwedeng gamitin ang {name} {nameLower} {english} {ordinalEn} {count}.",
+    "months   — i-customize ang kahit anong buwan: months[\"9\"] = { ... }.",
+    "           Kahit anong key sa defaults ay puwedeng i-override dito,",
+    "           pati 'theme' (hal. \"anniversary\") at 'entryTitleLines'.",
+    "           Ang letter.paragraphs ay listahan ng string; gawing { \"aside\": \"...\" }",
+    "           ang isang talata para maging sulat-kamay (cursive) ang itsura.",
+    "",
+    "Preview: buksan ang site na may ?month=N (hal. ?month=12) para makita ang kahit anong buwan."
+  ],
+  "start": "2025-10-11T22:30:00+08:00",
+  "timezone": "Asia/Manila",
+  "counts": {
+    "1":  { "name": "Isang Buwan",         "titleLines": ["Isang", "Buwan"],       "english": "one month",     "ordinalEn": "1st" },
+    "2":  { "name": "Dalawang Buwan",      "titleLines": ["Dalawang", "Buwan"],    "english": "two months",    "ordinalEn": "2nd" },
+    "3":  { "name": "Tatlong Buwan",       "titleLines": ["Tatlong", "Buwan"],     "english": "three months",  "ordinalEn": "3rd" },
+    "4":  { "name": "Apat na Buwan",       "titleLines": ["Apat na", "Buwan"],     "english": "four months",   "ordinalEn": "4th" },
+    "5":  { "name": "Limang Buwan",        "titleLines": ["Limang", "Buwan"],      "english": "five months",   "ordinalEn": "5th" },
+    "6":  { "name": "Anim na Buwan",       "titleLines": ["Anim na", "Buwan"],     "english": "six months",    "ordinalEn": "6th" },
+    "7":  { "name": "Pitong Buwan",        "titleLines": ["Pitong", "Buwan"],      "english": "seven months",  "ordinalEn": "7th" },
+    "8":  { "name": "Walong Buwan",        "titleLines": ["Walong", "Buwan"],      "english": "eight months",  "ordinalEn": "8th" },
+    "9":  { "name": "Siyam na Buwan",      "titleLines": ["Siyam na", "Buwan"],    "english": "nine months",   "ordinalEn": "9th" },
+    "10": { "name": "Sampung Buwan",       "titleLines": ["Sampung", "Buwan"],     "english": "ten months",    "ordinalEn": "10th" },
+    "11": { "name": "Labing-isang Buwan",  "titleLines": ["Labing-isang", "Buwan"],"english": "eleven months", "ordinalEn": "11th" },
+    "12": { "name": "Isang Taon",          "titleLines": ["Isang", "Taon"],        "english": "one year",      "ordinalEn": "12th" }
+  },
+  "defaults": {
+    "pageTitle": "{name} — para sa'yo, Mahal",
+    "entryKicker": "para sa'yo, mahal",
+    "entrySub": "{english} of us — and counting",
+    "entryHint": "best experienced with sound on ♪",
+    "letterKicker": "isang huling mensahe",
+    "footerNote": "{nameLower} na, at marami pang darating · ♡",
+    "greeting": "happy {ordinalEn} monthsary, mahal ♡",
+    "letter": {
+      "salutation": "Mahal,",
+      "titleLines": ["Happy {ordinalEn}", "Monthsary!"],
+      "paragraphs": [
+        "{name} na tayo, mahal. Hindi ko pa naisusulat ang liham para sa buwang ito — pero alam mo namang pareho lang lagi ang laman: mahal na mahal kita, ngayon at lagi.",
+        { "aside": "(isusulat ko pa 'to hehe — pero totoo lahat ng nasa itaas)" }
+      ],
+      "sign": "I love you so much ♡"
+    }
+  },
+  "months": {
+    "8": {
+      "letter": {
+        "salutation": "Mahal,",
+        "titleLines": ["Happy 8th", "Monthsary!"],
+        "paragraphs": [
+          "Sorry eto lang ang nakayanan ko ngayong buwan. Nawa di ka pa nagsasawa sakin at sa mga pinag gagawa ko sa buhay.",
+          "Aaminin ko, namimiss kita. Nagtatampo ako. Namimiss ko yung dating usapan at pananabik natin makausap ang isa't isa. Pero alam ko naman na marami ka lang iniisip ngayon. Nawa maalala mo na andito lang ako na handa makinig at sumuporta sa bawat desisyon mong gagawin.",
+          "Mahal na mahal kita at kitakits mamaya, at sa marami pang bukas na darating. Mahal na mahal kita.",
+          { "aside": "hehe nasabi ko na bang mahal na mahal kita? hahaha" },
+          "I will always be proud of you."
+        ],
+        "sign": "I love you so much. Alliah Edricah Hisita Jangas (Arellano. hehe) ♡"
+      }
+    },
+    "12": {
+      "theme": "anniversary",
+      "entryKicker": "ang unang anibersaryo, mahal",
+      "entrySub": "one year of us — a new chapter begins",
+      "entryHint": "best experienced with sound on ♪ — at ngayon, may araw na",
+      "letterKicker": "isang bagong kabanata",
+      "footerNote": "isang taon na, at habang buhay pa ang darating · ♡",
+      "greeting": "happy first anniversary, mahal ♡ — isang taon na tayo",
+      "letter": {
+        "salutation": "Mahal,",
+        "titleLines": ["Happy First", "Anniversary!"],
+        "paragraphs": [
+          "Isang taon na, mahal. Nagsimula ang site na ito sa dilim ng gabi — at ngayong unang anibersaryo natin, umaga na. Bagong kabanata na.",
+          "(Isusulat ko pa ang buong liham para sa araw na ito. Hintayin mo lang ako, tulad ng lagi.)"
+        ],
+        "sign": "I love you so much ♡"
+      }
+    }
+  }
+}

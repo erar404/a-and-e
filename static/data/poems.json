@@ -1,0 +1,45 @@
+{
+  "_readme": [
+    "Lahat ng tula ay nakatira dito. Ang 'month' ang nagsasabi kung kailan",
+    "lilitaw ang tula: makikita lang ito kapag umabot na ang bilang ng buwan",
+    "sa halagang iyon (hal. month: 9 → lilitaw sa hatinggabi ng ika-9 na monthsary).",
+    "Para magdagdag ng tula para sa susunod na buwan, idagdag lang sa dulo:",
+    "  { \"month\": 9, \"text\": \"unang linya\\nikalawang linya\\n\\nbagong saknong...\" }",
+    "Ang \\n ay bagong linya; ang \\n\\n ay puwang sa pagitan ng mga saknong.",
+    "Ang month: 0 (o walang month) ay laging makikita."
+  ],
+  "poems": [
+    {
+      "month": 6,
+      "text": "Mahal ko,\nBumalik man tayo sa simula\nAlaala man natin ay mawala\nAko ay totoong naniniwala\nNa mahahanap natin ang isa't isa\n\nAt kung dumating man ang araw\nNa ang tadhana sa ati'y umayaw\nPag ibig ko'y hindi papanaw\nPangalan mo parin ang isisigaw"
+    },
+    {
+      "month": 6,
+      "text": "Iiwas na ko sa pangangako\nAt pagbubutihan na lang lalo\nGusto kong makita kang manalo\nKahit yun lang ay masaya na ko\n\nHabang buhay akong magpapasalamat\nSa pagpaparamdam sakin na ako'y sapat\nPinili mo ako sa kabila ng lahat\nHinilom mo ang aking mga sugat"
+    },
+    {
+      "month": 6,
+      "text": "All these six months of loving\nTo all the nights and mornings\nYou make me fall deeper without trying\nBeing with you feels like winning\n\nI am forever grateful for the time\nYou spent that I can call you mine\nWhen I'm with you, everything is fine\nSo please, let's be together 'til the finish line"
+    },
+    {
+      "month": 6,
+      "text": "I love every little thing you do\nCause I know what we have is true\nYou stayed even when I am blue\nSo don't worry, cause I will too\n\nOur days here may be few\nBut I will always be grateful I can spend it with you\nEvery thing you did to me feels new\nEvery day you spent with me, my love grew"
+    },
+    {
+      "month": 6,
+      "text": "Mahal ko, kalahating taon na tayo\nNgunit narating natin ay napakalayo\nTayo'y mistulang binigla at walang ensayo\nPero salamat padin at natawag mo akong \"sayo\"\n\nPasensya na mahal sa aking mga pagkakamali\nSalamat at kinaya mo na magtiwala muli\nKumapit ka parin at nag baka sakali\nSalamat at ako parin ay iyong isinali"
+    },
+    {
+      "month": 6,
+      "text": "Anim na tula para sa anim na buwan\nMula ng tayo ay nagkatuluyan\nIsa parin talagang pala isipan\nKung paano tayo nagka igihan\n\nAnomalya man akong dumating\nMga pangyayari ay napaka galing\nIsa ka dating pangarap na mahirap abutin\nAko'y namangha dahil ika'y napasakin"
+    },
+    {
+      "month": 7,
+      "text": "Walang laban sa pangungulila\nKundi makita ang iyong mukha\nAt mga kwento mong ka mangha manga\n\nKaya mahal, pasensya ka na\nKung lagi akong nabibilasa\nAt nalulungkot kung ikaw ay wala"
+    },
+    {
+      "month": 8,
+      "text": "Di man tayo laging magkasama\nDala dala ko ang iyong ganda\nMinu-minutong naaalala\nAng dinadala mo saking saya\n\nMahal, tatahakin man natin ay mahaba\nNawa'y di ka magsawa\nDahil sa diyos ako'y nagmakaawa\nNa naway ika'y matawag na aking asawa"
+    }
+  ]
+}

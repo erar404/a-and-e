@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Usap Tayo — para sa ating dalawa</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d4a0a4' d='M12 21s-7.5-4.7-10-9.3C.5 8.6 2.3 5 5.7 5c2 0 3.6 1.2 4.3 2.4h4c.7-1.2 2.3-2.4 4.3-2.4 3.4 0 5.2 3.6 3.7 6.7C19.5 16.3 12 21 12 21z'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=La+Belle+Aurore&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="chat.css" />
+</head>
+<body>
+
+  <!-- the same dim atmosphere as home -->
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="aurora" aria-hidden="true"><i></i><i></i></div>
+
+  <!-- ═══════════ login ═══════════ -->
+  <div id="login" class="login">
+    <div class="login-card">
+      <p class="kicker">para sa ating dalawa lang</p>
+      <h1 class="login-title">Usap<br /><em>Tayo</em></h1>
+
+      <div class="login-step" id="step-who">
+        <p class="login-q">sino ka, mahal?</p>
+        <div class="who-row">
+          <button class="who-btn" data-name="Erwin">
+            <span class="who-heart">♡</span>Erwin
+          </button>
+          <button class="who-btn" data-name="Alliah">
+            <span class="who-heart">♡</span>Alliah
+          </button>
+        </div>
+      </div>
+
+      <form class="login-step" id="step-pass" hidden>
+        <p class="login-q">kailan ka ipinanganak, <em id="pass-name">mahal</em>?</p>
+        <input
+          id="pass-input"
+          type="password"
+          inputmode="numeric"
+          autocomplete="current-password"
+          placeholder="MMDDYYYY"
+          maxlength="8"
+          aria-label="Password"
+        />
+        <button type="submit" class="pass-btn">buksan&nbsp;♡</button>
+        <p class="login-err" id="login-err" hidden>hindi tama, mahal… subukan mo ulit&nbsp;♡</p>
+        <button type="button" class="login-back" id="login-back">‹ ibang tao ka pala</button>
+      </form>
+
+      <p class="login-foot"><a href="index.html">‹ balik sa alaala</a></p>
+    </div>
+  </div>
+
+  <!-- ═══════════ chat ═══════════ -->
+  <div id="chat" class="chat" hidden>
+    <header class="chat-head">
+      <a class="chat-home" href="index.html" aria-label="Back to the site">‹</a>
+      <div class="chat-title">
+        <h1>Usap Tayo</h1>
+        <p id="chat-sub">ikaw at ako lang ♡</p>
+      </div>
+      <button id="signout" class="chat-out" title="Sign out">lisan</button>
+    </header>
+
+    <main id="messages" class="messages" aria-live="polite"></main>
+
+    <form id="composer" class="composer">
+      <textarea
+        id="composer-input"
+        rows="1"
+        placeholder="sabihin mo, mahal…"
+        aria-label="Message"
+      ></textarea>
+      <button type="submit" class="send-btn" aria-label="Send">➤</button>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="chat.js"></script>
+</body>
+</html>
