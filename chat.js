@@ -160,12 +160,14 @@ async function enterChat() {
   markRead();
 
   // re-login shouldn't stack a second subscription
-  sb.removeAllChannels();
+  await sb.removeAllChannels();
   sb.channel("usap-tayo")
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "chat_messages" },
       (payload) => {
+        // skip if already in msgs (optimistic send already rendered it)
+        if (msgs.some((m) => m.id === payload.new.id)) return;
         msgs.push(payload.new);
         appendMsg(payload.new, true);
         refreshSeen();
@@ -191,7 +193,11 @@ composer.addEventListener("submit", async (e) => {
   input.value = "";
   autosize();
 
-  let { error } = await sb.from("chat_messages").insert({ sender_id: me, body });
+  let { data: sent, error } = await sb
+    .from("chat_messages")
+    .insert({ sender_id: me, body })
+    .select()
+    .single();
 
   if (error) {
     // most likely a stale session — check it before giving up
@@ -202,14 +208,26 @@ composer.addEventListener("submit", async (e) => {
       showLogin("na-expire ang session, mahal — pasok ka ulit at nandiyan pa rin ang mensahe mo ♡");
       return;
     }
-    // session is fine (probably just refreshed) — try once more
-    ({ error } = await sb.from("chat_messages").insert({ sender_id: me, body }));
+    // session is fine — try once more
+    ({ data: sent, error } = await sb
+      .from("chat_messages")
+      .insert({ sender_id: me, body })
+      .select()
+      .single());
     if (error) {
       input.value = body;
       autosize();
       composer.classList.add("failed");
       setTimeout(() => composer.classList.remove("failed"), 1200);
+      return;
     }
+  }
+
+  // show immediately; realtime will skip it when it arrives (dedup by id)
+  if (sent && !msgs.some((m) => m.id === sent.id)) {
+    msgs.push(sent);
+    appendMsg(sent, true);
+    refreshSeen();
   }
 });
 
