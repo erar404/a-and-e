@@ -14,5 +14,9 @@ Dockerfile
 .dockerignore
 README.md
 PRODUCT.md
+CHAT_PLAN.md
+handoff.md
+tools
 _shots
 .git
+.claude

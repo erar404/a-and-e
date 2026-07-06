@@ -396,6 +396,25 @@ body {
   color: var(--ink-soft);
 }
 
+/* quick door to the chat, right from the first screen */
+.entry-chat {
+  position: absolute;
+  top: calc(1.3rem + env(safe-area-inset-top));
+  right: 1.6rem;
+  z-index: 2;
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.15rem;
+  color: var(--gold);
+  text-decoration: none;
+  opacity: 0;
+  animation: entry-in 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+  transition: color 0.35s;
+}
+
+.entry-chat:hover { color: var(--rose); }
+
+.entry.opening .entry-chat { opacity: 0; transition: opacity 0.5s ease; }
+
 /* ─── music toggle ─── */
 
 .music-toggle {

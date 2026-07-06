@@ -8,7 +8,10 @@ ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
 
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-COPY index.html styles.css script.js photos.js /usr/share/nginx/html/
+COPY index.html chat.html \
+     styles.css chat.css \
+     script.js monthsary.js drive-show.js chat.js photos.js \
+     /usr/share/nginx/html/
 COPY static/ /usr/share/nginx/html/static/
 
 EXPOSE 8080
