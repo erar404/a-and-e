@@ -9,20 +9,6 @@ const SUPABASE_KEY = "sb_publishable_RPXksA5y0cj00OUH9lW6eA_2q4FtbFi";
 // the login screen shows names, never emails
 const ACCOUNTS = { Erwin: "erwin@eanda.chat", Alliah: "alliah@eanda.chat" };
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-/* phones throttle background timers, which can let the auth token expire;
-   pause/resume the refresh loop with tab visibility so it never goes stale */
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) sb.auth.stopAutoRefresh();
-  else sb.auth.startAutoRefresh();
-});
-
-/* signed out anywhere (another tab, expiry)? fall back to the login screen */
-sb.auth.onAuthStateChange((event) => {
-  if (event === "SIGNED_OUT") showLogin("nawala ang session, mahal — pasok ka ulit ♡");
-});
-
 const loginEl = document.getElementById("login");
 const chatEl = document.getElementById("chat");
 const stepWho = document.getElementById("step-who");
@@ -30,6 +16,7 @@ const stepPass = document.getElementById("step-pass");
 const passName = document.getElementById("pass-name");
 const passInput = document.getElementById("pass-input");
 const loginErr = document.getElementById("login-err");
+const loginNote = document.getElementById("login-note");
 const messagesEl = document.getElementById("messages");
 const chatSub = document.getElementById("chat-sub");
 const composer = document.getElementById("composer");
@@ -40,27 +27,88 @@ let names = {}; // user_id -> display name
 let selectedName = null;
 let msgs = [];
 
-/* ─── login flow ─── */
+/* ─── login navigation: pure DOM, wired before anything can fail ─── */
 
-document.querySelectorAll(".who-btn").forEach((btn) =>
-  btn.addEventListener("click", () => {
-    selectedName = btn.dataset.name;
-    passName.textContent = selectedName;
-    stepWho.hidden = true;
-    stepPass.hidden = false;
-    passInput.focus();
-  })
-);
+function note(text) {
+  loginNote.textContent = text || "";
+  loginNote.hidden = !text;
+}
 
-document.getElementById("login-back").addEventListener("click", () => {
+function showWho() {
   stepPass.hidden = true;
   stepWho.hidden = false;
   loginErr.hidden = true;
   passInput.value = "";
+}
+
+function showPass(name) {
+  selectedName = name;
+  passName.textContent = name;
+  stepWho.hidden = true;
+  stepPass.hidden = false;
+  loginErr.hidden = true;
+  setTimeout(() => passInput.focus(), 60);
+}
+
+/* back to the login screen without losing our place */
+function showLogin(message) {
+  chatEl.hidden = true;
+  loginEl.hidden = false;
+  note(message);
+  showWho();
+}
+
+document.querySelectorAll(".who-btn").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    localStorage.setItem("usap-who", btn.dataset.name);
+    showPass(btn.dataset.name);
+  })
+);
+
+document.getElementById("login-back").addEventListener("click", () => {
+  localStorage.removeItem("usap-who");
+  showWho();
 });
+
+// no need to pick yourself twice — remember who was here last time
+const lastWho = localStorage.getItem("usap-who");
+if (lastWho && ACCOUNTS[lastWho]) showPass(lastWho);
+
+/* ─── supabase client (guarded — a load failure can't kill the buttons) ─── */
+
+let sb = null;
+
+if (window.supabase) {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  /* phones throttle background timers, which can let the auth token expire;
+     pause/resume the refresh loop with tab visibility so it never goes stale */
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) sb.auth.stopAutoRefresh();
+    else sb.auth.startAutoRefresh();
+  });
+
+  /* signed out anywhere (another tab, expiry)? fall back to the login screen */
+  sb.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT") showLogin("nawala ang session, mahal — pasok ka ulit ♡");
+  });
+
+  /* still signed in from last time? go straight in */
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (session) enterChat();
+  });
+} else {
+  note("hindi ma-load ang koneksyon — i-refresh mo ako, mahal ♡");
+}
+
+/* ─── login submit ─── */
 
 stepPass.addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (!sb) {
+    note("hindi ma-load ang koneksyon — i-refresh mo ako, mahal ♡");
+    return;
+  }
   loginErr.hidden = true;
   const { error } = await sb.auth.signInWithPassword({
     email: ACCOUNTS[selectedName],
@@ -72,11 +120,12 @@ stepPass.addEventListener("submit", async (e) => {
     return;
   }
   passInput.value = "";
+  note("");
   enterChat();
 });
 
 document.getElementById("signout").addEventListener("click", async () => {
-  await sb.auth.signOut();
+  if (sb) await sb.auth.signOut();
   location.reload();
 });
 
@@ -135,20 +184,6 @@ async function enterChat() {
     .subscribe();
 }
 
-/* back to the login screen without losing our place */
-function showLogin(note) {
-  chatEl.hidden = true;
-  loginEl.hidden = false;
-  stepPass.hidden = true;
-  stepWho.hidden = false;
-  loginErr.hidden = true;
-  const noteEl = document.getElementById("login-note");
-  if (noteEl) {
-    noteEl.textContent = note || "";
-    noteEl.hidden = !note;
-  }
-}
-
 composer.addEventListener("submit", async (e) => {
   e.preventDefault();
   const body = input.value.trim();
@@ -203,7 +238,7 @@ async function markRead() {
 }
 
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && me) markRead();
+  if (!document.hidden && me && sb) markRead();
 });
 
 /* ─── rendering ─── */
@@ -293,9 +328,3 @@ function refreshSeen() {
 function scrollDown(smooth) {
   messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: smooth ? "smooth" : "auto" });
 }
-
-/* ─── boot: still signed in from last time? ─── */
-
-sb.auth.getSession().then(({ data: { session } }) => {
-  if (session) enterChat();
-});

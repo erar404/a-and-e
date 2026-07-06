@@ -10,7 +10,7 @@ COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
 COPY index.html chat.html \
      styles.css chat.css \
-     script.js monthsary.js drive-show.js chat.js photos.js \
+     script.js monthsary.js drive-show.js chat.js photos.js supabase.min.js \
      /usr/share/nginx/html/
 COPY static/ /usr/share/nginx/html/static/
 

@@ -15,7 +15,13 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
+    # pages, scripts, styles, data — always revalidate so fixes land at once
+    location ~* \.(html|js|css|json)$ {
+        add_header Cache-Control "no-cache";
+    }
+
     location / {
         try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
     }
 }

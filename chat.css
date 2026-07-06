@@ -130,23 +130,33 @@ body {
 
 .who-btn {
   flex: 1;
-  max-width: 160px;
+  max-width: 170px;
+  min-height: 96px;
   padding: 1.1rem 0 1rem;
   border: 1px solid rgba(212, 160, 164, 0.4);
-  border-radius: 4px;
+  border-radius: 6px;
   background: rgba(33, 23, 34, 0.55);
   color: var(--cream);
   font-family: inherit;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   letter-spacing: 0.06em;
   cursor: pointer;
-  transition: border-color 0.35s, background 0.35s, transform 0.35s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: border-color 0.35s, background 0.35s, transform 0.2s;
 }
 
 .who-btn:hover {
   border-color: var(--rose);
   background: rgba(212, 160, 164, 0.12);
   transform: translateY(-2px);
+}
+
+.who-btn:active {
+  transform: scale(0.96);
+  border-color: var(--rose);
+  background: rgba(212, 160, 164, 0.18);
 }
 
 .who-heart { display: block; color: var(--rose); font-size: 1.4rem; margin-bottom: 0.2rem; }
