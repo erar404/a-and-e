@@ -416,7 +416,223 @@ body {
 
 .send-btn:hover { background: rgba(212, 160, 164, 0.15); transform: scale(1.06); }
 
+/* ─── header call buttons ─── */
+
+.call-btn {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 160, 164, 0.4);
+  background: transparent;
+  color: var(--cream-dim);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s, color 0.3s, transform 0.3s;
+}
+
+.call-btn:hover {
+  border-color: var(--rose);
+  color: var(--rose);
+  background: rgba(212, 160, 164, 0.12);
+  transform: scale(1.06);
+}
+
+/* ─── image attachments ─── */
+
+.attach-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 160, 164, 0.3);
+  background: transparent;
+  color: var(--cream-dim);
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+
+.attach-btn:hover { border-color: var(--rose); color: var(--rose); background: rgba(212, 160, 164, 0.1); }
+
+.attach-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 1.2rem 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(212, 160, 164, 0.3);
+  border-radius: 12px;
+  background: rgba(33, 23, 34, 0.55);
+}
+
+.attach-preview img {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.attach-remove {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 160, 164, 0.4);
+  background: transparent;
+  color: var(--cream-dim);
+  cursor: pointer;
+}
+
+.attach-remove:hover { color: var(--rose); border-color: var(--rose); }
+
+.bubble.has-image { padding: 0.4rem; }
+
+.msg-img {
+  display: block;
+  max-width: min(60vw, 280px);
+  max-height: 320px;
+  border-radius: 10px;
+  cursor: zoom-in;
+}
+
+.msg-caption {
+  padding: 0.5rem 0.5rem 0.15rem;
+  font-size: 1.02rem;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* ─── lightbox ─── */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: rgba(10, 5, 9, 0.9);
+  backdrop-filter: blur(6px);
+  cursor: zoom-out;
+}
+
+.lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+}
+
+/* ─── call overlay ─── */
+
+.call-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 5, 9, 0.94);
+  backdrop-filter: blur(10px);
+}
+
+.call-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.remote-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--bg-soft);
+}
+
+.call-avatar {
+  position: absolute;
+  top: 30%;
+  font-size: 3.4rem;
+  color: var(--rose);
+  opacity: 0.85;
+}
+
+.local-video {
+  position: absolute;
+  top: calc(1rem + env(safe-area-inset-top));
+  right: 1rem;
+  width: 96px;
+  height: 128px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(240, 228, 212, 0.25);
+  box-shadow: var(--shadow);
+  background: var(--bg-soft);
+  z-index: 2;
+}
+
+.call-info {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  margin-bottom: 2.2rem;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+.call-name { font-size: 1.7rem; font-weight: 400; }
+
+.call-status {
+  margin-top: 0.3rem;
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.1rem;
+  color: var(--gold);
+  letter-spacing: 0.02em;
+}
+
+.call-controls {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  margin-bottom: calc(2.4rem + env(safe-area-inset-bottom));
+}
+
+.call-action {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 1px solid rgba(240, 228, 212, 0.25);
+  background: rgba(33, 23, 34, 0.7);
+  color: var(--cream);
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: background 0.25s, transform 0.2s, border-color 0.25s;
+}
+
+.call-action:active { transform: scale(0.92); }
+
+.call-action.neutral:hover { border-color: var(--rose); }
+
+.call-action.neutral.off { background: var(--rose); color: var(--bg); border-color: var(--rose); }
+
+.call-action.accept { background: #4c9a6a; border-color: #4c9a6a; }
+
+.call-action.accept:hover { background: #57ab77; }
+
+.call-action.decline { background: #b6484a; border-color: #b6484a; }
+
+.call-action.decline:hover { background: #c85557; }
+
 @media (max-width: 480px) {
   body { font-size: 17px; }
   .msg { max-width: 86%; }
+  .msg-img { max-width: 68vw; }
 }

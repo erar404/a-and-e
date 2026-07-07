@@ -21,11 +21,19 @@ const messagesEl = document.getElementById("messages");
 const chatSub = document.getElementById("chat-sub");
 const composer = document.getElementById("composer");
 const input = document.getElementById("composer-input");
+const attachBtn = document.getElementById("attach-btn");
+const fileInput = document.getElementById("file-input");
+const attachPreview = document.getElementById("attach-preview");
+const attachPreviewImg = document.getElementById("attach-preview-img");
+const attachRemove = document.getElementById("attach-remove");
+const lightbox = document.getElementById("lightbox");
+const lightboxImg = document.getElementById("lightbox-img");
 
 let me = null; // my user id
 let names = {}; // user_id -> display name
 let selectedName = null;
 let msgs = [];
+let pendingFile = null; // image chosen but not yet sent
 
 /* ─── login navigation: pure DOM, wired before anything can fail ─── */
 
@@ -125,6 +133,7 @@ stepPass.addEventListener("submit", async (e) => {
 });
 
 document.getElementById("signout").addEventListener("click", async () => {
+  if (callState !== "idle") hangupCall();
   if (sb) await sb.auth.signOut();
   location.reload();
 });
@@ -145,6 +154,7 @@ async function enterChat() {
   }
   names = Object.fromEntries(members.map((m) => [m.user_id, m.display_name]));
   const partner = members.find((m) => m.user_id !== me);
+  callPeer = partner ? partner.user_id : null;
   chatSub.textContent = partner ? `ikaw at si ${partner.display_name} lang ♡` : "ikaw at ako lang ♡";
 
   loginEl.hidden = true;
@@ -184,38 +194,97 @@ async function enterChat() {
       }
     )
     .subscribe();
+
+  setupCallChannel();
+  setupPush();
+}
+
+/* ─── image attachments ─── */
+
+attachBtn.addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files[0];
+  fileInput.value = "";
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    alert("larawan lang, mahal ♡");
+    return;
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    alert("masyadong malaki ang larawan, mahal ♡");
+    return;
+  }
+  pendingFile = file;
+  attachPreviewImg.src = URL.createObjectURL(file);
+  attachPreview.hidden = false;
+});
+
+attachRemove.addEventListener("click", clearAttachment);
+
+function clearAttachment() {
+  pendingFile = null;
+  attachPreview.hidden = true;
+  attachPreviewImg.src = "";
+}
+
+const attachmentUrlCache = new Map(); // path -> { url, expires }
+
+async function getAttachmentUrl(path) {
+  const cached = attachmentUrlCache.get(path);
+  if (cached && cached.expires > Date.now()) return cached.url;
+  const { data, error } = await sb.storage.from("chat-attachments").createSignedUrl(path, 3600);
+  if (error || !data) return null;
+  attachmentUrlCache.set(path, { url: data.signedUrl, expires: Date.now() + 55 * 60 * 1000 });
+  return data.signedUrl;
 }
 
 composer.addEventListener("submit", async (e) => {
   e.preventDefault();
   const body = input.value.trim();
-  if (!body) return;
+  const file = pendingFile;
+  if (!body && !file) return;
   input.value = "";
   autosize();
+  clearAttachment();
 
-  let { data: sent, error } = await sb
-    .from("chat_messages")
-    .insert({ sender_id: me, body })
-    .select()
-    .single();
+  let attachment_path = null;
+  let attachment_type = null;
+
+  if (file) {
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const path = `${me}/${crypto.randomUUID()}.${ext}`;
+    const { error: upErr } = await sb.storage
+      .from("chat-attachments")
+      .upload(path, file, { contentType: file.type });
+    if (upErr) {
+      if (body) input.value = body;
+      autosize();
+      composer.classList.add("failed");
+      setTimeout(() => composer.classList.remove("failed"), 1200);
+      return;
+    }
+    attachment_path = path;
+    attachment_type = file.type;
+  }
+
+  const row = { sender_id: me, body: body || "", attachment_path, attachment_type };
+
+  let { data: sent, error } = await sb.from("chat_messages").insert(row).select().single();
 
   if (error) {
     // most likely a stale session — check it before giving up
     const { data: { session } } = await sb.auth.getSession();
     if (!session) {
-      input.value = body; // keep her words safe
+      if (body) input.value = body; // keep her words safe
       autosize();
       showLogin("na-expire ang session, mahal — pasok ka ulit at nandiyan pa rin ang mensahe mo ♡");
       return;
     }
     // session is fine — try once more
-    ({ data: sent, error } = await sb
-      .from("chat_messages")
-      .insert({ sender_id: me, body })
-      .select()
-      .single());
+    ({ data: sent, error } = await sb.from("chat_messages").insert(row).select().single());
     if (error) {
-      input.value = body;
+      if (body) input.value = body;
       autosize();
       composer.classList.add("failed");
       setTimeout(() => composer.classList.remove("failed"), 1200);
@@ -245,6 +314,39 @@ function autosize() {
   input.style.height = "auto";
   input.style.height = Math.min(input.scrollHeight, 140) + "px";
 }
+
+/* ─── image lightbox ─── */
+
+function renderImageBubble(bubble, m) {
+  bubble.classList.add("has-image");
+  const img = document.createElement("img");
+  img.className = "msg-img";
+  img.alt = "larawan";
+  img.loading = "lazy";
+  img.addEventListener("click", () => openLightbox(img.src));
+  bubble.appendChild(img);
+  getAttachmentUrl(m.attachment_path).then((url) => {
+    if (url) img.src = url;
+  });
+
+  if (m.body) {
+    const cap = document.createElement("div");
+    cap.className = "msg-caption";
+    cap.textContent = m.body;
+    bubble.appendChild(cap);
+  }
+}
+
+function openLightbox(src) {
+  if (!src) return;
+  lightboxImg.src = src;
+  lightbox.hidden = false;
+}
+
+lightbox.addEventListener("click", () => {
+  lightbox.hidden = true;
+  lightboxImg.src = "";
+});
 
 /* mark the partner's unread messages as seen */
 async function markRead() {
@@ -317,7 +419,12 @@ function appendMsg(m, animate) {
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
-  bubble.textContent = m.body;
+
+  if (m.attachment_path) {
+    renderImageBubble(bubble, m);
+  } else {
+    bubble.textContent = m.body;
+  }
 
   const meta = document.createElement("div");
   meta.className = "meta";
@@ -345,4 +452,358 @@ function refreshSeen() {
 
 function scrollDown(smooth) {
   messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+}
+
+/* ─── audio / video calls (WebRTC, signaled over a Supabase Realtime broadcast channel) ─── */
+
+const ICE_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+];
+
+const callAudioBtn = document.getElementById("call-audio-btn");
+const callVideoBtn = document.getElementById("call-video-btn");
+const callOverlay = document.getElementById("call-overlay");
+const callAvatar = document.getElementById("call-avatar");
+const callNameEl = document.getElementById("call-name");
+const callStatusEl = document.getElementById("call-status");
+const remoteVideoEl = document.getElementById("remote-video");
+const localVideoEl = document.getElementById("local-video");
+const callAcceptBtn = document.getElementById("call-accept");
+const callDeclineBtn = document.getElementById("call-decline");
+const callMuteBtn = document.getElementById("call-mute");
+const callCamBtn = document.getElementById("call-cam");
+const callHangupBtn = document.getElementById("call-hangup");
+
+let callChannel = null;
+let callPeer = null; // partner's user id — this app only ever has two members
+let callState = "idle"; // idle | outgoing | incoming | active
+let callId = null;
+let isVideoCall = true;
+let pc = null;
+let localStream = null;
+let pendingOffer = null;
+let pendingCandidates = [];
+let callTimer = null;
+let callStartedAt = null;
+
+function setupCallChannel() {
+  callChannel = sb.channel("usap-tayo-call", { config: { broadcast: { self: false } } });
+  callChannel
+    .on("broadcast", { event: "offer" }, ({ payload }) => handleOffer(payload))
+    .on("broadcast", { event: "answer" }, ({ payload }) => handleAnswer(payload))
+    .on("broadcast", { event: "ice" }, ({ payload }) => handleRemoteIce(payload))
+    .on("broadcast", { event: "hangup" }, ({ payload }) => handleHangup(payload))
+    .on("broadcast", { event: "busy" }, ({ payload }) => handleBusy(payload))
+    .subscribe();
+}
+
+function sendSignal(event, payload) {
+  if (!callChannel) return;
+  callChannel.send({ type: "broadcast", event, payload: { ...payload, from: me, callId } });
+}
+
+function createPeerConnection() {
+  const conn = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  conn.onicecandidate = (e) => {
+    if (e.candidate) sendSignal("ice", { candidate: e.candidate.toJSON() });
+  };
+  conn.ontrack = (e) => {
+    remoteVideoEl.srcObject = e.streams[0];
+  };
+  conn.onconnectionstatechange = () => {
+    if (conn.connectionState === "connected") {
+      if (callState === "idle") return;
+      callState = "active";
+      showActiveControls();
+      startTimer();
+    } else if (["failed", "disconnected", "closed"].includes(conn.connectionState)) {
+      if (callState !== "idle") endCall();
+    }
+  };
+  return conn;
+}
+
+async function startCall(video) {
+  if (callState !== "idle" || !callPeer) return;
+  isVideoCall = video;
+  callId = crypto.randomUUID();
+  callState = "outgoing";
+  showCallUI();
+  callNameEl.textContent = names[callPeer] || "mahal";
+  setCallStatus(`tumatawag kay ${names[callPeer] || "iyo"}…`);
+  showOutgoingControls();
+
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
+  } catch (e) {
+    setCallStatus("hindi ma-access ang camera/mic ♡");
+    setTimeout(endCall, 1500);
+    return;
+  }
+  localVideoEl.srcObject = localStream;
+  localVideoEl.hidden = !video;
+
+  pc = createPeerConnection();
+  localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  sendSignal("offer", { sdp: offer, video });
+}
+
+async function handleOffer({ from, sdp, video, callId: incomingId }) {
+  if (!from || from === me || from !== callPeer) return;
+  if (callState !== "idle") {
+    sendSignal("busy", { callId: incomingId });
+    return;
+  }
+  callId = incomingId;
+  isVideoCall = video;
+  pendingOffer = sdp;
+  callState = "incoming";
+  showCallUI();
+  callNameEl.textContent = names[from] || "mahal";
+  setCallStatus(`tumatawag si ${names[from] || "siya"}…`);
+  showIncomingControls();
+}
+
+async function acceptCall() {
+  if (callState !== "incoming" || !pendingOffer) return;
+  setCallStatus("kumokonekta…");
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
+  } catch (e) {
+    declineCall();
+    return;
+  }
+  localVideoEl.srcObject = localStream;
+  localVideoEl.hidden = !isVideoCall;
+
+  pc = createPeerConnection();
+  localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
+  await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+  flushPendingCandidates();
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  sendSignal("answer", { sdp: answer });
+  showActiveControls();
+}
+
+function declineCall() {
+  sendSignal("hangup", { reason: "declined" });
+  endCall();
+}
+
+function hangupCall() {
+  if (callState !== "idle") sendSignal("hangup", { reason: "ended" });
+  endCall();
+}
+
+async function handleAnswer({ from, sdp, callId: rid }) {
+  if (from === me || from !== callPeer || rid !== callId || !pc) return;
+  await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+  flushPendingCandidates();
+}
+
+async function handleRemoteIce({ from, candidate, callId: rid }) {
+  if (from === me || from !== callPeer || rid !== callId) return;
+  if (!pc || !pc.remoteDescription) {
+    pendingCandidates.push(candidate);
+    return;
+  }
+  try {
+    await pc.addIceCandidate(candidate);
+  } catch {
+    // stray candidate after teardown — safe to ignore
+  }
+}
+
+function flushPendingCandidates() {
+  pendingCandidates.forEach((c) => pc.addIceCandidate(c).catch(() => {}));
+  pendingCandidates = [];
+}
+
+function handleHangup({ from, callId: rid }) {
+  if (from === me || from !== callPeer || rid !== callId) return;
+  setCallStatus("tumawid ang tawag ♡");
+  setTimeout(endCall, 400);
+}
+
+function handleBusy({ from, callId: rid }) {
+  if (from === me || from !== callPeer || rid !== callId) return;
+  setCallStatus("abala siya ngayon ♡");
+  setTimeout(endCall, 1500);
+}
+
+function endCall() {
+  stopTimer();
+  if (pc) {
+    pc.onicecandidate = null;
+    pc.ontrack = null;
+    pc.onconnectionstatechange = null;
+    pc.close();
+    pc = null;
+  }
+  if (localStream) {
+    localStream.getTracks().forEach((t) => t.stop());
+    localStream = null;
+  }
+  remoteVideoEl.srcObject = null;
+  localVideoEl.srcObject = null;
+  pendingCandidates = [];
+  pendingOffer = null;
+  callState = "idle";
+  callId = null;
+  hideCallUI();
+}
+
+function showCallUI() {
+  callOverlay.hidden = false;
+  callAvatar.hidden = false;
+  callMuteBtn.classList.remove("off");
+  callCamBtn.classList.remove("off");
+}
+
+function hideCallUI() {
+  callOverlay.hidden = true;
+  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callHangupBtn].forEach((b) => (b.hidden = true));
+}
+
+function showOutgoingControls() {
+  callAcceptBtn.hidden = true;
+  callDeclineBtn.hidden = false;
+  callMuteBtn.hidden = true;
+  callCamBtn.hidden = true;
+  callHangupBtn.hidden = true;
+}
+
+function showIncomingControls() {
+  callAcceptBtn.hidden = false;
+  callDeclineBtn.hidden = false;
+  callMuteBtn.hidden = true;
+  callCamBtn.hidden = true;
+  callHangupBtn.hidden = true;
+}
+
+function showActiveControls() {
+  callAcceptBtn.hidden = true;
+  callDeclineBtn.hidden = true;
+  callMuteBtn.hidden = false;
+  callCamBtn.hidden = !isVideoCall;
+  callHangupBtn.hidden = false;
+  callAvatar.hidden = isVideoCall;
+  setCallStatus("");
+}
+
+function setCallStatus(text) {
+  callStatusEl.textContent = text;
+}
+
+function startTimer() {
+  callStartedAt = Date.now();
+  callTimer = setInterval(() => {
+    const s = Math.floor((Date.now() - callStartedAt) / 1000);
+    const m = String(Math.floor(s / 60)).padStart(2, "0");
+    const ss = String(s % 60).padStart(2, "0");
+    setCallStatus(`${m}:${ss}`);
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(callTimer);
+  callTimer = null;
+}
+
+callAudioBtn.addEventListener("click", () => startCall(false));
+callVideoBtn.addEventListener("click", () => startCall(true));
+callAcceptBtn.addEventListener("click", acceptCall);
+callDeclineBtn.addEventListener("click", declineCall);
+callHangupBtn.addEventListener("click", hangupCall);
+
+callMuteBtn.addEventListener("click", () => {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  if (!track) return;
+  track.enabled = !track.enabled;
+  callMuteBtn.classList.toggle("off", !track.enabled);
+});
+
+callCamBtn.addEventListener("click", () => {
+  if (!localStream) return;
+  const track = localStream.getVideoTracks()[0];
+  if (!track) return;
+  track.enabled = !track.enabled;
+  callCamBtn.classList.toggle("off", !track.enabled);
+  localVideoEl.hidden = !track.enabled;
+});
+
+window.addEventListener("beforeunload", () => {
+  if (callState !== "idle") sendSignal("hangup", { reason: "left" });
+});
+
+/* ─── push notifications for new messages ─── */
+
+const VAPID_PUBLIC_KEY =
+  "BNIujtEXG7qLnWE3lUv7FoNV2Jfq_4Y1CCQdR_ZApi3f5tGbEGeIggekWLGIRA_BcDIoPqGWEgiXMPW91FQCKlQ";
+
+const notifyBtn = document.getElementById("notify-btn");
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
+
+async function setupPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
+
+  let reg;
+  try {
+    reg = await navigator.serviceWorker.register("sw.js");
+  } catch {
+    return;
+  }
+
+  if (Notification.permission === "granted") {
+    notifyBtn.hidden = true;
+    subscribePush(reg);
+  } else if (Notification.permission === "default") {
+    notifyBtn.hidden = false;
+  } else {
+    notifyBtn.hidden = true;
+  }
+}
+
+notifyBtn.addEventListener("click", async () => {
+  if (!("serviceWorker" in navigator)) return;
+  const reg = await navigator.serviceWorker.ready;
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") return;
+  notifyBtn.hidden = true;
+  subscribePush(reg);
+});
+
+async function subscribePush(reg) {
+  try {
+    const existing = await reg.pushManager.getSubscription();
+    const sub =
+      existing ||
+      (await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      }));
+    const json = sub.toJSON();
+    await sb.from("push_subscriptions").upsert(
+      {
+        user_id: me,
+        endpoint: json.endpoint,
+        p256dh: json.keys.p256dh,
+        auth: json.keys.auth,
+      },
+      { onConflict: "endpoint" }
+    );
+  } catch {
+    // notifications are a nice-to-have — a failed subscribe shouldn't break the chat
+  }
 }

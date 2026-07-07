@@ -68,12 +68,22 @@
         <h1>Usap Tayo</h1>
         <p id="chat-sub">ikaw at ako lang ♡</p>
       </div>
+      <button id="notify-btn" class="call-btn" title="Paganahin ang abiso" aria-label="Enable notifications" hidden>🔔</button>
+      <button id="call-audio-btn" class="call-btn" title="Tawagan" aria-label="Audio call">☎</button>
+      <button id="call-video-btn" class="call-btn" title="Video call" aria-label="Video call">⛶</button>
       <button id="signout" class="chat-out" title="Sign out">lisan</button>
     </header>
 
     <main id="messages" class="messages" aria-live="polite"></main>
 
+    <div id="attach-preview" class="attach-preview" hidden>
+      <img id="attach-preview-img" alt="" />
+      <button type="button" id="attach-remove" class="attach-remove" aria-label="Alisin ang larawan">✕</button>
+    </div>
+
     <form id="composer" class="composer">
+      <input type="file" id="file-input" accept="image/*" hidden />
+      <button type="button" id="attach-btn" class="attach-btn" aria-label="Magpadala ng larawan">📎</button>
       <textarea
         id="composer-input"
         rows="1"
@@ -82,6 +92,34 @@
       ></textarea>
       <button type="submit" class="send-btn" aria-label="Send">➤</button>
     </form>
+  </div>
+
+  <!-- ═══════════ image lightbox ═══════════ -->
+  <div id="lightbox" class="lightbox" hidden>
+    <img id="lightbox-img" alt="" />
+  </div>
+
+  <!-- ═══════════ call overlay ═══════════ -->
+  <div id="call-overlay" class="call-overlay" hidden>
+    <div class="call-card">
+      <video id="remote-video" class="remote-video" autoplay playsinline></video>
+      <div class="call-avatar" id="call-avatar">♡</div>
+      <video id="local-video" class="local-video" autoplay playsinline muted hidden></video>
+
+      <div class="call-info">
+        <p id="call-name" class="call-name">mahal</p>
+        <p id="call-status" class="call-status">tumatawag…</p>
+      </div>
+
+      <div class="call-controls">
+        <button type="button" id="call-decline" class="call-action decline" aria-label="Tanggihan" hidden>✕</button>
+        <button type="button" id="call-accept" class="call-action accept" aria-label="Sagutin" hidden>☎</button>
+
+        <button type="button" id="call-mute" class="call-action neutral" aria-label="Mute" hidden>🎙</button>
+        <button type="button" id="call-cam" class="call-action neutral" aria-label="Camera" hidden>⛶</button>
+        <button type="button" id="call-hangup" class="call-action decline" aria-label="Bumaba" hidden>✕</button>
+      </div>
+    </div>
   </div>
 
   <script src="supabase.min.js"></script>
