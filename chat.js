@@ -564,6 +564,7 @@ async function handleOffer({ from, sdp, video, callId: incomingId }) {
   showCallUI();
   callNameEl.textContent = names[from] || "mahal";
   setCallStatus(`tumatawag si ${names[from] || "siya"}…`);
+  callAvatar.classList.add("ringing");
   showIncomingControls();
 }
 
@@ -666,6 +667,7 @@ function showCallUI() {
 
 function hideCallUI() {
   callOverlay.hidden = true;
+  callAvatar.classList.remove("ringing");
   [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callHangupBtn].forEach((b) => (b.hidden = true));
 }
 
@@ -692,6 +694,7 @@ function showActiveControls() {
   callCamBtn.hidden = !isVideoCall;
   callHangupBtn.hidden = false;
   callAvatar.hidden = isVideoCall;
+  callAvatar.classList.remove("ringing");
   setCallStatus("");
 }
 
