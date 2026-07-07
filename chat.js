@@ -524,6 +524,30 @@ function createPeerConnection() {
   return conn;
 }
 
+/* getUserMedia failures are common (blocked/unset permissions are the norm
+   on a fresh incognito window, since permissions never carry over from
+   normal browsing) — name the actual reason instead of a generic failure */
+function mediaErrorMessage(err) {
+  const name = err && err.name;
+  if (name === "NotAllowedError" || name === "SecurityError") {
+    return "naka-block ang camera/mic — tingnan sa browser settings, mahal ♡";
+  }
+  if (name === "NotFoundError" || name === "OverconstrainedError") {
+    return "walang nahanap na camera/mic, mahal ♡";
+  }
+  if (name === "NotReadableError") {
+    return "ginagamit na ng iba ang camera/mic mo, mahal ♡";
+  }
+  return "hindi ma-access ang camera/mic, mahal ♡";
+}
+
+// ends the call locally with a readable status, optionally telling the other side why
+function failCall(message, signalReason) {
+  setCallStatus(message);
+  if (signalReason) sendSignal("hangup", { reason: signalReason });
+  setTimeout(endCall, 2200);
+}
+
 async function startCall(video) {
   if (callState !== "idle" || !callPeer) return;
   isVideoCall = video;
@@ -537,8 +561,8 @@ async function startCall(video) {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
   } catch (e) {
-    setCallStatus("hindi ma-access ang camera/mic ♡");
-    setTimeout(endCall, 1500);
+    // no offer was ever sent — she was never rung, so there's no one to signal
+    failCall(mediaErrorMessage(e), null);
     return;
   }
   localVideoEl.srcObject = localStream;
@@ -574,7 +598,8 @@ async function acceptCall() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
   } catch (e) {
-    declineCall();
+    // caller is actively waiting on this one — tell them why it failed, not just "declined"
+    failCall(mediaErrorMessage(e), "media-error");
     return;
   }
   localVideoEl.srcObject = localStream;
@@ -624,8 +649,13 @@ function flushPendingCandidates() {
   pendingCandidates = [];
 }
 
-function handleHangup({ from, callId: rid }) {
+function handleHangup({ from, callId: rid, reason }) {
   if (from === me || from !== callPeer || rid !== callId) return;
+  if (reason === "media-error") {
+    setCallStatus(`hindi ma-access ang camera/mic ni ${names[from] || "siya"}, mahal ♡`);
+    setTimeout(endCall, 2200);
+    return;
+  }
   setCallStatus("tumawid ang tawag ♡");
   setTimeout(endCall, 400);
 }
