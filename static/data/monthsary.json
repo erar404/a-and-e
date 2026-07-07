@@ -31,7 +31,8 @@
     "12": { "name": "Isang Taon",          "titleLines": ["Isang", "Taon"],        "english": "one year",      "ordinalEn": "12th" }
   },
   "defaults": {
-    "pageTitle": "{name} — para sa'yo, Mahal",
+    "pageTitle": "Para sayo, Mahal ko",
+    "entryTitleLines": ["Para sayo,", "Mahal ko"],
     "entryKicker": "para sa'yo, mahal",
     "entrySub": "{english} of us — and counting",
     "entryHint": "best experienced with sound on ♪",

@@ -269,6 +269,24 @@ body {
 
 .chat-title h1 { font-size: 1.45rem; font-weight: 400; line-height: 1.1; }
 
+.online-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 0.35rem;
+  border-radius: 50%;
+  background: #6fcf97;
+  box-shadow: 0 0 0 0 rgba(111, 207, 151, 0.6);
+  vertical-align: middle;
+  animation: online-pulse 2s ease-out infinite;
+}
+
+@keyframes online-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(111, 207, 151, 0.55); }
+  70% { box-shadow: 0 0 0 6px rgba(111, 207, 151, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(111, 207, 151, 0); }
+}
+
 .chat-title p {
   font-family: "La Belle Aurore", cursive;
   font-size: 0.95rem;

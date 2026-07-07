@@ -28,6 +28,7 @@ const attachPreviewImg = document.getElementById("attach-preview-img");
 const attachRemove = document.getElementById("attach-remove");
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightbox-img");
+const onlineDot = document.getElementById("online-dot");
 
 let me = null; // my user id
 let names = {}; // user_id -> display name
@@ -196,7 +197,28 @@ async function enterChat() {
     .subscribe();
 
   setupCallChannel();
+  setupPresence();
   setupPush();
+}
+
+/* ─── online presence (is the partner here right now?) ─── */
+
+let presenceChannel = null;
+let partnerOnline = false;
+
+function setupPresence() {
+  presenceChannel = sb.channel("usap-tayo-presence", {
+    config: { presence: { key: me } },
+  });
+  presenceChannel
+    .on("presence", { event: "sync" }, () => {
+      const state = presenceChannel.presenceState();
+      partnerOnline = !!(callPeer && state[callPeer] && state[callPeer].length > 0);
+      onlineDot.hidden = !partnerOnline;
+    })
+    .subscribe(async (status) => {
+      if (status === "SUBSCRIBED") await presenceChannel.track({ online_at: new Date().toISOString() });
+    });
 }
 
 /* ─── image attachments ─── */
@@ -548,8 +570,22 @@ function failCall(message, signalReason) {
   setTimeout(endCall, 2200);
 }
 
+/* she's not on the chat screen right now — say so instead of ringing into the void */
+function offlinePrompt() {
+  showCallUI();
+  callAvatar.hidden = false;
+  callNameEl.textContent = names[callPeer] || "mahal";
+  setCallStatus(`wala si ${names[callPeer] || "siya"} online ngayon, mahal ♡`);
+  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callHangupBtn].forEach((b) => (b.hidden = true));
+  setTimeout(hideCallUI, 2200);
+}
+
 async function startCall(video) {
   if (callState !== "idle" || !callPeer) return;
+  if (!partnerOnline) {
+    offlinePrompt();
+    return;
+  }
   isVideoCall = video;
   callId = crypto.randomUUID();
   callState = "outgoing";
