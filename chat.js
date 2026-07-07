@@ -9,8 +9,14 @@ const SUPABASE_KEY = "sb_publishable_RPXksA5y0cj00OUH9lW6eA_2q4FtbFi";
 // the login screen shows names, never emails
 const ACCOUNTS = { Erwin: "erwin@eanda.chat", Alliah: "alliah@eanda.chat" };
 
+// asked once per browser session, before the two of us are even named
+const ANNIVERSARY = "2025-10-11";
+
 const loginEl = document.getElementById("login");
 const chatEl = document.getElementById("chat");
+const stepGate = document.getElementById("step-gate");
+const gateInput = document.getElementById("gate-input");
+const gateErr = document.getElementById("gate-err");
 const stepWho = document.getElementById("step-who");
 const stepPass = document.getElementById("step-pass");
 const passName = document.getElementById("pass-name");
@@ -29,6 +35,7 @@ const attachRemove = document.getElementById("attach-remove");
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightbox-img");
 const onlineDot = document.getElementById("online-dot");
+const refreshBtn = document.getElementById("refresh-btn");
 
 let me = null; // my user id
 let names = {}; // user_id -> display name
@@ -79,9 +86,32 @@ document.getElementById("login-back").addEventListener("click", () => {
   showWho();
 });
 
-// no need to pick yourself twice — remember who was here last time
-const lastWho = localStorage.getItem("usap-who");
-if (lastWho && ACCOUNTS[lastWho]) showPass(lastWho);
+/* ─── security gate: prove it's really us before naming names ─── */
+
+function afterGate() {
+  stepGate.hidden = true;
+  // no need to pick yourself twice — remember who was here last time
+  const lastWho = localStorage.getItem("usap-who");
+  if (lastWho && ACCOUNTS[lastWho]) showPass(lastWho);
+  else showWho();
+}
+
+stepGate.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (gateInput.value === ANNIVERSARY) {
+    gateErr.hidden = true;
+    sessionStorage.setItem("usap-gate-ok", "1");
+    afterGate();
+  } else {
+    gateErr.hidden = false;
+    stepGate.classList.remove("shake");
+    void stepGate.offsetWidth; // restart the animation on repeat wrong guesses
+    stepGate.classList.add("shake");
+  }
+});
+
+// passed the gate already this browser session? no need to ask twice
+if (sessionStorage.getItem("usap-gate-ok") === "1") afterGate();
 
 /* ─── supabase client (guarded — a load failure can't kill the buttons) ─── */
 
@@ -382,6 +412,26 @@ async function markRead() {
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden && me && sb) markRead();
 });
+
+/* manual re-sync — in case a realtime event ever got dropped (flaky network,
+   backgrounded tab) and a message never showed up on its own */
+async function refreshMessages() {
+  if (!sb || !me || refreshBtn.classList.contains("spinning")) return;
+  refreshBtn.classList.add("spinning");
+  const { data } = await sb
+    .from("chat_messages")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (data) {
+    msgs = data.reverse();
+    renderAll();
+    markRead();
+  }
+  setTimeout(() => refreshBtn.classList.remove("spinning"), 700);
+}
+
+refreshBtn.addEventListener("click", refreshMessages);
 
 /* ─── rendering ─── */
 

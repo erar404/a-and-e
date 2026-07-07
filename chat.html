@@ -28,7 +28,18 @@
       <h1 class="login-title">Usap<br /><em>Tayo</em></h1>
       <p class="login-note" id="login-note" hidden></p>
 
-      <div class="login-step" id="step-who">
+      <form class="login-step" id="step-gate">
+        <p class="login-q">bago ang lahat… kailan ang <em>anibersaryo</em> natin, mahal?</p>
+        <input
+          id="gate-input"
+          type="date"
+          aria-label="Anniversary date"
+        />
+        <button type="submit" class="pass-btn">tuloy&nbsp;♡</button>
+        <p class="login-err" id="gate-err" hidden>hindi 'yan, mahal… subukan mo ulit&nbsp;♡</p>
+      </form>
+
+      <div class="login-step" id="step-who" hidden>
         <p class="login-q">sino ka, mahal?</p>
         <div class="who-row">
           <button type="button" class="who-btn" data-name="Erwin">
@@ -69,6 +80,7 @@
         <p id="chat-sub">ikaw at ako lang ♡</p>
       </div>
       <button id="notify-btn" class="call-btn" title="Paganahin ang abiso" aria-label="Enable notifications" hidden>🔔</button>
+      <button id="refresh-btn" class="call-btn" title="I-refresh ang mga mensahe" aria-label="Refresh messages">↻</button>
       <button id="call-audio-btn" class="call-btn" title="Tawagan" aria-label="Audio call">☎</button>
       <button id="call-video-btn" class="call-btn" title="Video call" aria-label="Video call">⛶</button>
       <button id="signout" class="chat-out" title="Sign out">lisan</button>

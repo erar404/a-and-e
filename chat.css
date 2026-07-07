@@ -164,7 +164,8 @@ body {
 
 .who-heart { display: block; color: var(--rose); font-size: 1.4rem; margin-bottom: 0.2rem; }
 
-#step-pass input {
+#step-pass input,
+#step-gate input {
   display: block;
   width: min(240px, 80%);
   margin: 0 auto 1.1rem;
@@ -181,9 +182,17 @@ body {
   transition: border-color 0.3s;
 }
 
-#step-pass input:focus { border-color: var(--rose); }
+#step-pass input:focus,
+#step-gate input:focus { border-color: var(--rose); }
 
 #step-pass input::placeholder { color: var(--ink-soft); letter-spacing: 0.2em; }
+
+#step-gate input::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) sepia(1) saturate(3) hue-rotate(300deg);
+  cursor: pointer;
+}
+
+.login-step.shake { animation: shake 0.4s ease; }
 
 .pass-btn {
   padding: 0.55rem 2.2rem;
@@ -447,6 +456,13 @@ body {
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.3s, border-color 0.3s, color 0.3s, transform 0.3s;
+}
+
+#refresh-btn.spinning { animation: refresh-spin 0.7s ease; pointer-events: none; }
+
+@keyframes refresh-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 .call-btn:hover {
