@@ -605,6 +605,46 @@ function stopRingtone() {
   ringtone.currentTime = 0;
 }
 
+/* getStats() shows what the standalone Call Check page can't: what actually
+   happened between these two specific peers — which candidate pairs were
+   tried, which one (if any) won, and what type each side's candidate was
+   (host/srflx/relay). That's the difference between "the network can reach
+   a STUN/TURN server" and "the network could reach the other peer". */
+async function summarizeIceStats(conn) {
+  try {
+    const report = await conn.getStats();
+    const candidates = {};
+    const pairs = [];
+    report.forEach((r) => {
+      if (r.type === "local-candidate" || r.type === "remote-candidate") candidates[r.id] = r;
+      if (r.type === "candidate-pair") pairs.push(r);
+    });
+
+    const describe = (id) => {
+      const c = candidates[id];
+      return c ? `${c.candidateType}/${c.protocol}` : "unknown";
+    };
+
+    const pairSummaries = pairs.map(
+      (p) => `${p.state}${p.nominated ? "*" : ""}(local=${describe(p.localCandidateId)},remote=${describe(p.remoteCandidateId)})`
+    );
+
+    const counts = { local: {}, remote: {} };
+    Object.values(candidates).forEach((c) => {
+      const bucket = c.type === "local-candidate" ? counts.local : counts.remote;
+      bucket[c.candidateType] = (bucket[c.candidateType] || 0) + 1;
+    });
+
+    return `local=${JSON.stringify(counts.local)} remote=${JSON.stringify(counts.remote)} pairs=[${pairSummaries.join(",") || "none"}]`;
+  } catch (e) {
+    return `getStats failed: ${e.message}`;
+  }
+}
+
+function logIceStats(conn, label) {
+  summarizeIceStats(conn).then((s) => console.log(`[call] ${label} stats —`, s));
+}
+
 // mails Erwin whenever a call breaks, naming which side (caller/callee) it happened on —
 // best-effort only, a failed report should never interrupt the call flow itself
 function reportCallError(kind, detail) {
@@ -649,24 +689,34 @@ function createPeerConnection() {
   conn.ontrack = (e) => {
     remoteVideoEl.srcObject = e.streams[0];
   };
-  conn.onconnectionstatechange = () => {
+  conn.onconnectionstatechange = async () => {
     if (conn.connectionState === "connected") {
       if (callState === "idle") return;
       stopRingtone();
       callState = "active";
       showActiveControls();
       startTimer();
+      // baseline for comparison against a future failure — which path a working call actually used
+      logIceStats(conn, "connected");
     } else if (conn.connectionState === "failed") {
       // ICE never found a path through — almost always a blocked-UDP/firewall
       // network (common on locked-down VDI like Amazon WorkSpaces), not a
       // normal hangup, so say so instead of just going silent
       if (callState !== "idle") {
         setCallStatus("hindi kumonekta ang tawag — baka blocked ng network ang koneksyon. subukan ang 🛠 Call Check ♡");
-        reportCallError("connection-failed", `iceConnectionState=${conn.iceConnectionState}, iceGatheringState=${conn.iceGatheringState}`);
+        const statsSummary = await summarizeIceStats(conn);
+        console.log("[call] failed stats —", statsSummary);
+        reportCallError(
+          "connection-failed",
+          `iceConnectionState=${conn.iceConnectionState}, iceGatheringState=${conn.iceGatheringState}; ${statsSummary}`
+        );
         setTimeout(endCall, 3500);
       }
     } else if (["disconnected", "closed"].includes(conn.connectionState)) {
-      if (callState !== "idle") endCall();
+      if (callState !== "idle") {
+        logIceStats(conn, conn.connectionState);
+        endCall();
+      }
     }
   };
   // not user-facing — visible in devtools console while debugging a real call
