@@ -472,6 +472,13 @@ body {
   transform: scale(1.06);
 }
 
+.call-check-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 /* ─── image attachments ─── */
 
 .attach-btn {

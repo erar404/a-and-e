@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Call Check — Usap Tayo</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d4a0a4' d='M12 21s-7.5-4.7-10-9.3C.5 8.6 2.3 5 5.7 5c2 0 3.6 1.2 4.3 2.4h4c.7-1.2 2.3-2.4 4.3-2.4 3.4 0 5.2 3.6 3.7 6.7C19.5 16.3 12 21 12 21z'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=La+Belle+Aurore&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="chat.css" />
+  <link rel="stylesheet" href="call-check.css" />
+</head>
+<body class="check-body">
+
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="aurora" aria-hidden="true"><i></i><i></i></div>
+
+  <div class="check-wrap">
+    <header class="check-head">
+      <a class="chat-home" href="chat.html" aria-label="Back to chat">‹</a>
+      <div>
+        <h1>Call Check</h1>
+        <p class="check-sub">para malaman kung bakit hindi kumokonekta ang tawag — run this on the computer where the call fails</p>
+      </div>
+    </header>
+
+    <p class="check-note">
+      This page tests, one by one, the things a call needs: camera/mic access, the signaling
+      connection, and whether your network allows the peer-to-peer connection through. It does not
+      start a real call or touch any chat data. If you're on Amazon WorkSpaces, run this
+      <strong>inside the WorkSpaces browser session</strong> — the result only means something for the
+      network the call actually runs on.
+    </p>
+
+    <button type="button" id="run-btn" class="run-btn">Simulan ang pagsusuri ♡ Run diagnostics</button>
+
+    <ol class="check-list" id="check-list">
+      <li class="check-item" data-test="env">
+        <div class="check-row">
+          <span class="check-icon" id="icon-env">○</span>
+          <span class="check-title">1. Browser &amp; connection environment</span>
+        </div>
+        <p class="check-detail" id="detail-env">Naghihintay…</p>
+      </li>
+      <li class="check-item" data-test="media">
+        <div class="check-row">
+          <span class="check-icon" id="icon-media">○</span>
+          <span class="check-title">2. Camera &amp; microphone access</span>
+        </div>
+        <p class="check-detail" id="detail-media">Naghihintay…</p>
+        <video id="preview-video" class="preview-video" autoplay playsinline muted hidden></video>
+      </li>
+      <li class="check-item" data-test="signal">
+        <div class="check-row">
+          <span class="check-icon" id="icon-signal">○</span>
+          <span class="check-title">3. Signaling server (Supabase Realtime)</span>
+        </div>
+        <p class="check-detail" id="detail-signal">Naghihintay…</p>
+      </li>
+      <li class="check-item" data-test="ice">
+        <div class="check-row">
+          <span class="check-icon" id="icon-ice">○</span>
+          <span class="check-title">4. Network / STUN (UDP) connectivity</span>
+        </div>
+        <p class="check-detail" id="detail-ice">Naghihintay…</p>
+      </li>
+    </ol>
+
+    <div class="check-verdict" id="verdict" hidden>
+      <h2 id="verdict-title"></h2>
+      <p id="verdict-body"></p>
+    </div>
+
+    <button type="button" id="copy-btn" class="copy-btn" hidden>Kopyahin ang resulta ♡ Copy report</button>
+    <p class="copy-note" id="copy-note" hidden>Nakopya ♡ — ipadala mo ito kay Erwin.</p>
+  </div>
+
+  <script src="supabase.min.js"></script>
+  <script src="call-check.js"></script>
+</body>
+</html>

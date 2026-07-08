@@ -558,6 +558,41 @@ let pendingOffer = null;
 let pendingCandidates = [];
 let callTimer = null;
 let callStartedAt = null;
+let isCaller = null; // true = we dialed out, false = we received the call — set per-call, only meaningful while callState !== "idle"
+
+const ringtone = new Audio("static/ringtone.m4a");
+ringtone.loop = true;
+ringtone.preload = "auto";
+
+function playRingtone() {
+  ringtone.currentTime = 0;
+  ringtone.play().catch(() => {});
+}
+
+function stopRingtone() {
+  ringtone.pause();
+  ringtone.currentTime = 0;
+}
+
+// mails Erwin whenever a call breaks, naming which side (caller/callee) it happened on —
+// best-effort only, a failed report should never interrupt the call flow itself
+function reportCallError(kind, detail) {
+  if (!sb) return;
+  const side = isCaller === false ? "callee" : "caller";
+  sb.functions
+    .invoke("send-call-error-email", {
+      body: {
+        kind,
+        detail: String(detail || ""),
+        side,
+        who: names[me] || me || "unknown",
+        peer: names[callPeer] || callPeer || "unknown",
+        callId,
+        when: new Date().toISOString(),
+      },
+    })
+    .catch((e) => console.error("[call] failed to report error email:", e));
+}
 
 function setupCallChannel() {
   callChannel = sb.channel("usap-tayo-call", { config: { broadcast: { self: false } } });
@@ -586,12 +621,29 @@ function createPeerConnection() {
   conn.onconnectionstatechange = () => {
     if (conn.connectionState === "connected") {
       if (callState === "idle") return;
+      stopRingtone();
       callState = "active";
       showActiveControls();
       startTimer();
-    } else if (["failed", "disconnected", "closed"].includes(conn.connectionState)) {
+    } else if (conn.connectionState === "failed") {
+      // ICE never found a path through — almost always a blocked-UDP/firewall
+      // network (common on locked-down VDI like Amazon WorkSpaces), not a
+      // normal hangup, so say so instead of just going silent
+      if (callState !== "idle") {
+        setCallStatus("hindi kumonekta ang tawag — baka blocked ng network ang koneksyon. subukan ang 🛠 Call Check ♡");
+        reportCallError("connection-failed", `iceConnectionState=${conn.iceConnectionState}, iceGatheringState=${conn.iceGatheringState}`);
+        setTimeout(endCall, 3500);
+      }
+    } else if (["disconnected", "closed"].includes(conn.connectionState)) {
       if (callState !== "idle") endCall();
     }
+  };
+  // not user-facing — visible in devtools console while debugging a real call
+  conn.oniceconnectionstatechange = () => {
+    console.log("[call] iceConnectionState:", conn.iceConnectionState);
+  };
+  conn.onicegatheringstatechange = () => {
+    console.log("[call] iceGatheringState:", conn.iceGatheringState);
   };
   return conn;
 }
@@ -615,6 +667,7 @@ function mediaErrorMessage(err) {
 
 // ends the call locally with a readable status, optionally telling the other side why
 function failCall(message, signalReason) {
+  stopRingtone();
   setCallStatus(message);
   if (signalReason) sendSignal("hangup", { reason: signalReason });
   setTimeout(endCall, 2200);
@@ -639,15 +692,18 @@ async function startCall(video) {
   isVideoCall = video;
   callId = crypto.randomUUID();
   callState = "outgoing";
+  isCaller = true;
   showCallUI();
   callNameEl.textContent = names[callPeer] || "mahal";
   setCallStatus(`tumatawag kay ${names[callPeer] || "iyo"}…`);
   showOutgoingControls();
+  playRingtone();
 
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
   } catch (e) {
     // no offer was ever sent — she was never rung, so there's no one to signal
+    reportCallError("media-error", e && e.name);
     failCall(mediaErrorMessage(e), null);
     return;
   }
@@ -671,20 +727,24 @@ async function handleOffer({ from, sdp, video, callId: incomingId }) {
   isVideoCall = video;
   pendingOffer = sdp;
   callState = "incoming";
+  isCaller = false;
   showCallUI();
   callNameEl.textContent = names[from] || "mahal";
   setCallStatus(`tumatawag si ${names[from] || "siya"}…`);
   callAvatar.classList.add("ringing");
   showIncomingControls();
+  playRingtone();
 }
 
 async function acceptCall() {
   if (callState !== "incoming" || !pendingOffer) return;
+  stopRingtone();
   setCallStatus("kumokonekta…");
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
   } catch (e) {
     // caller is actively waiting on this one — tell them why it failed, not just "declined"
+    reportCallError("media-error", e && e.name);
     failCall(mediaErrorMessage(e), "media-error");
     return;
   }
@@ -702,17 +762,20 @@ async function acceptCall() {
 }
 
 function declineCall() {
+  stopRingtone();
   sendSignal("hangup", { reason: "declined" });
   endCall();
 }
 
 function hangupCall() {
+  stopRingtone();
   if (callState !== "idle") sendSignal("hangup", { reason: "ended" });
   endCall();
 }
 
 async function handleAnswer({ from, sdp, callId: rid }) {
   if (from === me || from !== callPeer || rid !== callId || !pc) return;
+  stopRingtone();
   await pc.setRemoteDescription(new RTCSessionDescription(sdp));
   flushPendingCandidates();
 }
@@ -737,6 +800,7 @@ function flushPendingCandidates() {
 
 function handleHangup({ from, callId: rid, reason }) {
   if (from === me || from !== callPeer || rid !== callId) return;
+  stopRingtone();
   if (reason === "media-error") {
     setCallStatus(`hindi ma-access ang camera/mic ni ${names[from] || "siya"}, mahal ♡`);
     setTimeout(endCall, 2200);
@@ -748,11 +812,13 @@ function handleHangup({ from, callId: rid, reason }) {
 
 function handleBusy({ from, callId: rid }) {
   if (from === me || from !== callPeer || rid !== callId) return;
+  stopRingtone();
   setCallStatus("abala siya ngayon ♡");
   setTimeout(endCall, 1500);
 }
 
 function endCall() {
+  stopRingtone();
   stopTimer();
   if (pc) {
     pc.onicecandidate = null;
@@ -771,6 +837,7 @@ function endCall() {
   pendingOffer = null;
   callState = "idle";
   callId = null;
+  isCaller = null;
   hideCallUI();
 }
 

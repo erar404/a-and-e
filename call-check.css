@@ -1,0 +1,143 @@
+/* ════════════════════════════════════════════
+   Call Check — network/media diagnostics for
+   "Usap Tayo" audio & video calls
+   ════════════════════════════════════════════ */
+
+.check-body { overflow-y: auto; height: auto; min-height: 100%; }
+
+.check-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.check-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.check-head h1 {
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--cream);
+}
+
+.check-sub {
+  color: var(--cream-dim);
+  font-size: 0.95rem;
+  margin-top: 2px;
+}
+
+.check-note {
+  color: var(--cream-dim);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(212, 160, 164, 0.18);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.run-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 24px;
+  border-radius: 14px;
+  border: 1px solid rgba(212, 160, 164, 0.4);
+  background: rgba(212, 160, 164, 0.12);
+  color: var(--cream);
+  font-family: inherit;
+  font-size: 1.02rem;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s, transform 0.15s;
+}
+
+.run-btn:hover { border-color: var(--rose); background: rgba(212, 160, 164, 0.2); }
+.run-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+.check-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+
+.check-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(212, 160, 164, 0.16);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.check-row { display: flex; align-items: center; gap: 10px; }
+
+.check-icon {
+  width: 22px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 1.05rem;
+  color: var(--cream-dim);
+}
+
+.check-icon.pass { color: #8fd19e; }
+.check-icon.warn { color: var(--gold); }
+.check-icon.fail { color: #e08a8a; }
+.check-icon.running { color: var(--rose); animation: check-pulse 1s ease-in-out infinite; }
+
+@keyframes check-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.check-title { font-size: 1.02rem; color: var(--cream); }
+
+.check-detail {
+  margin: 6px 0 0 32px;
+  font-size: 0.88rem;
+  color: var(--cream-dim);
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.preview-video {
+  margin: 10px 0 0 32px;
+  width: 140px;
+  border-radius: 8px;
+  border: 1px solid rgba(212, 160, 164, 0.3);
+  background: #000;
+}
+
+.check-verdict {
+  margin-top: 26px;
+  padding: 18px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(212, 160, 164, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.check-verdict.ok { border-color: rgba(143, 209, 158, 0.5); background: rgba(143, 209, 158, 0.08); }
+.check-verdict.warn { border-color: rgba(201, 168, 117, 0.5); background: rgba(201, 168, 117, 0.08); }
+.check-verdict.fail { border-color: rgba(224, 138, 138, 0.5); background: rgba(224, 138, 138, 0.08); }
+
+.check-verdict h2 { font-size: 1.15rem; margin-bottom: 8px; color: var(--cream); }
+.check-verdict p { font-size: 0.92rem; color: var(--cream-dim); line-height: 1.6; white-space: pre-line; }
+
+.copy-btn {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 160, 164, 0.3);
+  background: transparent;
+  color: var(--cream-dim);
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+
+.copy-btn:hover { border-color: var(--rose); color: var(--rose); background: rgba(212, 160, 164, 0.1); }
+
+.copy-note { text-align: center; margin-top: 10px; font-size: 0.85rem; color: var(--cream-dim); }
