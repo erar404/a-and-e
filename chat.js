@@ -552,10 +552,13 @@ function scrollDown(smooth) {
 // STUN alone only works when both sides can hole-punch directly — a symmetric
 // NAT (common on managed/VDI networks like Amazon WorkSpaces) blocks that even
 // when each side's own STUN check passes, so a TURN relay is required as a
-// fallback. OpenRelay is a free public TURN service (no account needed) —
-// good enough for this app's scale, but revisit with a dedicated TURN
-// provider if it turns out to be unreliable under real use.
-const ICE_SERVERS = [
+// fallback. These are the always-available base servers; a real call also
+// tries to add short-lived Cloudflare TURNS (TLS-on-443) credentials on top
+// (see getIceServers below) — a plain, non-TLS relay can get silently dropped
+// by a firewall doing deep packet inspection on port 443, while TURNS looks
+// identical to ordinary HTTPS traffic and gets through the same way other
+// video-calling apps' traffic does.
+const STATIC_ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
   { urls: "stun:openrelay.metered.ca:80" },
@@ -563,6 +566,22 @@ const ICE_SERVERS = [
   { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
   { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
 ];
+
+// fetches fresh, short-lived Cloudflare TURN/TURNS credentials for this call;
+// falls back to the static list alone if that fails for any reason (offline,
+// slow, function down) — a call should still attempt to connect either way
+async function getIceServers() {
+  try {
+    const invoke = sb.functions.invoke("get-turn-credentials", { body: {} });
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 4000));
+    const { data, error } = await Promise.race([invoke, timeout]);
+    if (error) throw error;
+    return [...STATIC_ICE_SERVERS, ...((data && data.iceServers) || [])];
+  } catch (e) {
+    console.error("[call] failed to fetch TURN credentials, using static ICE servers only:", e);
+    return STATIC_ICE_SERVERS;
+  }
+}
 
 const callAudioBtn = document.getElementById("call-audio-btn");
 const callVideoBtn = document.getElementById("call-video-btn");
@@ -681,8 +700,9 @@ function sendSignal(event, payload) {
   callChannel.send({ type: "broadcast", event, payload: { ...payload, from: me, callId } });
 }
 
-function createPeerConnection() {
-  const conn = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+async function createPeerConnection() {
+  const iceServers = await getIceServers();
+  const conn = new RTCPeerConnection({ iceServers });
   conn.onicecandidate = (e) => {
     if (e.candidate) sendSignal("ice", { candidate: e.candidate.toJSON() });
   };
@@ -791,7 +811,7 @@ async function startCall(video) {
   localVideoEl.srcObject = localStream;
   localVideoEl.hidden = !video;
 
-  pc = createPeerConnection();
+  pc = await createPeerConnection();
   localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
@@ -832,7 +852,7 @@ async function acceptCall() {
   localVideoEl.srcObject = localStream;
   localVideoEl.hidden = !isVideoCall;
 
-  pc = createPeerConnection();
+  pc = await createPeerConnection();
   localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
   await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
   flushPendingCandidates();
