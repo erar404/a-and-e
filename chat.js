@@ -43,6 +43,21 @@ let selectedName = null;
 let msgs = [];
 let pendingFile = null; // image chosen but not yet sent
 
+/* ─── tab title flashes while a new message waits, unread, on a background tab ─── */
+
+const DEFAULT_TITLE = document.title;
+let unreadTitleCount = 0;
+
+function bumpUnreadTitle() {
+  unreadTitleCount++;
+  document.title = unreadTitleCount > 1 ? `(${unreadTitleCount}) Bagong mensahe ♡` : "💬 Bagong mensahe ♡";
+}
+
+function resetTitle() {
+  unreadTitleCount = 0;
+  document.title = DEFAULT_TITLE;
+}
+
 /* ─── login navigation: pure DOM, wired before anything can fail ─── */
 
 function note(text) {
@@ -212,7 +227,10 @@ async function enterChat() {
         msgs.push(payload.new);
         appendMsg(payload.new, true);
         refreshSeen();
-        if (payload.new.sender_id !== me && !document.hidden) markRead();
+        if (payload.new.sender_id !== me) {
+          if (document.hidden) bumpUnreadTitle();
+          else markRead();
+        }
       }
     )
     .on(
@@ -410,7 +428,10 @@ async function markRead() {
 }
 
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && me && sb) markRead();
+  if (!document.hidden) {
+    resetTitle();
+    if (me && sb) markRead();
+  }
 });
 
 /* manual re-sync — in case a realtime event ever got dropped (flaky network,
