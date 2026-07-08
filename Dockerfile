@@ -8,9 +8,9 @@ ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
 
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-COPY index.html chat.html \
-     styles.css chat.css \
-     script.js monthsary.js drive-show.js chat.js photos.js supabase.min.js \
+COPY index.html chat.html call-check.html \
+     styles.css chat.css call-check.css \
+     script.js monthsary.js drive-show.js chat.js photos.js supabase.min.js call-check.js \
      /usr/share/nginx/html/
 COPY static/ /usr/share/nginx/html/static/
 
