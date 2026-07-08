@@ -17,6 +17,10 @@ const SUPABASE_KEY = "sb_publishable_RPXksA5y0cj00OUH9lW6eA_2q4FtbFi";
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:openrelay.metered.ca:80" },
+  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
 ];
 
 const runBtn = document.getElementById("run-btn");
@@ -172,18 +176,25 @@ function testIce() {
 
       const summary = `Candidates found — host: ${counts.host}, server-reflexive (STUN): ${counts.srflx}, relay (TURN): ${counts.relay}.`;
 
-      if (counts.srflx > 0) {
+      if (counts.relay > 0) {
         setStatus(
           "ice",
           "pass",
-          `${summary}\nOutbound UDP to the STUN server worked, so this network can usually punch through to the other side directly. Note: this app has no TURN server configured, so if the OTHER computer's network blocks UDP, the call can still fail even though this side passes.`
+          `${summary}\nA TURN relay candidate was gathered, so this network can fall back to the relay even if a direct STUN/UDP path doesn't work between the two of you (e.g. symmetric NAT). Calls should be able to connect through this network.`
+        );
+        resolve("pass");
+      } else if (counts.srflx > 0) {
+        setStatus(
+          "ice",
+          "pass",
+          `${summary}\nOutbound UDP to the STUN server worked, so this network can usually punch through to the other side directly. No TURN relay candidate came back, though — if the OTHER side needs the relay (e.g. it's behind a symmetric NAT), the call may still fail even with this side passing.`
         );
         resolve("pass");
       } else if (counts.host > 0) {
         setStatus(
           "ice",
           "fail",
-          `${summary}\nNo server-reflexive (STUN) candidates were gathered at all — outbound UDP to stun.l.google.com:19302 appears to be blocked or filtered by this network. This is a very common restriction on managed/VDI networks like Amazon WorkSpaces. Without STUN (or a TURN relay, which this app doesn't have configured), WebRTC has no way to establish the call and it will hang or drop right when connecting.`
+          `${summary}\nNeither STUN nor the TURN relay could be reached — outbound UDP/TCP to stun.l.google.com and openrelay.metered.ca both appear blocked or filtered by this network. This is a very common restriction on managed/VDI networks like Amazon WorkSpaces. Without either of these, WebRTC has no way to establish the call and it will hang or drop right when connecting.`
         );
         resolve("fail");
       } else {
@@ -221,12 +232,11 @@ function renderVerdict(results) {
       "Basic browser support (secure connection or WebRTC itself) is missing. Try a current version of Chrome or Edge, and make sure the page is loaded over https:// (not http://).";
   } else if (ice === "fail") {
     verdictEl.className = "check-verdict fail";
-    verdictTitle.textContent = "Malamang: naka-block ang UDP/STUN sa network na ito";
+    verdictTitle.textContent = "Malamang: naka-block ang UDP/STUN/TURN sa network na ito";
     verdictBody.textContent =
-      "This is the most likely reason calls fail on this computer. WebRTC calls need outbound UDP to a STUN server to work, and this network isn't allowing it through — very typical for Amazon WorkSpaces, corporate VPNs, and locked-down proxies.\n\n" +
+      "This is the most likely reason calls fail on this computer. Neither a direct STUN path nor the TURN relay could get through, and a WebRTC call has no other way to establish itself.\n\n" +
       "What to try:\n" +
-      "• Ask IT/network admin to allow outbound UDP (not just TCP/443) from the WorkSpace, at least to stun.l.google.com and stun1.l.google.com on port 19302.\n" +
-      "• If that's not possible, the app needs a TURN server (a relay that works over TCP/443 even when UDP is blocked) — plain STUN can't fix this, since STUN only works when direct UDP is allowed. Flag this back to Erwin; a TURN relay needs to be added to chat.js.\n" +
+      "• Ask IT/network admin to allow outbound UDP AND TCP:443 to stun.l.google.com, stun1.l.google.com, and openrelay.metered.ca — these are what this app's calls actually need.\n" +
       "• As a workaround for now, try the call from a regular (non-WorkSpaces) network to confirm it's the network and not the app.";
   } else if (media === "fail") {
     verdictEl.className = "check-verdict warn";
@@ -243,7 +253,7 @@ function renderVerdict(results) {
     verdictEl.className = "check-verdict ok";
     verdictTitle.textContent = "Lahat maayos dito ♡ — this computer should be able to call";
     verdictBody.textContent =
-      "Every step passed: camera/mic access works, the signaling channel connects, and outbound STUN/UDP is open. If calls still fail when actually dialing between the two of you, run this same check on the OTHER computer too — a call needs BOTH sides to have working network access, and it only takes one side being blocked (e.g. the other one being on WorkSpaces with UDP blocked) for the call to fail.";
+      "Every step passed: camera/mic access works, the signaling channel connects, and this network can reach either a direct STUN path or the TURN relay. If calls still fail when actually dialing between the two of you, run this same check on the OTHER computer too — a call needs BOTH sides to have working network access, and it only takes one side being blocked for the call to fail.";
   }
 
   report.push("");

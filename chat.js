@@ -549,9 +549,19 @@ function scrollDown(smooth) {
 
 /* ─── audio / video calls (WebRTC, signaled over a Supabase Realtime broadcast channel) ─── */
 
+// STUN alone only works when both sides can hole-punch directly — a symmetric
+// NAT (common on managed/VDI networks like Amazon WorkSpaces) blocks that even
+// when each side's own STUN check passes, so a TURN relay is required as a
+// fallback. OpenRelay is a free public TURN service (no account needed) —
+// good enough for this app's scale, but revisit with a dedicated TURN
+// provider if it turns out to be unreliable under real use.
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:openrelay.metered.ca:80" },
+  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
 ];
 
 const callAudioBtn = document.getElementById("call-audio-btn");
