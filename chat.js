@@ -609,6 +609,35 @@ let pendingCandidates = [];
 let callTimer = null;
 let callStartedAt = null;
 let isCaller = null; // true = we dialed out, false = we received the call — set per-call, only meaningful while callState !== "idle"
+let callFailureReported = false; // guards against double-reporting the same failure via both the timeout and the native "failed" event
+let connectTimeoutId = null;
+
+// browsers don't always land on connectionState "failed" — ICE can just sit in
+// "checking"/"new" forever with no terminal state at all, which used to mean
+// no message and no error report ever fired. This guarantees both after a
+// fixed wait, regardless of whether the native state machine ever resolves.
+function armConnectTimeout(conn) {
+  clearConnectTimeout();
+  connectTimeoutId = setTimeout(async () => {
+    if (callState === "idle" || callState === "active" || callFailureReported) return;
+    callFailureReported = true;
+    setCallStatus("hindi kumonekta ang tawag — baka blocked ng network ang koneksyon. subukan ang 🛠 Call Check ♡");
+    const statsSummary = await summarizeIceStats(conn);
+    console.log("[call] timed out waiting to connect — stats:", statsSummary);
+    reportCallError(
+      "connection-timeout",
+      `connectionState=${conn.connectionState}, iceConnectionState=${conn.iceConnectionState}, iceGatheringState=${conn.iceGatheringState}; ${statsSummary}`
+    );
+    setTimeout(endCall, 3500);
+  }, 20000);
+}
+
+function clearConnectTimeout() {
+  if (connectTimeoutId) {
+    clearTimeout(connectTimeoutId);
+    connectTimeoutId = null;
+  }
+}
 
 const ringtone = new Audio("static/ringtone.m4a");
 ringtone.loop = true;
@@ -712,6 +741,7 @@ async function createPeerConnection() {
   conn.onconnectionstatechange = async () => {
     if (conn.connectionState === "connected") {
       if (callState === "idle") return;
+      clearConnectTimeout();
       stopRingtone();
       callState = "active";
       showActiveControls();
@@ -722,7 +752,9 @@ async function createPeerConnection() {
       // ICE never found a path through — almost always a blocked-UDP/firewall
       // network (common on locked-down VDI like Amazon WorkSpaces), not a
       // normal hangup, so say so instead of just going silent
-      if (callState !== "idle") {
+      if (callState !== "idle" && !callFailureReported) {
+        callFailureReported = true;
+        clearConnectTimeout();
         setCallStatus("hindi kumonekta ang tawag — baka blocked ng network ang koneksyon. subukan ang 🛠 Call Check ♡");
         const statsSummary = await summarizeIceStats(conn);
         console.log("[call] failed stats —", statsSummary);
@@ -812,6 +844,8 @@ async function startCall(video) {
   localVideoEl.hidden = !video;
 
   pc = await createPeerConnection();
+  // no timeout armed yet — she hasn't answered, this is just ringing, and a
+  // normal ring can easily take longer than a connect timeout should allow
   localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
@@ -853,6 +887,7 @@ async function acceptCall() {
   localVideoEl.hidden = !isVideoCall;
 
   pc = await createPeerConnection();
+  armConnectTimeout(pc);
   localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
   await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
   flushPendingCandidates();
@@ -877,6 +912,9 @@ function hangupCall() {
 async function handleAnswer({ from, sdp, callId: rid }) {
   if (from === me || from !== callPeer || rid !== callId || !pc) return;
   stopRingtone();
+  // she's actually answered now — ICE negotiation starts here, so this is
+  // the right moment to start the connect-timeout clock, not when we dialed
+  armConnectTimeout(pc);
   await pc.setRemoteDescription(new RTCSessionDescription(sdp));
   flushPendingCandidates();
 }
@@ -919,6 +957,8 @@ function handleBusy({ from, callId: rid }) {
 }
 
 function endCall() {
+  clearConnectTimeout();
+  callFailureReported = false;
   stopRingtone();
   stopTimer();
   if (pc) {
