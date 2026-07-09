@@ -609,6 +609,7 @@ let pendingCandidates = [];
 let callTimer = null;
 let callStartedAt = null;
 let isCaller = null; // true = we dialed out, false = we received the call — set per-call, only meaningful while callState !== "idle"
+let pipIsLocal = true; // which feed is the small floating one — tap it to swap, Instagram-style
 let callFailureReported = false; // guards against double-reporting the same failure via both the timeout and the native "failed" event
 let connectTimeoutId = null;
 
@@ -987,6 +988,8 @@ function showCallUI() {
   callAvatar.hidden = false;
   callMuteBtn.classList.remove("off");
   callCamBtn.classList.remove("off");
+  pipIsLocal = true;
+  applyVideoRoles();
 }
 
 function hideCallUI() {
@@ -1062,6 +1065,24 @@ callCamBtn.addEventListener("click", () => {
   track.enabled = !track.enabled;
   callCamBtn.classList.toggle("off", !track.enabled);
   localVideoEl.hidden = !track.enabled;
+});
+
+// tap the small floating feed to swap it with the big one, same as Instagram
+function applyVideoRoles() {
+  const mainEl = pipIsLocal ? remoteVideoEl : localVideoEl;
+  const pipEl = pipIsLocal ? localVideoEl : remoteVideoEl;
+  mainEl.classList.remove("call-video-pip");
+  mainEl.classList.add("call-video-main");
+  pipEl.classList.remove("call-video-main");
+  pipEl.classList.add("call-video-pip");
+}
+
+[remoteVideoEl, localVideoEl].forEach((el) => {
+  el.addEventListener("click", () => {
+    if (!isVideoCall || !el.classList.contains("call-video-pip")) return;
+    pipIsLocal = !pipIsLocal;
+    applyVideoRoles();
+  });
 });
 
 window.addEventListener("beforeunload", () => {

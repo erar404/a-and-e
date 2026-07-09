@@ -1,72 +1,54 @@
 # Handoff
 
 ## Goal
-Build and ship "Walong Buwan" — a one-time romantic gift website for the user's
-8th monthsary with his girlfriend (June 10, 2026). It must walk her through:
-1. the first video + first picture together (`static/opt/first_vid.mp4`, `static/opt/first_pic.jpg`) with a romantic intro message,
-2. an "…and the rest was history." transition (pinned, swelling on scroll),
-3. a live "loving you, down to the second" counter from **Oct 11, 2025 10:30 PM PH time**,
-4. a draggable polaroid slideshow of all 87 photos,
-5. a "moving memories" section with 4 extra video clips,
-6. eight flip-open poem cards parsed from `static/poems.txt.txt` (split on `--` lines),
-7. a closing letter with the exact Taglish message the user provided (verbatim in `index.html`),
-with `static/music.mp3` looping throughout, deployable to Google Cloud Run or
-Render via Docker. Theme: "romantic but not corny" — dim cinematic keepsake box,
-wine-dark + cream + dusty rose + antique gold, Cormorant Garamond + La Belle
-Aurore. Constraints: vanilla HTML/CSS/JS, no build step, phone-first
-performance, prefers-reduced-motion respected everywhere.
+Fix WebRTC audio/video calling ("Usap Tayo" — `chat.html`/`chat.js`) which fails when one party (Alliah) uses a browser inside **Amazon WorkSpaces** (a locked-down VDI environment). The end state: calls connect reliably between the two users regardless of network, and if a call ever fails again, there's (a) a self-serve diagnostic page either side can run, and (b) an automatic email to `it.arellanoerwin@gmail.com` naming which side and why, so failures are debuggable without needing a live repro session.
+
+Constraints established during the session:
+- This is a static site (no build step, no `package.json`) deployed via Docker+nginx to Cloud Run/Render. All "backend" work happens via **Supabase Edge Functions** (project ref `rrfelwwoypouqcjbdzrb`), matching the existing pattern used by `notify-new-message`.
+- Secrets for Edge Functions are **hardcoded directly in the deployed function source**, never committed to the git repo and never put in `.env` files — this matches the existing convention (see `notify-new-message`'s VAPID keys).
+- Don't over-build: user explicitly chose "Supabase Edge Function + Resend" over EmailJS, and "dedicated TURNS provider" (Cloudflare) over relying on the free public OpenRelay TURN alone.
 
 ## Current State
-**COMPLETE AND VERIFIED.** Nothing is broken or mid-edit. All features built,
-tested via puppeteer-core walkthroughs on desktop (1280×800) and mobile
-(390×844) viewports, including a throttled-network (8 Mbps) preloader test.
-The site is ready to deploy.
+**Uncommitted change in `chat.js`** (verified via `git diff chat.js`), everything else is committed. The very last message in the conversation asked the user to try a real call again after this uncommitted fix; **no result from that test has been reported yet**. This is the immediate thing to find out when resuming.
 
-Feature inventory (all working):
-- Entry screen with asset **preloader** (progress line "hinahanda ang mga alaala…" → crossfades to "buksan mo" button), curtain-parting open animation, music start with fade-in.
-- Web Audio analyser: aurora breathes with bass, music-toggle bars show real spectrum, petal spawn rate follows song energy, polaroids sway to the beat. Falls back to CSS animation + fixed petal timer if AudioContext fails.
-- One global rAF "cinema loop" in `script.js` drives: audio analysis, parallax (`[data-par]` elements), pinned interlude swell (`--swell`), letter lens-focus (`--focus-blur`), eq bars.
-- Polaroid deck: drag/swipe/arrows/keyboard, auto-advance, deal-in animation on first view, counter "n of 87".
-- Poem cards (8, roman numerals, wax seal, 3D flip), live counter, tap blooms, falling petals, scroll progress thread, grain/vignette/aurora/motes atmosphere.
-- Docker: `Dockerfile` (nginx:alpine, PORT-aware via `nginx.conf.template` envsubst) + `.dockerignore` excluding all heavy originals (~540 MB) so the image is ~35 MB.
+What's deployed and confirmed working (via direct curl/PowerShell tests against the live endpoints):
+- Edge Function `send-call-error-email` (v4) — CORS fixed, verified `OPTIONS` returns 200, verified Resend key works, verified 401 on unauthenticated POST.
+- Edge Function `get-turn-credentials` (v2) — CORS fixed, verified `OPTIONS` returns 200, verified Cloudflare Realtime TURN key mints real credentials including `turns:turn.cloudflare.com:443?transport=tcp` (confirmed via direct curl to Cloudflare's API, and confirmed via Supabase edge-function logs that a real call successfully invoked it and got `200`).
+- `call-check.html`/`.css`/`.js` — standalone diagnostics page, reachable in production (was 404ing due to `Dockerfile` missing it in the `COPY` list; fixed and committed).
+- Ringtone, tab-title-flash-on-new-message, and the email-on-call-error feature are all committed and working as designed.
+
+What's NOT yet confirmed working: **whether an actual call between the two real users now succeeds.** History of this thread: STUN-only → still failed → added OpenRelay TURN → still failed → discovered CORS preflight (405) was silently blocking both `send-call-error-email` and `get-turn-credentials` from ever actually being called by the browser → fixed CORS → tried again → `get-turn-credentials` succeeded (confirmed in logs) but the call **still failed**, and no error email fired because `connectionState` never reached `"failed"` at all (it just hung indefinitely). The uncommitted fix in `chat.js` adds a 20-second explicit connect-timeout as a fallback so this scenario now surfaces a status message + diagnostic email even when the browser's ICE state machine never resolves on its own.
 
 ## Files Actively Being Edited
-All in `C:\Users\Arellano\ERA\Coding\e-and-a\` (NOT a git repo):
-- `index.html` — full site markup: entry (curtains, loader, open button), firsts, pinned interlude, counter, gallery deck, clips, poems, letter; heart SVG favicon; `data-par` parallax attributes.
-- `styles.css` — all styling/animations: atmosphere layers, polaroids, deck, poem flip cards, letter, loader, curtains, counter, eq-live bars, reduced-motion fallbacks at the bottom.
-- `script.js` — preloader, entry gate, audio analyser, cinema rAF loop, deck logic, deal-in, poems fetch/parse, counter (`LOVE_START = 2025-10-11T22:30:00+08:00`), tilt, tap blooms, petals, scroll thread, `#open` / `#open+sectionId` preview helper.
-- `photos.js` — auto-generated array of 87 paths pointing at `static/opt/*.jpg`.
-- `static/opt/` — generated web-optimized assets: 88 photos (1200px, ffmpeg `-q:v 4`, ~12 MB total) + `first_vid.mp4` (4.7 MB).
-- `static/` (created earlier in session) — `img_2629.mp4` (0.6 MB, transcoded from HEVC MOV), `vid_20250806.mp4`, `vid_20251219.mp4` (renamed+faststart), `worthy_holy.mp4` (12.3 MB, shrunk from 32).
-- `Dockerfile`, `nginx.conf.template`, `.dockerignore` — deployment; dockerignore excludes original videos AND original jpgs (`static/1*.jpg`, `static/first_pic.jpg`, `static/First_vid.mp4`).
-- `README.md` — run/deploy instructions and maintenance notes.
-- `PRODUCT.md` — design-context brief (for the /impeccable skill; excluded from Docker).
-- `handoff.md` — this file.
+- `chat.js` — **UNCOMMITTED.** Added: `callFailureReported` flag (prevents double-reporting the same failure from both the timeout and the native `"failed"` event), `connectTimeoutId` + `armConnectTimeout(conn)` / `clearConnectTimeout()` (20s fallback timeout for when ICE never reaches a terminal state). `armConnectTimeout` is called in `handleAnswer` (caller side — deliberately NOT in `startCall`, since that would count normal ringing time toward the timeout) and in `acceptCall` (callee side, right after `pc` is created). `clearConnectTimeout()` is called on `"connected"` and in `endCall()`. Full diff is reproducible via `git diff chat.js`. **This needs to be committed once the next real-call test result is known** (commit message should reflect whatever the outcome is).
+- `Dockerfile` — committed (commit `4858d38`). Added `call-check.html`, `call-check.css`, `call-check.js` to the nginx image's `COPY` list (they existed in git but were never actually deployed because this file has a hardcoded file list rather than copying the whole directory).
+- `call-check.html` / `call-check.css` / `call-check.js` — committed. Standalone, no-login-required diagnostic page at `/call-check.html`, linked from `chat.html` header via a 🛠 button. Tests: browser/WebRTC support, camera/mic access, Supabase Realtime signaling round-trip, and STUN/TURN ICE candidate gathering (using the same static `STATIC_ICE_SERVERS` — Google STUN + OpenRelay — as `chat.js`; does **not** test the Cloudflare TURNS credentials since that requires an authenticated session which this standalone page doesn't have).
+- `chat.css` — committed. Added `.call-check-link` class for the 🛠 header button.
+- Supabase Edge Functions (live, not stored in this git repo at all):
+  - `send-call-error-email` (v4) — emails `it.arellanoerwin@gmail.com` when a call errors, naming which side (`caller`/`callee`) and why. Resend API key `re_bws8KfUd_LM5sZGpBH5zf2a8NBr8LjUrT` hardcoded in source. `verify_jwt: true`.
+  - `get-turn-credentials` (v2) — mints fresh Cloudflare Realtime TURN/TURNS credentials on demand. Cloudflare Turn Key ID `8aec60273d6b6fac41e5a9c9bee388b2` and API Token `77a569a8e160037d9d6f5cbfe145eda57af2ef0db77a0a48b6e36318188060d3` hardcoded in source. `verify_jwt: true`. Filters out any `:53` URLs per Cloudflare's own docs (browsers block port 53).
 
 ## Failed Attempts
-- **Headless Chrome `--screenshot` + `--virtual-time-budget` for scrolled-state verification**: after a programmatic jump (`scrollIntoView`), IntersectionObserver callbacks never fire under virtual time → every `.reveal` stays opacity:0 → uniform dark screenshots (identical 4718-byte PNGs). Don't retry this; use puppeteer-core instead (works: real timing, real scroll). A helper script pattern lives in `%TEMP%\ea-shots\` (`shots.mjs`, `mobile.mjs`, `preload.mjs`) with puppeteer-core installed there.
-- **`2>$null` stderr redirect on headless chrome in PowerShell**: silently produced no screenshot file; use `2>&1 | Out-String` instead.
-- **Preloading 6 original photos** (~6 MB each, 36 MB total): blew the 12s loader deadline on throttled network — fixed by generating `static/opt/` web copies, not by tweaking the loader.
-- **`magick` (ImageMagick)**: not installed on this machine. ffmpeg 7.1 was used instead and DOES apply EXIF rotation correctly for stills (visually verified on two portrait samples).
+- **STUN-only ICE config** (`stun.l.google.com`, `stun1.l.google.com`) — **Why it failed**: Amazon WorkSpaces' network can do direct STUN-based hole-punching in isolation (confirmed via Call Check passing on both sides individually) but the two specific peers still couldn't connect to each other — classic symmetric-NAT-without-TURN failure mode.
+- **Adding free public OpenRelay TURN** (`turn:openrelay.metered.ca` on ports 80/443, plain TCP on 443, no TLS) — **Why it failed**: call still failed. Root cause found later: Instagram calls work fine on the same WorkSpaces network, which pointed to the network doing deep-packet-inspection that lets through real TLS on port 443 but drops non-TLS traffic even on that port — OpenRelay's port-443 option is plain TCP, not actual TLS (`turns:`), so it likely looked illegitimate to the firewall.
+- **First deploy of `send-call-error-email` / `get-turn-credentials`** — **Why it failed**: Supabase Edge Function logs showed every request from the browser as `OPTIONS | 405`. `sb.functions.invoke()` triggers a CORS preflight because it attaches `Authorization`/`apikey` headers; neither function handled `OPTIONS` at all, so the browser's preflight failed and the real `POST` was **never sent**. This silently broke both the email-on-error feature and the TURN-credential fetch (which was silently falling back to the static-only ICE list this whole time) without any visible error to the user. Fixed by adding explicit `OPTIONS` handling + `Access-Control-Allow-*` headers to both functions (now v3/v4 and v2 respectively).
+- **Assuming `connectionState === "failed"` would always fire on a real broken call** — **Why it failed**: after the CORS fix, `get-turn-credentials` was confirmed called successfully (200) but the call still failed and `send-call-error-email` was never invoked — meaning the peer connection just hung in `"checking"`/`"new"` indefinitely rather than transitioning to a terminal `"failed"` state. This is why the 20s `armConnectTimeout` fallback was added (currently uncommitted).
+- **(Caught before shipping, not a real failure)**: initial version of `armConnectTimeout` was going to be armed immediately when the caller sends the offer (in `startCall`). This was caught as wrong before testing — it would count normal ringing/wait-for-answer time toward the 20s timeout and could kill a call that was simply ringing normally for longer than 20s. Corrected to arm only in `handleAnswer` (caller side, once the callee has actually picked up) and in `acceptCall` (callee side).
 
 ## Next Step
-Deploy. The single command (user must run it themselves, needs gcloud auth):
-```powershell
-gcloud run deploy walong-buwan --source . --region asia-southeast1 --allow-unauthenticated
-```
-or push to GitHub → Render "New Web Service" → runtime Docker. Before deploying,
-a quick smoke test: `python -m http.server 8080` and open
-`http://localhost:8080` (or `#open` to skip the entry gate, `#open+letter` to
-jump to a section).
+1. Ask the user (or wait for them to report) whether the most recent real call attempt succeeded, since the connect-timeout fix was added and explained but no test result has come back yet.
+2. Regardless of outcome, **commit the uncommitted `chat.js` change** (`git diff chat.js` shows the full diff — connect-timeout fallback). Do not commit until the user has actually tried it, per this project's established pattern of the user doing their own commits between turns (check `git log` — they've been committing themselves; the assistant has not been running `git commit` in this session).
+3. If the call **still fails** even with a diagnostic email now guaranteed to arrive: read the email's `detail` field (built from `summarizeIceStats()` in `chat.js`) — it will show local/remote candidate type counts (`host`/`srflx`/`relay`) and the actual candidate-pair attempts/states. Use that to determine: (a) were any `relay` (TURN) candidates gathered at all on either side — if not, even Cloudflare's TURNS is being blocked, which would point to something more fundamental (e.g. WorkSpaces blocking the `turn.cloudflare.com` domain specifically, or the Supabase signaling itself dropping ICE candidate broadcasts); (b) were candidates gathered but no pair succeeded — points to a still-unresolved NAT/firewall interaction even with TLS relay.
+4. If the call **succeeds**: verify the Call Check page (`call-check.html`) still gives accurate guidance (it doesn't test Cloudflare TURNS, only the static OpenRelay list, so it may show `ice: pass` or `warn` independent of whether the real call actually used Cloudflare's relay — consider whether Call Check's messaging needs a caveat added, or whether it's out of scope now that the real call has its own working fallback path).
 
 ## Context & Gotchas
-- **Filename quirks (case matters on Linux/Docker!)**: the poems file is literally `static/poems.txt.txt` (double extension); the original first video is `First_vid.mp4` (capital F) but the site now uses `static/opt/first_vid.mp4`.
-- **Anniversary date**: Oct 11, 2025, 10:30 PM, hardcoded with `+08:00` offset in `script.js` (`LOVE_START`) so it's timezone-stable. The counter showed 242/243 days in June 2026 tests — correct.
-- **Music autoplay**: gated behind the "buksan mo" click on the entry overlay (browser requirement). The preview helper `#open` auto-clicks it; music `.play()` rejection is caught.
-- **Audio ducking rules**: first-video unmute ducks music to 0.08; any clip playing ducks the same; music fades back when they stop. `fadeMusic()` is the single volume authority.
-- **`static/opt/` is generated** — regenerate any photo with `ffmpeg -i IN.jpg -vf "scale=w='min(1200,iw)':h=-2" -q:v 4 OUT.jpg`, then regenerate `photos.js` (PowerShell snippet pattern is in the session: list `static\opt\*.jpg` minus `first_pic.jpg`, sorted, wrapped in `const PHOTOS = [...]`).
-- **Captions in the clips section**: "august 6, 2025" and "december 19, 2025" were derived from the `Vid yyyymmdd...` filenames; the other two ("a little moment i kept", "worthy, holy ♪") are guesses the user may want to edit in `index.html`.
-- **Unused-original exclusions**: `.dockerignore` keeps originals out of the image; deleting them locally is the user's call, never do it unprompted.
-- **Skill/style decisions**: identity is locked (Cormorant Garamond etc.) per the impeccable brand register "identity-preservation" rule — do NOT restyle on future passes; PRODUCT.md records this.
-- **Test-server noise**: background `python -m http.server` tasks report "failed with exit code 255" when killed via `Stop-Process` — expected, not an error.
-- **Windows environment**: PowerShell syntax, Chrome at `C:\Program Files\Google\Chrome\Application\chrome.exe`, ffmpeg via WinGet shim, no Docker installed locally (Cloud Run/Render build remotely), not a git repository.
+- **Windows/PowerShell environment.** Use the `Bash` tool for POSIX-y things (`node --check`, `git`) and `PowerShell` for `Invoke-WebRequest`-style HTTP testing (curl via Bash's `curl.exe` intermittently failed with exit code 43 in this environment — use PowerShell's `Invoke-WebRequest` instead for reliability).
+- **Supabase MCP tools are wired to project `rrfelwwoypouqcjbdzrb`** (this is the same project chat.js's `SUPABASE_URL`/`SUPABASE_KEY` point to) — no need to ask which project, `mcp__supabase__*` tools operate on it directly. `mcp__supabase__get_logs` requires a `service` param (`"edge-function"` for these) — the schema isn't loaded by default, fetch it via `ToolSearch` first if it's not already available in a fresh session.
+- **Edge Function deploys are version-numbered** (`send-call-error-email` is now v4, `get-turn-credentials` is v2) — `mcp__supabase__deploy_edge_function` creates a new version each time; always re-fetch current source via `mcp__supabase__get_edge_function` before editing if unsure of latest state, since these files exist only in Supabase, not in this git repo.
+- **A Supabase `sb_secret_...` key was pasted into this chat by the user early on** (mistakenly, meant to give a Resend key) — flagged to the user as worth rotating from the Supabase dashboard if it was ever a real active key. Unknown whether they've done this — **do not treat this key as safe**, don't reference or reuse it, and consider re-flagging if it comes up again.
+- **Cloudflare TURN key and Resend API key are both live, working, hardcoded secrets** sitting only in the deployed Edge Function source (verified via direct API calls in this session) — they are intentionally not in `.env` or the repo, matching project convention. If either needs rotating, the pattern is: get new key from user → `mcp__supabase__get_edge_function` to fetch current source → string-replace the key → `mcp__supabase__deploy_edge_function` to redeploy (see the mid-conversation Resend key rotation for the exact sequence).
+- **The user's collaborator (Alliah) is on Amazon WorkSpaces**; the user (Erwin) is presumably on a normal network. All troubleshooting has been asymmetric — Call Check was run on "the other side" (WorkSpaces) and passed even before TURN was added, which was the clue that ruled out "network can't do UDP at all" and pointed toward symmetric NAT / DPI-based filtering instead.
+- **The Instagram-calls-work clue was pivotal** — it's the reasoning basis for choosing TURNS-over-443 (indistinguishable from real HTTPS to DPI) over plain TCP relay. If future debugging reopens the "why does it still fail" question, revisit whether Cloudflare's specific TURNS host/cert is actually being trusted by the WorkSpaces browser (e.g. corporate root CA / TLS interception proxies can also break genuine TLS handshakes, which would be a *new*, different failure mode from what's been fixed so far).
+- **`call-check.js`'s `ICE_SERVERS` intentionally does NOT include Cloudflare TURNS** (only Google STUN + OpenRelay) because minting Cloudflare credentials requires an authenticated Supabase session, which the standalone/no-login diagnostic page doesn't have. This is a known gap, not an oversight — mentioned to the user but not addressed, in favor of shipping the real-call fix first.
+- Project convention reminder: **only commit when the user asks**; this session's edits to `chat.js` are intentionally left uncommitted pending a real test result, consistent with how the rest of the session went (user has been committing between turns themselves).
+- **This `handoff.md` previously contained an unrelated handoff** for a completed, older task in this same repo ("Walong Buwan" romantic gift site — `index.html`/`styles.css`/`script.js`/`photos.js`). That work is done and shipped; it was overwritten by this handoff since it's no longer active. If that context is ever needed again, it's recoverable from git history around commits before `32eb1fb` ("added video call"), which is roughly where the "Usap Tayo" chat/calling feature work began.

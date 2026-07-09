@@ -87,6 +87,15 @@
       <button id="signout" class="chat-out" title="Sign out">lisan</button>
     </header>
 
+    <div id="monthsary-banner" class="monthsary-banner" role="status" hidden>
+      <span class="monthsary-seal" aria-hidden="true">♡</span>
+      <span class="monthsary-banner-body">
+        <span class="monthsary-banner-label">papalapit na, mahal…</span>
+        <span class="monthsary-banner-name" id="monthsary-banner-name"></span>
+      </span>
+      <span class="monthsary-banner-clock" id="monthsary-banner-clock"></span>
+    </div>
+
     <main id="messages" class="messages" aria-live="polite"></main>
 
     <div id="attach-preview" class="attach-preview" hidden>
@@ -115,9 +124,14 @@
   <!-- ═══════════ call overlay ═══════════ -->
   <div id="call-overlay" class="call-overlay" hidden>
     <div class="call-card">
-      <video id="remote-video" class="remote-video" autoplay playsinline></video>
+      <video id="remote-video" class="call-video call-video-main" autoplay playsinline></video>
       <div class="call-avatar" id="call-avatar">♡</div>
-      <video id="local-video" class="local-video" autoplay playsinline muted hidden></video>
+      <video id="local-video" class="call-video call-video-pip" autoplay playsinline muted hidden></video>
+
+      <div id="call-monthsary-timer" class="call-monthsary-timer" hidden>
+        <span class="monthsary-seal" aria-hidden="true">♡</span>
+        <span id="call-monthsary-clock" class="call-monthsary-clock"></span>
+      </div>
 
       <div class="call-info">
         <p id="call-name" class="call-name">mahal</p>
@@ -135,7 +149,20 @@
     </div>
   </div>
 
+  <!-- ═══════════ surprise monthsary letter ═══════════ -->
+  <div id="monthsary-letter" class="monthsary-letter-overlay" hidden>
+    <div class="monthsary-letter-card">
+      <button type="button" id="monthsary-letter-close" class="monthsary-letter-close" aria-label="Isara">✕</button>
+      <p class="monthsary-letter-kicker">isang sulat na dumating ngayong hatinggabi</p>
+      <p class="monthsary-letter-salutation" id="monthsary-letter-salutation">Mahal,</p>
+      <h2 class="monthsary-letter-title" id="monthsary-letter-title"></h2>
+      <div class="monthsary-letter-body" id="monthsary-letter-body"></div>
+      <p class="monthsary-letter-sign" id="monthsary-letter-sign"></p>
+    </div>
+  </div>
+
   <script src="supabase.min.js"></script>
   <script src="chat.js"></script>
+  <script src="monthsary-timer.js"></script>
 </body>
 </html>
