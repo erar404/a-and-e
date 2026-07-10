@@ -2,9 +2,15 @@
    Monthsary countdown — Usap Tayo edition
    Counts down to every 11th, hatinggabi (PH time).
    Shows a banner one day out, echoes it on the call
-   screen in the final 10 minutes, and delivers that
-   month's letter (from static/data/monthsary.json)
-   the moment it hits zero.
+   screen in the final 10 minutes, and — the moment it
+   hits zero — a sealed envelope starts drifting loose
+   around the screen, closed, small, tappable wherever
+   it happens to be. Tap it and it flies in from that
+   exact spot, settles at the center, the wax seal
+   cracks, and the letter grows up out of it.
+   It keeps drifting (findable on every page) for the
+   rest of that day, then tucks itself away again until
+   next month.
    Debug: ?monthsaryTestSeconds=N forces the countdown
    to N seconds left, for trying the reveal without
    waiting for the real date.
@@ -16,6 +22,7 @@
   const FALLBACK_START = "2025-10-11";
   const TEN_MIN_MS = 10 * 60 * 1000;
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const LAND_MS = 900; // must roughly match the CSS .landing transition duration
 
   const banner = document.getElementById("monthsary-banner");
   const bannerName = document.getElementById("monthsary-banner-name");
@@ -23,14 +30,17 @@
   const callOverlay = document.getElementById("call-overlay");
   const callTimer = document.getElementById("call-monthsary-timer");
   const callClock = document.getElementById("call-monthsary-clock");
-  const letterOverlay = document.getElementById("monthsary-letter");
+  const flyHint = document.getElementById("monthsary-fly-hint");
+  const backdrop = document.getElementById("monthsary-backdrop");
+  const envelope = document.getElementById("monthsary-envelope");
+  const letterCard = document.getElementById("monthsary-letter-card");
   const letterSalutation = document.getElementById("monthsary-letter-salutation");
   const letterTitle = document.getElementById("monthsary-letter-title");
   const letterBody = document.getElementById("monthsary-letter-body");
   const letterSign = document.getElementById("monthsary-letter-sign");
   const letterClose = document.getElementById("monthsary-letter-close");
 
-  if (!banner || !letterOverlay) return; // markup not present on this page
+  if (!envelope || !letterCard) return; // markup not present on this page
 
   const testSeconds = Number(new URLSearchParams(location.search).get("monthsaryTestSeconds"));
   const debugOverrideMs = Number.isFinite(testSeconds) && testSeconds > 0 ? testSeconds * 1000 : null;
@@ -124,26 +134,6 @@
     targetCount = (ty - startY) * 12 + (tm - startM);
   }
 
-  function seenKey(n) {
-    return `monthsary_seen_${n}`;
-  }
-
-  function hasSeen(n) {
-    try {
-      return localStorage.getItem(seenKey(n)) === "1";
-    } catch {
-      return false;
-    }
-  }
-
-  function markSeen(n) {
-    try {
-      localStorage.setItem(seenKey(n), "1");
-    } catch {
-      // storage unavailable — worst case the letter can show again next load
-    }
-  }
-
   function formatClock(ms) {
     const total = Math.max(0, Math.ceil(ms / 1000));
     const days = Math.floor(total / 86400);
@@ -170,48 +160,148 @@
     return true;
   }
 
-  function revealLetter(n) {
+  let hintTimer = null;
+
+  // sets the envelope loose, drifting and closed — this is the resting
+  // state for the whole monthsary day, until it's tapped
+  function startFlying(n) {
     if (!renderLetter(n)) return;
-    banner.hidden = true;
-    callTimer.hidden = true;
-    letterOverlay.hidden = false;
+    if (banner) banner.hidden = true;
+    if (callTimer) callTimer.hidden = true;
+    letterCard.hidden = true;
+    if (backdrop) {
+      backdrop.classList.remove("visible");
+      backdrop.hidden = true;
+    }
+    envelope.classList.remove("opened", "landing");
+    envelope.style.animation = "";
+    envelope.style.transform = "";
+    envelope.hidden = false;
+
+    if (flyHint) {
+      flyHint.hidden = false;
+      // restart the fade in/out cycle every time flight (re)starts
+      flyHint.style.animation = "none";
+      void flyHint.offsetWidth;
+      flyHint.style.animation = "";
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => {
+        flyHint.hidden = true;
+      }, 7300);
+    }
   }
 
-  letterClose.addEventListener("click", () => {
-    letterOverlay.hidden = true;
-  });
-  letterOverlay.addEventListener("click", (e) => {
-    if (e.target === letterOverlay) letterOverlay.hidden = true;
-  });
+  let landTimer = null;
+
+  // caught mid-flight — carries the exact envelope from wherever it was to
+  // dead center, then unseals it
+  function openLetter() {
+    if (envelope.hidden) return;
+    if (envelope.classList.contains("landing") || envelope.classList.contains("opened")) return;
+
+    if (flyHint) flyHint.hidden = true;
+
+    if (backdrop) {
+      backdrop.hidden = false;
+      requestAnimationFrame(() => backdrop.classList.add("visible"));
+    }
+
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      envelope.classList.add("landing", "opened");
+      letterCard.hidden = false;
+      return;
+    }
+
+    // freeze the envelope at its current mid-flight position so switching
+    // off the looping animation doesn't make it jump, then transition it
+    const current = getComputedStyle(envelope).transform;
+    envelope.style.animation = "none";
+    envelope.style.transform = current === "none" ? "translate(-50%, -50%)" : current;
+    void envelope.offsetWidth; // force reflow before the class/transition change
+    envelope.classList.add("landing");
+    requestAnimationFrame(() => {
+      envelope.style.transform = "translate(-50%, -50%)";
+    });
+
+    clearTimeout(landTimer);
+    landTimer = setTimeout(() => {
+      envelope.classList.add("opened");
+      letterCard.hidden = false;
+    }, LAND_MS);
+  }
+
+  envelope.addEventListener("click", openLetter);
+
+  function closeLetter() {
+    clearTimeout(landTimer);
+    letterCard.hidden = true;
+    if (backdrop) {
+      backdrop.classList.remove("visible");
+      setTimeout(() => {
+        backdrop.hidden = true;
+      }, 500);
+    }
+    // let it loose again, fresh, so it stays findable for the rest of the day
+    envelope.classList.remove("opened", "landing");
+    envelope.style.animation = "none";
+    envelope.style.transform = "none";
+    void envelope.offsetWidth;
+    envelope.style.animation = "";
+    envelope.style.transform = "";
+  }
+
+  if (letterClose) letterClose.addEventListener("click", closeLetter);
+  if (backdrop) {
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) closeLetter();
+    });
+  }
+
+  // the envelope only drifts on the monthsary day itself, so it stays
+  // reachable from any page all day, then quietly disappears until next month
+  function updateAvailability() {
+    const available = !!data && (phToday().d === 11 || debugOverrideMs != null);
+    const mid = envelope.classList.contains("landing") || envelope.classList.contains("opened");
+    if (!available && !mid) {
+      envelope.hidden = true;
+      if (flyHint) flyHint.hidden = true;
+    }
+  }
 
   function tick() {
     if (!data) return;
 
+    updateAvailability();
+
     const remaining = targetMs - Date.now();
 
     if (remaining <= 0) {
-      revealLetter(targetCount);
-      markSeen(targetCount);
+      startFlying(targetCount);
       computeNextTarget();
       return;
     }
 
     const clockText = formatClock(remaining);
 
-    if (remaining <= ONE_DAY_MS) {
-      bannerName.textContent = countInfo(targetCount).name || "";
-      bannerClock.textContent = clockText;
-      banner.hidden = false;
-    } else {
-      banner.hidden = true;
+    if (banner) {
+      if (remaining <= ONE_DAY_MS) {
+        bannerName.textContent = countInfo(targetCount).name || "";
+        bannerClock.textContent = clockText;
+        banner.hidden = false;
+      } else {
+        banner.hidden = true;
+      }
     }
 
-    const inCall = callOverlay && !callOverlay.hidden;
-    if (inCall && remaining <= TEN_MIN_MS) {
-      callClock.textContent = clockText;
-      callTimer.hidden = false;
-    } else {
-      callTimer.hidden = true;
+    if (callTimer) {
+      const inCall = callOverlay && !callOverlay.hidden;
+      if (inCall && remaining <= TEN_MIN_MS) {
+        callClock.textContent = clockText;
+        callTimer.hidden = false;
+      } else {
+        callTimer.hidden = true;
+      }
     }
   }
 
@@ -219,26 +309,11 @@
     computeNextTarget();
     if (debugOverrideMs != null) targetMs = Date.now() + debugOverrideMs; // ?monthsaryTestSeconds=N
 
-    // first run ever on this device: seed the *current* (already-known) month
-    // as "seen" so shipping this feature mid-cycle doesn't immediately pop a
-    // letter they've already read — every month from here on plays normally
-    let bootedBefore = true;
-    try {
-      bootedBefore = localStorage.getItem("monthsary_timer_booted") === "1";
-      if (!bootedBefore) {
-        localStorage.setItem("monthsary_timer_booted", "1");
-      }
-    } catch {
-      // no storage — fall through, treated as already-booted (safer default)
-    }
-    if (!bootedBefore) markSeen(currentCount());
-
-    // catch up on a letter that arrived while the tab was closed, instead of
-    // only ever firing at the exact instant the page happens to be open
-    const nowCount = currentCount();
-    if (!hasSeen(nowCount)) {
-      revealLetter(nowCount);
-      markSeen(nowCount);
+    // catch up on a letter whose day already started while the tab was
+    // closed, instead of only ever setting it loose the instant the page
+    // happens to be open at exactly midnight
+    if (phToday().d === 11 || debugOverrideMs != null) {
+      startFlying(currentCount());
     }
 
     tick();

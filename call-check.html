@@ -81,7 +81,30 @@
     <p class="copy-note" id="copy-note" hidden>Nakopya ♡ — ipadala mo ito kay Erwin.</p>
   </div>
 
+  <!-- ═══════════ surprise monthsary letter — drifts around the screen,
+       closed, until tapped; then it flies in and opens ═══════════ -->
+  <p id="monthsary-fly-hint" class="monthsary-fly-hint" aria-hidden="true">isang liham na lumilipad… tap para buksan, mahal ♡</p>
+
+  <div id="monthsary-backdrop" class="monthsary-backdrop" hidden></div>
+
+  <button type="button" id="monthsary-envelope" class="monthsary-envelope" aria-label="Buksan ang sulat, mahal" hidden>
+    <span class="envelope-box" aria-hidden="true">
+      <span class="envelope-flap"></span>
+      <span class="envelope-seal">♡</span>
+    </span>
+  </button>
+
+  <div class="monthsary-letter-card" id="monthsary-letter-card" hidden>
+    <button type="button" id="monthsary-letter-close" class="monthsary-letter-close" aria-label="Isara">✕</button>
+    <p class="monthsary-letter-kicker">isang sulat na dumating ngayong hatinggabi</p>
+    <p class="monthsary-letter-salutation" id="monthsary-letter-salutation">Mahal,</p>
+    <h2 class="monthsary-letter-title" id="monthsary-letter-title"></h2>
+    <div class="monthsary-letter-body" id="monthsary-letter-body"></div>
+    <p class="monthsary-letter-sign" id="monthsary-letter-sign"></p>
+  </div>
+
   <script src="supabase.min.js"></script>
   <script src="call-check.js"></script>
+  <script src="monthsary-timer.js"></script>
 </body>
 </html>

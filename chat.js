@@ -595,7 +595,12 @@ const callAcceptBtn = document.getElementById("call-accept");
 const callDeclineBtn = document.getElementById("call-decline");
 const callMuteBtn = document.getElementById("call-mute");
 const callCamBtn = document.getElementById("call-cam");
+const callMinimizeBtn = document.getElementById("call-minimize");
 const callHangupBtn = document.getElementById("call-hangup");
+const callMiniExpandBtn = document.getElementById("call-mini-expand");
+const callMiniControls = document.querySelector(".call-mini-controls");
+const callMiniMuteBtn = document.getElementById("call-mini-mute");
+const callMiniHangupBtn = document.getElementById("call-mini-hangup");
 
 let callChannel = null;
 let callPeer = null; // partner's user id — this app only ever has two members
@@ -612,6 +617,8 @@ let isCaller = null; // true = we dialed out, false = we received the call — s
 let pipIsLocal = true; // which feed is the small floating one — tap it to swap, Instagram-style
 let callFailureReported = false; // guards against double-reporting the same failure via both the timeout and the native "failed" event
 let connectTimeoutId = null;
+let callMinimized = false; // shrunk to a draggable bubble so the chat underneath is usable mid-call
+let miniDrag = null; // { startX, startY, origX, origY, moved } while a drag is in progress
 
 // browsers don't always land on connectionState "failed" — ICE can just sit in
 // "checking"/"new" forever with no terminal state at all, which used to mean
@@ -988,14 +995,19 @@ function showCallUI() {
   callAvatar.hidden = false;
   callMuteBtn.classList.remove("off");
   callCamBtn.classList.remove("off");
+  callMiniMuteBtn.classList.remove("off");
   pipIsLocal = true;
   applyVideoRoles();
+  restoreCall(); // every new call starts full-screen, never inherits a previous minimize
 }
 
 function hideCallUI() {
   callOverlay.hidden = true;
   callAvatar.classList.remove("ringing");
-  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callHangupBtn].forEach((b) => (b.hidden = true));
+  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callMinimizeBtn, callHangupBtn].forEach(
+    (b) => (b.hidden = true)
+  );
+  restoreCall();
 }
 
 function showOutgoingControls() {
@@ -1003,6 +1015,7 @@ function showOutgoingControls() {
   callDeclineBtn.hidden = false;
   callMuteBtn.hidden = true;
   callCamBtn.hidden = true;
+  callMinimizeBtn.hidden = true;
   callHangupBtn.hidden = true;
 }
 
@@ -1011,6 +1024,7 @@ function showIncomingControls() {
   callDeclineBtn.hidden = false;
   callMuteBtn.hidden = true;
   callCamBtn.hidden = true;
+  callMinimizeBtn.hidden = true;
   callHangupBtn.hidden = true;
 }
 
@@ -1019,10 +1033,64 @@ function showActiveControls() {
   callDeclineBtn.hidden = true;
   callMuteBtn.hidden = false;
   callCamBtn.hidden = !isVideoCall;
+  callMinimizeBtn.hidden = false;
   callHangupBtn.hidden = false;
   callAvatar.hidden = isVideoCall;
   callAvatar.classList.remove("ringing");
   setCallStatus("");
+}
+
+// --- minimize: shrinks the overlay's real box to a small draggable bubble,
+// so everything outside it is genuinely the chat underneath again, not just
+// visually implied. only offered once a call is actually connected —
+// ringing/dialing keeps full attention.
+
+function toggleMute() {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  if (!track) return;
+  track.enabled = !track.enabled;
+  callMuteBtn.classList.toggle("off", !track.enabled);
+  callMiniMuteBtn.classList.toggle("off", !track.enabled);
+}
+
+function clampMiniPosition(x, y) {
+  const rect = callOverlay.getBoundingClientRect();
+  const margin = 10;
+  const maxX = Math.max(margin, window.innerWidth - rect.width - margin);
+  const maxY = Math.max(margin, window.innerHeight - rect.height - margin);
+  return { x: Math.min(Math.max(x, margin), maxX), y: Math.min(Math.max(y, margin), maxY) };
+}
+
+function setMiniPosition(x, y) {
+  callOverlay.style.setProperty("--call-min-x", `${x}px`);
+  callOverlay.style.setProperty("--call-min-y", `${y}px`);
+}
+
+function minimizeCall() {
+  if (callState !== "active" || callMinimized) return;
+  callMinimized = true;
+  callOverlay.classList.add("minimized");
+  callMiniExpandBtn.hidden = false;
+  callMiniControls.hidden = false;
+  // always parks top-right, just under the header, fresh — simpler to
+  // predict than remembering a previous drag, and it reliably clears the
+  // composer at the bottom regardless of how tall the textarea has grown
+  const rect = callOverlay.getBoundingClientRect();
+  const header = document.querySelector(".chat-head");
+  const topClear = header ? header.getBoundingClientRect().bottom + 12 : 76;
+  const pos = clampMiniPosition(window.innerWidth - rect.width - 16, topClear);
+  setMiniPosition(pos.x, pos.y);
+}
+
+function restoreCall() {
+  callMinimized = false;
+  miniDrag = null;
+  callOverlay.classList.remove("minimized");
+  callMiniExpandBtn.hidden = true;
+  callMiniControls.hidden = true;
+  callOverlay.style.removeProperty("--call-min-x");
+  callOverlay.style.removeProperty("--call-min-y");
 }
 
 function setCallStatus(text) {
@@ -1049,13 +1117,53 @@ callVideoBtn.addEventListener("click", () => startCall(true));
 callAcceptBtn.addEventListener("click", acceptCall);
 callDeclineBtn.addEventListener("click", declineCall);
 callHangupBtn.addEventListener("click", hangupCall);
+callMuteBtn.addEventListener("click", toggleMute);
+callMinimizeBtn.addEventListener("click", minimizeCall);
 
-callMuteBtn.addEventListener("click", () => {
-  if (!localStream) return;
-  const track = localStream.getAudioTracks()[0];
-  if (!track) return;
-  track.enabled = !track.enabled;
-  callMuteBtn.classList.toggle("off", !track.enabled);
+callMiniExpandBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  restoreCall();
+});
+callMiniMuteBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleMute();
+});
+callMiniHangupBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  hangupCall();
+});
+
+// dragging the minimized bubble: track movement from pointerdown, and only
+// treat it as a "tap to expand" if the pointer barely moved before lifting
+callOverlay.addEventListener("pointerdown", (e) => {
+  if (!callMinimized || e.target.closest(".call-mini-btn, .call-mini-expand")) return;
+  const rect = callOverlay.getBoundingClientRect();
+  miniDrag = { startX: e.clientX, startY: e.clientY, origX: rect.left, origY: rect.top, moved: false };
+  callOverlay.setPointerCapture(e.pointerId);
+});
+
+callOverlay.addEventListener("pointermove", (e) => {
+  if (!miniDrag) return;
+  const dx = e.clientX - miniDrag.startX;
+  const dy = e.clientY - miniDrag.startY;
+  if (Math.abs(dx) > 4 || Math.abs(dy) > 4) miniDrag.moved = true;
+  if (!miniDrag.moved) return;
+  const pos = clampMiniPosition(miniDrag.origX + dx, miniDrag.origY + dy);
+  setMiniPosition(pos.x, pos.y);
+});
+
+callOverlay.addEventListener("pointerup", () => {
+  if (!miniDrag) return;
+  const wasDrag = miniDrag.moved;
+  miniDrag = null;
+  if (!wasDrag && callMinimized) restoreCall();
+});
+
+window.addEventListener("resize", () => {
+  if (!callMinimized) return;
+  const rect = callOverlay.getBoundingClientRect();
+  const pos = clampMiniPosition(rect.left, rect.top);
+  setMiniPosition(pos.x, pos.y);
 });
 
 callCamBtn.addEventListener("click", () => {

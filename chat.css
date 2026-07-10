@@ -381,6 +381,44 @@ body {
   .monthsary-seal { animation: none; }
 }
 
+/* a one-time caption near page bottom, cueing that the drifting envelope
+   below is tappable — fades itself out and doesn't come back that visit */
+
+.monthsary-fly-hint {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.6rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 88;
+  max-width: min(84vw, 320px);
+  text-align: center;
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.05rem;
+  color: var(--gold);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  opacity: 0;
+  animation: fly-hint-cycle 7.2s ease-in-out both;
+}
+
+@keyframes fly-hint-cycle {
+  0%          { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  10%, 72%    { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100%        { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+}
+
+.monthsary-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 97;
+  background: rgba(10, 5, 9, 0.92);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.monthsary-backdrop.visible { opacity: 1; }
+
 /* the call-screen echo of the same countdown — only surfaced in the final
    10 minutes, since the call overlay otherwise hides the chat banner entirely */
 
@@ -837,26 +875,237 @@ body {
 
 .call-action.decline:hover { background: #c85557; }
 
-/* ─── surprise monthsary letter ─── */
-/* the wax seal cracks open into this — reuses the same paper/ink the "mine"
-   message bubbles already borrow, so it reads as part of this world, not a
-   bolted-on modal */
+/* ─── minimized call — shrinks to a draggable bubble so the chat
+   underneath stays readable and usable while the call keeps running.
+   the overlay's own box literally shrinks (not just visually), so
+   everything outside the bubble is real chat again, clickable and all ─── */
 
-.monthsary-letter-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 98;
+.call-overlay.minimized {
+  inset: auto;
+  left: var(--call-min-x, calc(100vw - 150px - 1rem));
+  top: var(--call-min-y, 5rem);
+  width: clamp(108px, 30vw, 150px);
+  aspect-ratio: 3 / 4;
+  height: auto;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #000;
+  backdrop-filter: none;
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(240, 228, 212, 0.15);
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.call-overlay.minimized:active { cursor: grabbing; }
+
+.call-overlay.minimized .call-info,
+.call-overlay.minimized .call-controls,
+.call-overlay.minimized .call-video-pip,
+.call-overlay.minimized .call-monthsary-timer {
+  display: none;
+}
+
+.call-overlay.minimized .call-avatar {
+  /* .call-avatar's transform is owned by the heart-pulse/heart-vibrate
+     keyframes at all times, so re-centering happens via top, not transform */
+  font-size: 1.9rem;
+  top: 42%;
+}
+
+.call-mini-expand {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  z-index: 3;
+  width: 1.7rem;
+  height: 1.7rem;
   display: grid;
   place-items: center;
-  padding: 1.4rem;
-  background: rgba(10, 5, 9, 0.92);
-  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  border: none;
+  background: rgba(10, 5, 9, 0.55);
+  color: var(--cream);
+  font-size: 0.85rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.call-mini-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.45rem;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.call-mini-btn {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  border: 1px solid rgba(240, 228, 212, 0.3);
+  background: rgba(10, 5, 9, 0.6);
+  color: var(--cream);
+  font-size: 0.8rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.call-mini-btn.off { background: var(--rose); color: var(--bg); border-color: var(--rose); }
+
+.call-mini-btn.hangup { background: #b6484a; border-color: #b6484a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .call-overlay.minimized { transition: none; }
+}
+
+/* ─── surprise monthsary letter ─── */
+/* a sealed envelope drifts loose around the screen all day, closed, like it's
+   caught on a breeze — small, tappable wherever it happens to be. tap it and
+   it flies in from that exact spot, settles into your hands at the center,
+   then the wax seal cracks and the letter grows up out of it. reuses the
+   same paper/ink the "mine" message bubbles already borrow, so it reads as
+   part of this world, not a bolted-on modal */
+
+.monthsary-envelope {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 89;
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  opacity: 0;
+  animation:
+    envelope-fade-in 0.6s ease-out forwards,
+    envelope-fly 27s ease-in-out infinite;
+}
+
+@keyframes envelope-fade-in {
+  to { opacity: 1; }
+}
+
+/* a meandering loop, not a bounce between two points — nine waypoints keep
+   it from ever reading as mechanical, and it stays clear of the header and
+   composer bands top and bottom */
+@keyframes envelope-fly {
+  0%   { transform: translate(-50%, -50%) translate(-30vw, -20vh) rotate(-7deg); }
+  12%  { transform: translate(-50%, -50%) translate(20vw, -24vh) rotate(5deg); }
+  25%  { transform: translate(-50%, -50%) translate(31vw, 6vh) rotate(9deg); }
+  38%  { transform: translate(-50%, -50%) translate(9vw, 23vh) rotate(-4deg); }
+  50%  { transform: translate(-50%, -50%) translate(-23vw, 21vh) rotate(-9deg); }
+  63%  { transform: translate(-50%, -50%) translate(-32vw, -4vh) rotate(-3deg); }
+  75%  { transform: translate(-50%, -50%) translate(-8vw, -26vh) rotate(6deg); }
+  88%  { transform: translate(-50%, -50%) translate(17vw, -9vh) rotate(3deg); }
+  100% { transform: translate(-50%, -50%) translate(-30vw, -20vh) rotate(-7deg); }
+}
+
+.monthsary-envelope:hover .envelope-box,
+.monthsary-envelope:focus-visible .envelope-box {
+  filter: drop-shadow(0 0 10px rgba(201, 168, 117, 0.55));
+}
+
+/* the moment it's caught — animation hands off to a JS-driven transition
+   that carries it from wherever it was mid-flight to dead center */
+.monthsary-envelope.landing {
+  animation: none;
+  transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.envelope-box {
+  display: block;
+  position: relative;
+  overflow: visible;
+  width: clamp(96px, 26vw, 152px);
+  aspect-ratio: 3 / 2;
+  perspective: 400px;
+  border-radius: 4px;
+  background: linear-gradient(155deg, #ecdcc0, #e2cda3 60%, #d8bd8d);
+  box-shadow: 0 10px 26px -10px rgba(0, 0, 0, 0.55);
+  animation: envelope-flutter 3.4s ease-in-out infinite;
+}
+
+@keyframes envelope-flutter {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-7px) rotate(2deg); }
+}
+
+.monthsary-envelope.landing .envelope-box,
+.monthsary-envelope.opened .envelope-box {
+  animation: none;
+}
+
+.envelope-flap {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 62%;
+  background: linear-gradient(155deg, #f2e6cd, #e5d0a5);
+  clip-path: polygon(0 0, 100% 0, 50% 70%);
+  border-radius: 4px 4px 0 0;
+  box-shadow: 0 4px 8px -5px rgba(0, 0, 0, 0.35);
+  transform-origin: top center;
+}
+
+.envelope-seal {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1.9rem;
+  height: 1.9rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ecca94, var(--gold) 65%, #8f6d3c 100%);
+  color: #3b2a12;
+  font-size: 0.9rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  animation: seal-glow 2.6s ease-in-out infinite;
+}
+
+/* unsealing — plays once .opened lands on the caught envelope */
+
+.monthsary-envelope.opened .envelope-seal {
+  animation: seal-crack 0.35s ease-out forwards;
+}
+
+@keyframes seal-crack {
+  0%   { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  40%  { transform: translate(-50%, -50%) scale(1.15) rotate(-8deg); }
+  100% { transform: translate(-50%, -50%) scale(0.55) rotate(14deg); opacity: 0; }
+}
+
+.monthsary-envelope.opened .envelope-flap {
+  animation: flap-open 0.5s cubic-bezier(0.3, 0, 0.2, 1) forwards;
+}
+
+@keyframes flap-open {
+  to { transform: perspective(400px) rotateX(-175deg); box-shadow: none; }
+}
+
+.monthsary-envelope.opened .envelope-box {
+  animation: envelope-dismiss 0.4s ease-out 0.3s forwards;
+}
+
+@keyframes envelope-dismiss {
+  to { opacity: 0; transform: translateY(-14px) scale(0.9); }
 }
 
 .monthsary-letter-card {
-  position: relative;
-  width: 100%;
-  max-width: 560px;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 98;
+  width: min(560px, calc(100vw - 2.8rem));
   max-height: 86vh;
   overflow-y: auto;
   background: var(--paper);
@@ -865,8 +1114,24 @@ body {
   padding: clamp(1.8rem, 6vw, 3rem);
   border-radius: 6px;
   box-shadow: var(--shadow);
-  transform: rotate(-0.6deg);
-  animation: letter-arrive 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform: translate(-50%, -50%) rotate(-0.6deg);
+}
+
+.monthsary-letter-card:not([hidden]) {
+  animation: letter-emerge 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes letter-emerge {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-0.6deg) scale(0.42) translateY(30px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-0.6deg) scale(1) translateY(0);
+    filter: blur(0);
+  }
 }
 
 .monthsary-letter-card::before {
@@ -878,21 +1143,26 @@ body {
   pointer-events: none;
 }
 
-@keyframes letter-arrive {
-  from {
-    opacity: 0;
-    transform: rotate(-0.6deg) scale(0.92) translateY(18px);
-    filter: blur(6px);
-  }
-  to {
-    opacity: 1;
-    transform: rotate(-0.6deg) scale(1) translateY(0);
-    filter: blur(0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .monthsary-letter-card { animation: none; }
+  .monthsary-envelope {
+    animation: envelope-fade-in 0.3s ease-out forwards;
+    left: auto;
+    top: auto;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .monthsary-envelope.landing { transition: opacity 0.25s ease; }
+  .envelope-box, .envelope-seal { animation: none; }
+  .monthsary-envelope.opened .envelope-box,
+  .monthsary-envelope.opened .envelope-flap,
+  .monthsary-envelope.opened .envelope-seal {
+    animation: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .monthsary-letter-card:not([hidden]) { animation: none; }
+  .monthsary-fly-hint { animation: none; opacity: 1; }
+  .monthsary-backdrop { transition: none; }
 }
 
 .monthsary-letter-close {
