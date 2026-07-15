@@ -162,7 +162,11 @@
          down by #yt-audio-frame ═══════════ -->
     <div id="yt-bar" class="yt-bar" hidden>
       <div class="yt-thumb-wrap"><img id="yt-thumb" class="yt-thumb" alt="" /></div>
-      <button type="button" id="yt-playpause" class="yt-playpause" aria-label="I-pause">⏸</button>
+      <div class="yt-transport">
+        <button type="button" id="yt-prev" class="yt-icon-btn yt-skip" aria-label="Nakaraang kanta sa playlist" disabled>⏮</button>
+        <button type="button" id="yt-playpause" class="yt-playpause" aria-label="I-pause">⏸</button>
+        <button type="button" id="yt-next" class="yt-icon-btn yt-skip" aria-label="Susunod na kanta sa playlist" disabled>⏭</button>
+      </div>
       <div class="yt-info">
         <p id="yt-title" class="yt-title">Kumukonekta…</p>
         <div class="yt-seekrow">

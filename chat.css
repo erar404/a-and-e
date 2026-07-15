@@ -1713,6 +1713,8 @@ body.vdi-skin-call .call-action.decline:hover { background: #ea5f63; }
 
 .yt-thumb { display: block; width: 100%; height: 100%; object-fit: cover; }
 
+.yt-transport { flex: none; display: flex; align-items: center; gap: 0.35rem; }
+
 .yt-playpause {
   flex: none;
   width: 34px;
@@ -1796,6 +1798,16 @@ body.vdi-skin-call .call-action.decline:hover { background: #ea5f63; }
 }
 
 .yt-icon-btn:hover { color: var(--rose); border-color: var(--rose); background: rgba(212, 160, 164, 0.1); }
+.yt-icon-btn:disabled,
+.yt-icon-btn:disabled:hover {
+  opacity: 0.35;
+  cursor: default;
+  color: var(--cream-dim);
+  border-color: rgba(212, 160, 164, 0.35);
+  background: transparent;
+}
+
+.yt-skip { font-size: 0.72rem; }
 
 .yt-audio-frame {
   position: fixed;
@@ -1809,7 +1821,11 @@ body.vdi-skin-call .call-action.decline:hover { background: #ea5f63; }
 }
 
 @media (max-width: 480px) {
-  .yt-bar { gap: 0.55rem; padding: 0.45rem 0.65rem; }
-  .yt-thumb-wrap { width: 34px; height: 34px; }
+  .yt-bar { gap: 0.4rem; padding: 0.45rem 0.6rem; }
+  .yt-thumb-wrap { display: none; } /* the transport cluster + title carry the bar now */
+  .yt-transport { gap: 0.2rem; }
+  .yt-skip { width: 26px; height: 26px; font-size: 0.65rem; }
+  .yt-playpause { width: 30px; height: 30px; }
+  .yt-icon-btn { width: 26px; height: 26px; font-size: 0.72rem; }
   .yt-time { display: none; }
 }

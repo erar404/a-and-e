@@ -12,7 +12,9 @@
   const attachPreviewEl = document.getElementById("attach-preview");
   const bar = document.getElementById("yt-bar");
   const thumbEl = document.getElementById("yt-thumb");
+  const prevBtn = document.getElementById("yt-prev");
   const playPauseBtn = document.getElementById("yt-playpause");
+  const nextBtn = document.getElementById("yt-next");
   const titleEl = document.getElementById("yt-title");
   const seekEl = document.getElementById("yt-seek");
   const curTimeEl = document.getElementById("yt-time-cur");
@@ -98,7 +100,10 @@
     );
   }
 
+  let isPlaylist = false; // prev/next only mean anything once a playlist is loaded
+
   function playYouTube(parsed) {
+    isPlaylist = !!parsed.playlistId;
     showBar();
     setBarLoading();
     ensurePlayer().then((p) => {
@@ -117,10 +122,15 @@
     bar.classList.remove("error");
     playPauseBtn.disabled = false;
     seekEl.disabled = false;
+    prevBtn.disabled = !isPlaylist;
+    nextBtn.disabled = !isPlaylist;
   }
 
   function hideBar() {
     bar.hidden = true;
+    isPlaylist = false;
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
     stopProgressLoop();
   }
 
@@ -138,6 +148,8 @@
     thumbEl.removeAttribute("src");
     playPauseBtn.disabled = true;
     seekEl.disabled = true;
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
     stopProgressLoop();
   }
 
@@ -205,6 +217,14 @@
     if (!player || typeof player.getPlayerState !== "function") return;
     if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
     else player.playVideo();
+  });
+
+  prevBtn.addEventListener("click", () => {
+    if (player && typeof player.previousVideo === "function") player.previousVideo();
+  });
+
+  nextBtn.addEventListener("click", () => {
+    if (player && typeof player.nextVideo === "function") player.nextVideo();
   });
 
   seekEl.addEventListener("input", () => { seeking = true; });
