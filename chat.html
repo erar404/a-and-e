@@ -16,6 +16,42 @@
 </head>
 <body>
 
+  <!-- ═══════════ vdi disguise — sits above absolutely everything below,
+       so it can cover the login screen, the chat, or a live call alike.
+       the inline script right after it must stay inline and this early:
+       it re-applies the disguise before the romantic screen underneath
+       ever gets a chance to paint on reload ═══════════ -->
+  <div id="vdi-overlay" class="vdi-overlay" hidden>
+    <div class="vdi-chrome">
+      <span class="vdi-chrome-icon" aria-hidden="true">🖥</span>
+      <span class="vdi-chrome-title">Remote Desktop — VDI-WKS-04C2 (Connected)</span>
+      <span class="vdi-chrome-clock" id="vdi-clock">--:--</span>
+      <span class="vdi-chrome-win" aria-hidden="true">─&nbsp;&nbsp;▢&nbsp;&nbsp;✕</span>
+    </div>
+    <div class="vdi-meetbar">
+      <span class="vdi-meet-title">Weekly Sync — Team Standup</span>
+      <span class="vdi-rec"><i aria-hidden="true"></i><span class="vdi-rec-label">Not Recording</span></span>
+      <span class="vdi-participants">👥 4</span>
+      <span class="vdi-timer" id="vdi-timer">00:00</span>
+    </div>
+    <div class="vdi-stage" id="vdi-stage"></div>
+    <div class="vdi-controls">
+      <button type="button" class="vdi-ctrl is-off" tabindex="-1"><span class="glyph" aria-hidden="true">🎙</span><span class="vdi-ctrl-label">Unmute</span></button>
+      <button type="button" class="vdi-ctrl is-off" tabindex="-1"><span class="glyph" aria-hidden="true">🎥</span><span class="vdi-ctrl-label">Start Video</span></button>
+      <button type="button" class="vdi-ctrl" tabindex="-1"><span class="glyph" aria-hidden="true">👥</span><span class="vdi-ctrl-label">Participants</span></button>
+      <button type="button" class="vdi-ctrl" tabindex="-1"><span class="glyph" aria-hidden="true">💬</span><span class="vdi-ctrl-label">Chat</span></button>
+      <button type="button" class="vdi-ctrl" tabindex="-1"><span class="glyph" aria-hidden="true">🖥</span><span class="vdi-ctrl-label">Share</span></button>
+      <button type="button" class="vdi-leave" data-vdi-leave aria-label="Leave meeting and return">Leave</button>
+    </div>
+  </div>
+  <script>
+    if (sessionStorage.getItem("vdiDisguiseOn") === "1") {
+      document.getElementById("vdi-overlay").hidden = false;
+    }
+  </script>
+
+  <button type="button" id="vdi-toggle" class="vdi-toggle" title="Presentation view" aria-label="Toggle presentation view">⧉</button>
+
   <!-- the same dim atmosphere as home -->
   <div class="grain" aria-hidden="true"></div>
   <div class="vignette" aria-hidden="true"></div>
@@ -183,5 +219,6 @@
   <script src="supabase.min.js"></script>
   <script src="chat.js"></script>
   <script src="monthsary-timer.js"></script>
+  <script src="vdi-disguise.js"></script>
 </body>
 </html>
