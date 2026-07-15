@@ -16,36 +16,46 @@
 </head>
 <body>
 
-  <!-- ═══════════ vdi disguise — sits above absolutely everything below,
-       so it can cover the login screen, the chat, or a live call alike.
-       the inline script right after it must stay inline and this early:
-       it re-applies the disguise before the romantic screen underneath
-       ever gets a chance to paint on reload ═══════════ -->
+  <!-- ═══════════ vdi disguise ═══════════
+       #vdi-chrome: a standalone "remote desktop" title strip, shown
+       whenever disguise is on, in front of whichever of the two states
+       below is active.
+
+       #vdi-overlay: a full-block fallback — an empty "Meeting Chat"
+       panel — used only when there's nothing real to show yet (still on
+       the login gate) or when a live call is up (hides real video; a
+       call can't sensibly stay "functional" under a chat disguise).
+
+       #vdi-chat-header: swapped in for the real header once actually
+       logged into the chat with no call running, so the real messages
+       and composer stay live and usable underneath a Zoom-chat skin
+       instead of being blocked — see body.vdi-skin-chat in chat.css.
+
+       the inline script right after this block must stay inline and
+       this early: it re-shows the disguise before the romantic login
+       screen underneath ever gets a chance to paint on reload ═══════════ -->
+  <div id="vdi-chrome" class="vdi-chrome" hidden>
+    <span class="vdi-chrome-icon" aria-hidden="true">🖥</span>
+    <span class="vdi-chrome-title">Remote Desktop — VDI-WKS-04C2 (Connected)</span>
+    <span class="vdi-chrome-clock" id="vdi-clock">--:--</span>
+    <span class="vdi-chrome-win" aria-hidden="true">─&nbsp;&nbsp;▢&nbsp;&nbsp;✕</span>
+  </div>
+
   <div id="vdi-overlay" class="vdi-overlay" hidden>
-    <div class="vdi-chrome">
-      <span class="vdi-chrome-icon" aria-hidden="true">🖥</span>
-      <span class="vdi-chrome-title">Remote Desktop — VDI-WKS-04C2 (Connected)</span>
-      <span class="vdi-chrome-clock" id="vdi-clock">--:--</span>
-      <span class="vdi-chrome-win" aria-hidden="true">─&nbsp;&nbsp;▢&nbsp;&nbsp;✕</span>
+    <div class="vdi-chatpanel-header">
+      <span class="vdi-chatpanel-title">Meeting Chat</span>
+      <button type="button" class="vdi-chatpanel-close" data-vdi-leave aria-label="Close chat panel">✕</button>
     </div>
-    <div class="vdi-meetbar">
-      <span class="vdi-meet-title">Weekly Sync — Team Standup</span>
-      <span class="vdi-rec"><i aria-hidden="true"></i><span class="vdi-rec-label">Not Recording</span></span>
-      <span class="vdi-participants">👥 4</span>
-      <span class="vdi-timer" id="vdi-timer">00:00</span>
+    <div class="vdi-chatpanel-empty">
+      <p>No messages yet</p>
     </div>
-    <div class="vdi-stage" id="vdi-stage"></div>
-    <div class="vdi-controls">
-      <button type="button" class="vdi-ctrl is-off" tabindex="-1"><span class="glyph" aria-hidden="true">🎙</span><span class="vdi-ctrl-label">Unmute</span></button>
-      <button type="button" class="vdi-ctrl is-off" tabindex="-1"><span class="glyph" aria-hidden="true">🎥</span><span class="vdi-ctrl-label">Start Video</span></button>
-      <button type="button" class="vdi-ctrl" tabindex="-1"><span class="glyph" aria-hidden="true">👥</span><span class="vdi-ctrl-label">Participants</span></button>
-      <button type="button" class="vdi-ctrl" tabindex="-1"><span class="glyph" aria-hidden="true">💬</span><span class="vdi-ctrl-label">Chat</span></button>
-      <button type="button" class="vdi-ctrl" tabindex="-1"><span class="glyph" aria-hidden="true">🖥</span><span class="vdi-ctrl-label">Share</span></button>
-      <button type="button" class="vdi-leave" data-vdi-leave aria-label="Leave meeting and return">Leave</button>
+    <div class="vdi-chatpanel-inputbar" aria-hidden="true">
+      <span class="vdi-chatpanel-input-placeholder">Type message here…</span>
     </div>
   </div>
   <script>
     if (sessionStorage.getItem("vdiDisguiseOn") === "1") {
+      document.getElementById("vdi-chrome").hidden = false;
       document.getElementById("vdi-overlay").hidden = false;
     }
   </script>
@@ -123,6 +133,14 @@
       <button id="signout" class="chat-out" title="Sign out">lisan</button>
     </header>
 
+    <!-- stands in for .chat-head above once the zoom-chat skin is on
+         (body.vdi-skin-chat hides the real header); the real messages
+         and composer below keep working the whole time -->
+    <div id="vdi-chat-header" class="vdi-chat-header" hidden>
+      <span class="vdi-chat-header-title">Meeting Chat</span>
+      <button type="button" id="vdi-chat-header-close" class="vdi-chat-header-close" aria-label="Exit presentation view">✕</button>
+    </div>
+
     <div id="monthsary-banner" class="monthsary-banner" role="status" hidden>
       <span class="monthsary-seal" aria-hidden="true">♡</span>
       <span class="monthsary-banner-body">
@@ -138,6 +156,25 @@
       <img id="attach-preview-img" alt="" />
       <button type="button" id="attach-remove" class="attach-remove" aria-label="Alisin ang larawan">✕</button>
     </div>
+
+    <!-- ═══════════ yt play bar — appears only once "play <youtube link>"
+         is sent; audio-only, the iframe itself stays a 1x1px passenger
+         down by #yt-audio-frame ═══════════ -->
+    <div id="yt-bar" class="yt-bar" hidden>
+      <div class="yt-thumb-wrap"><img id="yt-thumb" class="yt-thumb" alt="" /></div>
+      <button type="button" id="yt-playpause" class="yt-playpause" aria-label="I-pause">⏸</button>
+      <div class="yt-info">
+        <p id="yt-title" class="yt-title">Kumukonekta…</p>
+        <div class="yt-seekrow">
+          <span id="yt-time-cur" class="yt-time">0:00</span>
+          <input id="yt-seek" class="yt-seek" type="range" min="0" max="0" step="1" value="0" aria-label="Posisyon ng kanta" />
+          <span id="yt-time-dur" class="yt-time">0:00</span>
+        </div>
+      </div>
+      <button type="button" id="yt-mute" class="yt-icon-btn" aria-label="Patayin ang tunog">🔊</button>
+      <button type="button" id="yt-close" class="yt-icon-btn" aria-label="Ihinto ang pagpapatugtog">✕</button>
+    </div>
+    <div id="yt-audio-frame" class="yt-audio-frame" aria-hidden="true"></div>
 
     <form id="composer" class="composer">
       <input type="file" id="file-input" accept="image/*" hidden />
@@ -157,12 +194,28 @@
     <img id="lightbox-img" alt="" />
   </div>
 
-  <!-- ═══════════ call overlay ═══════════ -->
+  <!-- ═══════════ call overlay ═══════════
+       .call-tile wraps around each <video> only so the zoom-grid skin
+       (body.vdi-skin-call) has somewhere to anchor a name label and a
+       grid-area — in the normal (non-disguised) view the wrappers stay
+       position:static and the videos keep positioning off .call-card
+       exactly as before, so nothing here changes the everyday call UI ═══════════ -->
   <div id="call-overlay" class="call-overlay" hidden>
     <div class="call-card">
-      <video id="remote-video" class="call-video call-video-main" autoplay playsinline></video>
+      <div id="vdi-call-header" class="vdi-call-header vdi-chatpanel-header" hidden>
+        <span class="vdi-chatpanel-title">Zoom Meeting</span>
+        <button type="button" id="vdi-call-header-close" class="vdi-chatpanel-close" aria-label="Exit presentation view">✕</button>
+      </div>
+
+      <div class="call-tile call-tile-remote">
+        <video id="remote-video" class="call-video call-video-main" autoplay playsinline></video>
+        <span class="call-tile-label" id="vdi-call-label-remote">Participant</span>
+      </div>
       <div class="call-avatar" id="call-avatar">♡</div>
-      <video id="local-video" class="call-video call-video-pip" autoplay playsinline muted hidden></video>
+      <div class="call-tile call-tile-local">
+        <video id="local-video" class="call-video call-video-pip" autoplay playsinline muted hidden></video>
+        <span class="call-tile-label">You</span>
+      </div>
 
       <div id="call-monthsary-timer" class="call-monthsary-timer" hidden>
         <span class="monthsary-seal" aria-hidden="true">♡</span>
@@ -220,5 +273,6 @@
   <script src="chat.js"></script>
   <script src="monthsary-timer.js"></script>
   <script src="vdi-disguise.js"></script>
+  <script src="yt-player.js"></script>
 </body>
 </html>

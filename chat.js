@@ -509,6 +509,7 @@ function appendMsg(m, animate) {
   const row = document.createElement("div");
   row.className = "msg" + (m.sender_id === me ? " mine" : "");
   row.dataset.id = m.id;
+  row.dataset.sender = names[m.sender_id] || (m.sender_id === me ? "You" : "Guest");
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";

@@ -1,110 +1,174 @@
 /* ════════════════════════════════════════════
-   boss-key style disguise: swap the whole screen for
-   something that reads as a boring VDI/Zoom session at a
-   glance. Toggle with the floating button or the Escape key;
-   "Leave" doubles as the way back, same as leaving any real call.
+   boss-key style disguise: swap the screen for something that reads as
+   a boring VDI/Zoom session at a glance. Toggle with the floating
+   button or the Escape key.
+
+   Three states, chosen automatically and kept in sync as login/call
+   state changes underneath:
+   - functional chat skin (body.vdi-skin-chat): logged into the chat,
+     no call running — the REAL messages and composer stay live, just
+     reskinned as a flat Zoom chat transcript. Typing still works.
+   - functional call skin (body.vdi-skin-call): a call is active — the
+     REAL local/remote video, mute/cam/hangup all stay live, reskinned
+     as a Zoom gallery view (two equal tiles) instead of the romantic
+     big-feed-plus-heart layout.
+   - full block (#vdi-overlay): only when there's nothing safe to leave
+     live at all — still on the login gate.
    ════════════════════════════════════════════ */
 
 (() => {
-  const STORAGE_KEY = "vdiDisguiseOn";
-
+  const chrome = document.getElementById("vdi-chrome");
   const overlay = document.getElementById("vdi-overlay");
   const toggleBtn = document.getElementById("vdi-toggle");
-  const leaveBtn = overlay?.querySelector("[data-vdi-leave]");
   const clockEl = document.getElementById("vdi-clock");
-  const timerEl = document.getElementById("vdi-timer");
-  const stage = document.getElementById("vdi-stage");
-  if (!overlay || !toggleBtn) return;
+  const chatEl = document.getElementById("chat");
+  const callOverlayEl = document.getElementById("call-overlay");
+  const chatHeaderEl = document.getElementById("vdi-chat-header");
+  const chatHeaderCloseBtn = document.getElementById("vdi-chat-header-close");
+  const callHeaderEl = document.getElementById("vdi-call-header");
+  const callHeaderCloseBtn = document.getElementById("vdi-call-header-close");
+  const callNameEl = document.getElementById("call-name");
+  const callLabelRemoteEl = document.getElementById("vdi-call-label-remote");
+  if (!chrome || !overlay || !toggleBtn || !chatHeaderEl) return;
 
-  const ROSTER = [
-    { initials: "RS", name: "R. Santos" },
-    { initials: "MC", name: "M. Cruz" },
-    { initials: "JD", name: "J. Dela Peña" },
-    { initials: "You", name: "You" },
-  ];
+  const STORAGE_KEY = "vdiDisguiseOn";
+  const leaveBtns = overlay.querySelectorAll("[data-vdi-leave]");
 
-  stage.innerHTML = ROSTER.map(
-    (p) => `
-    <div class="vdi-tile${p.name === "You" ? " vdi-tile-you" : ""}">
-      <span class="vdi-tile-avatar">${p.initials}</span>
-      <span class="vdi-tile-name"><i aria-hidden="true">⦸</i>${p.name}</span>
-    </div>`
-  ).join("");
-
-  // everything the overlay is meant to hide should also be unreachable by
-  // keyboard/screen-reader while it's up, not just visually covered
+  // everything the full-block state is meant to hide should also be
+  // unreachable by keyboard/screen-reader while it's up — but only in
+  // that state; both functional skins need the real thing underneath
+  // to stay interactive
   const coveredEls = Array.from(document.body.children).filter(
-    (el) => el !== overlay && el !== toggleBtn && el.tagName !== "SCRIPT"
+    (el) => el !== chrome && el !== overlay && el !== toggleBtn && el.tagName !== "SCRIPT"
   );
   function setCovered(isInert) {
     coveredEls.forEach((el) => { el.inert = isInert; });
   }
 
-  const pad = (n) => String(n).padStart(2, "0");
-
+  let disguiseOn = false;
   let clockHandle = null;
-  let timerHandle = null;
-  let elapsedSec = 0;
+  let modeObserver = null;
+  let callLabelObserver = null;
 
+  const pad = (n) => String(n).padStart(2, "0");
   function tickClock() {
     const now = new Date();
     clockEl.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   }
-
-  function tickTimer() {
-    elapsedSec += 1;
-    const h = Math.floor(elapsedSec / 3600);
-    const m = Math.floor((elapsedSec % 3600) / 60);
-    const s = elapsedSec % 60;
-    timerEl.textContent = h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-  }
-
-  function startClocks() {
-    elapsedSec = Math.floor(Math.random() * 900) + 120; // already mid-meeting
+  function startClock() {
     tickClock();
-    tickTimer();
     clockHandle = setInterval(tickClock, 15000);
-    timerHandle = setInterval(tickTimer, 1000);
+  }
+  function stopClock() {
+    clearInterval(clockHandle);
+    clockHandle = null;
   }
 
-  function stopClocks() {
-    clearInterval(clockHandle);
-    clearInterval(timerHandle);
+  // the other person's real name already lives in #call-name (chat.js
+  // keeps it current through ringing/connecting/connected) — just
+  // mirror it into the tile label rather than duplicating that logic
+  function syncCallLabel() {
+    if (callLabelRemoteEl && callNameEl) {
+      callLabelRemoteEl.textContent = callNameEl.textContent.trim() || "Participant";
+    }
+  }
+  function watchCallLabel(on) {
+    if (callLabelObserver) {
+      callLabelObserver.disconnect();
+      callLabelObserver = null;
+    }
+    if (on && callNameEl && callLabelRemoteEl) {
+      syncCallLabel();
+      callLabelObserver = new MutationObserver(syncCallLabel);
+      callLabelObserver.observe(callNameEl, { characterData: true, childList: true, subtree: true });
+    }
+  }
+
+  // ─── decide which of the three states applies right now, and react
+  // live if login/call state changes while disguise stays on ───
+
+  function refreshMode({ flicker = false } = {}) {
+    if (!disguiseOn) return;
+    const callActive = !!(callOverlayEl && !callOverlayEl.hidden);
+    const chatVisible = !!(chatEl && !chatEl.hidden);
+
+    document.body.classList.remove("vdi-skin-chat", "vdi-skin-call");
+    chatHeaderEl.hidden = true;
+    if (callHeaderEl) callHeaderEl.hidden = true;
+    watchCallLabel(false);
+
+    if (callActive) {
+      overlay.hidden = true;
+      setCovered(false);
+      document.body.classList.add("vdi-skin-call");
+      if (callHeaderEl) callHeaderEl.hidden = false;
+      watchCallLabel(true);
+    } else if (chatVisible) {
+      overlay.hidden = true;
+      setCovered(false);
+      document.body.classList.add("vdi-skin-chat");
+      chatHeaderEl.hidden = false;
+    } else {
+      overlay.hidden = false;
+      setCovered(true);
+      if (flicker) {
+        void overlay.offsetWidth; // restart the animation on every switch
+        overlay.classList.add("connecting");
+        setTimeout(() => overlay.classList.remove("connecting"), 380);
+      }
+    }
   }
 
   function activate({ flicker = true, persist = true } = {}) {
-    overlay.hidden = false;
-    setCovered(true);
-    if (flicker) {
-      void overlay.offsetWidth; // restart the animation on every activation
-      overlay.classList.add("connecting");
-      setTimeout(() => overlay.classList.remove("connecting"), 380);
+    disguiseOn = true;
+    chrome.hidden = false;
+    startClock();
+    refreshMode({ flicker });
+    if (!modeObserver) {
+      modeObserver = new MutationObserver(() => refreshMode({ flicker: true }));
+      if (chatEl) modeObserver.observe(chatEl, { attributes: true, attributeFilter: ["hidden"] });
+      if (callOverlayEl) modeObserver.observe(callOverlayEl, { attributes: true, attributeFilter: ["hidden"] });
     }
-    startClocks();
     if (persist) sessionStorage.setItem(STORAGE_KEY, "1");
   }
 
   function deactivate() {
+    disguiseOn = false;
+    if (modeObserver) {
+      modeObserver.disconnect();
+      modeObserver = null;
+    }
+    watchCallLabel(false);
+    chrome.hidden = true;
     overlay.hidden = true;
+    chatHeaderEl.hidden = true;
+    if (callHeaderEl) callHeaderEl.hidden = true;
+    document.body.classList.remove("vdi-skin-chat", "vdi-skin-call");
     setCovered(false);
-    stopClocks();
+    stopClock();
     sessionStorage.removeItem(STORAGE_KEY);
   }
 
   function toggle() {
-    if (overlay.hidden) activate();
-    else deactivate();
+    if (disguiseOn) deactivate();
+    else activate();
   }
 
   toggleBtn.addEventListener("click", toggle);
-  leaveBtn?.addEventListener("click", deactivate);
+  leaveBtns.forEach((btn) => btn.addEventListener("click", deactivate));
+  chatHeaderCloseBtn?.addEventListener("click", deactivate);
+  callHeaderCloseBtn?.addEventListener("click", deactivate);
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") toggle();
   });
 
-  // the inline script right after the overlay markup already flipped
-  // overlay.hidden off on reload if the session flag was set — just
-  // wire up the clocks here, no flicker (nothing "reconnected")
-  if (!overlay.hidden) activate({ flicker: false, persist: false });
+  // the inline script right after the disguise markup already flipped
+  // #vdi-chrome/#vdi-overlay visible on reload if the session flag was
+  // set — pick up from there without replaying the connect flicker;
+  // refreshMode() will then upgrade to whichever functional skin fits
+  // once chat.js finishes logging in (and/or a call turns out to be live)
+  if (!overlay.hidden || !chrome.hidden) {
+    activate({ flicker: false, persist: false });
+  }
 })();

@@ -756,6 +756,12 @@ body {
 .call-video-pip:hover { transform: scale(1.04); }
 .call-video-pip:active { transform: scale(0.95); }
 
+/* plain wrappers the rest of the time — position:static so the video
+   inside keeps positioning off .call-card exactly as above. only
+   body.vdi-skin-call gives them a job (see the vdi disguise section) */
+.call-tile { position: static; }
+.call-tile-label { display: none; }
+
 .call-avatar {
   position: absolute;
   top: min(30%, 22vmin);
@@ -902,7 +908,9 @@ body {
 .call-overlay.minimized .call-info,
 .call-overlay.minimized .call-controls,
 .call-overlay.minimized .call-video-pip,
-.call-overlay.minimized .call-monthsary-timer {
+.call-overlay.minimized .call-monthsary-timer,
+.call-overlay.minimized .call-tile-local,
+.call-overlay.minimized .vdi-call-header {
   display: none;
 }
 
@@ -1237,50 +1245,35 @@ body {
    system sans, office grays, a blue that isn't quite any real product's
    blue. everything below is candlelit serif; this is the opposite of
    that on purpose, so it reads as someone else's boring software at a
-   glance. "Leave" doubles as the way back to the real chat, the same
-   click that would end any actual meeting. */
+   glance.
 
-.vdi-overlay {
-  --vdi-bg: #17181a;
-  --vdi-bg-soft: #202124;
-  --vdi-tile: #26282b;
-  --vdi-border: #35373a;
-  --vdi-text: #e8eaed;
-  --vdi-text-dim: #9aa0a6;
-  --vdi-blue: #386bb3;
-  --vdi-red: #e5484d;
-
-  position: fixed;
-  inset: 0;
-  z-index: 999;
-  display: flex;
-  flex-direction: column;
-  background: var(--vdi-bg);
-  color: var(--vdi-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  cursor: default;
-  -webkit-font-smoothing: auto;
-}
-
-.vdi-overlay.connecting { animation: vdi-connect 0.38s ease-out; }
-
-@keyframes vdi-connect {
-  0%   { filter: brightness(0.4) saturate(0); opacity: 0.5; }
-  35%  { filter: brightness(1.15) saturate(0.5); opacity: 1; }
-  100% { filter: none; opacity: 1; }
-}
+   two states share the same top chrome strip (#vdi-chrome, a fixed
+   "remote desktop" title bar):
+   - #vdi-overlay: an empty "Meeting Chat" panel, full-block — only used
+     when there's nothing real underneath yet (still on the login gate)
+     or a live call is up (a call can't stay "functional" in disguise,
+     so it gets fully covered same as before).
+   - body.vdi-skin-chat: reskins the REAL #chat in place instead of
+     covering it — messages and the composer stay live, just dressed as
+     a Zoom chat transcript. #vdi-chat-header stands in for .chat-head. */
 
 .vdi-chrome {
-  flex: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   display: flex;
   align-items: center;
   gap: 0.55rem;
   height: 28px;
   padding: 0 0.7rem;
   background: #101113;
-  border-bottom: 1px solid var(--vdi-border);
+  border-bottom: 1px solid #35373a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 12px;
-  color: var(--vdi-text-dim);
+  color: #9aa0a6;
+  -webkit-font-smoothing: auto;
 }
 
 .vdi-chrome-icon { opacity: 0.85; }
@@ -1298,172 +1291,349 @@ body {
 
 .vdi-chrome-win { margin-left: 0.3rem; letter-spacing: 0.2em; opacity: 0.55; font-size: 10px; }
 
-.vdi-meetbar {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.55rem 1rem;
-  background: var(--vdi-bg-soft);
-  border-bottom: 1px solid var(--vdi-border);
-  font-size: 13px;
+@media (max-width: 380px) {
+  .vdi-chrome-title { font-size: 11px; }
 }
 
-.vdi-meet-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 600;
-}
-
-.vdi-rec {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--vdi-text-dim);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.vdi-rec i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #5c6066;
-  display: inline-block;
-}
-
-.vdi-participants,
-.vdi-timer {
-  flex: none;
-  color: var(--vdi-text-dim);
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.vdi-stage {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: 1fr;
-  gap: 0.6rem;
-  padding: 0.8rem;
-  overflow: hidden;
-}
-
-.vdi-tile {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 0;
-  background: var(--vdi-tile);
-  border: 1px solid var(--vdi-border);
-  border-radius: 6px;
-}
-
-.vdi-tile-avatar {
-  width: clamp(34px, 9vmin, 56px);
-  height: clamp(34px, 9vmin, 56px);
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #3d4148;
-  color: var(--vdi-text);
-  font-size: clamp(0.7rem, 3vmin, 0.95rem);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.vdi-tile-you .vdi-tile-avatar { background: var(--vdi-blue); }
-
-.vdi-tile-name {
-  position: absolute;
-  left: 0.5rem;
-  bottom: 0.45rem;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.18rem 0.45rem;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.35);
-  font-size: 11.5px;
-  color: var(--vdi-text-dim);
-}
-
-.vdi-tile-name i { font-style: normal; color: var(--vdi-red); }
-
-.vdi-controls {
-  flex: none;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(0.4rem, 2.2vmin, 1rem);
-  padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom));
-  background: var(--vdi-bg-soft);
-  border-top: 1px solid var(--vdi-border);
-}
-
-.vdi-ctrl {
+.vdi-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  min-width: 46px;
-  padding: 0.35rem 0.5rem;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--vdi-text-dim);
-  font-family: inherit;
-  font-size: 10.5px;
+  padding-top: 28px; /* clears the fixed .vdi-chrome strip above it */
+  background: #17181a;
+  color: #e8eaed;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   cursor: default;
+  -webkit-font-smoothing: auto;
 }
 
-.vdi-ctrl .glyph { font-size: 15px; color: var(--vdi-text); }
+.vdi-overlay.connecting { animation: vdi-connect 0.38s ease-out; }
 
-.vdi-ctrl.is-off .glyph { color: var(--vdi-red); }
-
-.vdi-leave {
-  margin-left: clamp(0.5rem, 3vmin, 1.4rem);
-  padding: 0.5rem 1.1rem;
-  border: none;
-  border-radius: 5px;
-  background: var(--vdi-red);
-  color: #fff;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
+@keyframes vdi-connect {
+  0%   { filter: brightness(0.4) saturate(0); opacity: 0.5; }
+  35%  { filter: brightness(1.15) saturate(0.5); opacity: 1; }
+  100% { filter: none; opacity: 1; }
 }
-
-.vdi-leave:hover,
-.vdi-leave:focus-visible { background: #f0696d; }
 
 @media (prefers-reduced-motion: reduce) {
   .vdi-overlay.connecting { animation: none; }
 }
 
-@media (max-width: 560px) {
-  .vdi-meetbar { gap: 0.5rem; padding-inline: 0.7rem; }
-  .vdi-rec-label { display: none; }
-  .vdi-controls { gap: 0.25rem; padding-inline: 0.5rem; }
-  .vdi-ctrl { min-width: 34px; padding: 0.35rem 0.3rem; }
-  .vdi-ctrl-label { display: none; }
-  .vdi-ctrl .glyph { font-size: 17px; }
-  .vdi-leave { margin-left: 0.4rem; padding: 0.5rem 0.8rem; font-size: 12px; }
+.vdi-chatpanel-header,
+.vdi-chat-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
+  background: #202124;
+  border-bottom: 1px solid #35373a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-@media (max-width: 380px) {
-  .vdi-chrome-title { font-size: 11px; }
-  .vdi-meet-title { font-size: 12px; }
+.vdi-chatpanel-title,
+.vdi-chat-header-title { font-size: 14px; font-weight: 600; color: #e8eaed; }
+
+.vdi-chatpanel-close,
+.vdi-chat-header-close {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #9aa0a6;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.vdi-chatpanel-close:hover,
+.vdi-chat-header-close:hover { background: rgba(255, 255, 255, 0.08); color: #e8eaed; }
+
+.vdi-chatpanel-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: #6b6f76;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+}
+
+.vdi-chatpanel-inputbar {
+  flex: none;
+  margin: 0 1rem calc(0.8rem + env(safe-area-inset-bottom));
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #35373a;
+  border-radius: 6px;
+  background: #1c1d1f;
+}
+
+.vdi-chatpanel-input-placeholder {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  color: #6b6f76;
+}
+
+/* ─── zoom-chat functional skin — reskins the real #chat in place so
+   messages and the composer keep working while disguised */
+
+body.vdi-skin-chat {
+  --zc-bg: #1c1c1c;
+  --zc-panel: #202124;
+  --zc-border: #35373a;
+  --zc-text: #e4e4e4;
+  --zc-text-dim: #8f939a;
+  --zc-name-other: #6ab0f3;
+  --zc-name-mine: #8bc98f;
+}
+
+body.vdi-skin-chat .chat {
+  padding-top: 28px; /* clears the fixed .vdi-chrome strip */
+  background: var(--zc-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body.vdi-skin-chat .grain,
+body.vdi-skin-chat .vignette,
+body.vdi-skin-chat .aurora,
+body.vdi-skin-chat .chat-head,
+body.vdi-skin-chat #monthsary-banner,
+body.vdi-skin-chat .monthsary-fly-hint,
+body.vdi-skin-chat .monthsary-envelope,
+body.vdi-skin-chat .monthsary-backdrop,
+body.vdi-skin-chat .monthsary-letter-card {
+  display: none !important;
+}
+
+body.vdi-skin-chat .messages {
+  background: transparent;
+  padding: 0.7rem 1rem 0.5rem;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+body.vdi-skin-chat .day-sep span { background: var(--zc-border); }
+
+body.vdi-skin-chat .day-sep i {
+  font-style: normal;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--zc-text-dim);
+}
+
+body.vdi-skin-chat .msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 100%;
+  margin: 0 0 0.9rem;
+  text-align: left;
+}
+
+body.vdi-skin-chat .msg.mine { margin-left: 0; text-align: left; }
+
+body.vdi-skin-chat .msg::before {
+  content: attr(data-sender);
+  order: -1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--zc-name-other);
+  margin-bottom: 2px;
+}
+
+body.vdi-skin-chat .msg.mine::before { color: var(--zc-name-mine); }
+
+body.vdi-skin-chat .bubble {
+  display: block;
+  max-width: 88%;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--zc-text) !important;
+  font-size: 14px;
+  font-weight: 400;
+  font-family: inherit;
+}
+
+body.vdi-skin-chat .msg-img { border-radius: 4px; max-width: min(60vw, 260px); }
+body.vdi-skin-chat .msg-caption { padding: 0.35rem 0 0; font-size: 14px; }
+
+body.vdi-skin-chat .meta {
+  margin-top: 0.2rem;
+  font-size: 11px;
+  letter-spacing: 0;
+  color: var(--zc-text-dim);
+}
+
+body.vdi-skin-chat .seen { color: var(--zc-name-mine); font-family: inherit; font-size: 11px; }
+
+body.vdi-skin-chat .attach-preview { background: var(--zc-panel); border-color: var(--zc-border); }
+
+body.vdi-skin-chat .composer {
+  background: var(--zc-panel);
+  border-top: 1px solid var(--zc-border);
+  padding: 0.6rem 0.8rem calc(0.6rem + env(safe-area-inset-bottom));
+}
+
+body.vdi-skin-chat .composer textarea {
+  background: #17181a;
+  border: 1px solid var(--zc-border);
+  border-radius: 6px;
+  color: var(--zc-text);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+body.vdi-skin-chat .composer textarea::placeholder { color: var(--zc-text-dim); font-style: normal; }
+
+body.vdi-skin-chat .attach-btn,
+body.vdi-skin-chat .send-btn { border-radius: 4px; border-color: var(--zc-border); color: var(--zc-text-dim); }
+body.vdi-skin-chat .send-btn { color: var(--zc-name-other); }
+body.vdi-skin-chat .attach-btn:hover,
+body.vdi-skin-chat .send-btn:hover { background: rgba(255, 255, 255, 0.06); border-color: #4a4d54; }
+
+body.vdi-skin-chat .yt-bar { background: var(--zc-panel); border-color: var(--zc-border); }
+
+/* ─── zoom-grid call skin — same idea as the chat skin above, applied to
+   a live call: reskins the REAL #call-overlay in place (both video feeds
+   still real, mute/cam/hangup still real) as a Zoom gallery view — two
+   equally-sized tiles instead of one big feed + a floating corner PIP.
+   scoped to :not(.minimized) throughout — the minimized bubble already
+   has its own small, neutral treatment and doesn't need a grid */
+
+body.vdi-skin-call {
+  --zc-bg: #1c1c1c;
+  --zc-panel: #202124;
+  --zc-border: #35373a;
+  --zc-text: #e4e4e4;
+  --zc-text-dim: #8f939a;
+}
+
+body.vdi-skin-call .call-overlay { background: var(--zc-bg); }
+
+body.vdi-skin-call .call-overlay:not(.minimized) .call-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "header   header"
+    "tile1    tile2"
+    "controls controls";
+  gap: 0.5rem;
+  padding: 0.6rem 0.6rem calc(0.6rem + env(safe-area-inset-bottom));
+  /* .call-card's base rule sets these for its normal flexbox layout —
+     align-items/justify-content are generic box-alignment properties
+     that carry over into grid too, and grid's own default (stretch)
+     is what the tiles actually need to fill their row instead of
+     collapsing to their (empty, absolutely-positioned) content height */
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+body.vdi-skin-call .call-overlay:not(.minimized) .vdi-call-header { grid-area: header; }
+body.vdi-skin-call .call-overlay:not(.minimized) .call-tile-remote { grid-area: tile1; }
+body.vdi-skin-call .call-overlay:not(.minimized) .call-tile-local { grid-area: tile2; }
+body.vdi-skin-call .call-overlay:not(.minimized) .call-controls { grid-area: controls; }
+
+body.vdi-skin-call .call-overlay:not(.minimized) .call-tile {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #26282b;
+  border: 1px solid var(--zc-border);
+}
+
+body.vdi-skin-call .call-overlay:not(.minimized) .call-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  cursor: default;
+  transform: none;
+}
+
+body.vdi-skin-call .call-overlay:not(.minimized) .call-tile-label {
+  display: block;
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 2;
+  padding: 0.18rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--zc-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+}
+
+body.vdi-skin-call .call-info,
+body.vdi-skin-call .call-monthsary-timer { display: none; }
+
+body.vdi-skin-call .call-overlay:not(.minimized) .call-avatar {
+  /* leaves position:absolute behind entirely — as a normal in-flow grid
+     item it can just be centered within its own cell, no top/margin
+     math standing in for what grid-area + place-self already do */
+  position: static;
+  grid-column: 1 / 3;
+  grid-row: 2;
+  align-self: center;
+  justify-self: center;
+  animation: none !important;
+  width: clamp(64px, 20vmin, 110px);
+  height: clamp(64px, 20vmin, 110px);
+  margin: 0;
+  border-radius: 50%;
+  background: #3d4148;
+  color: transparent;
+  display: grid;
+  place-items: center;
+}
+
+body.vdi-skin-call .call-avatar::before {
+  content: "👤";
+  color: var(--zc-text-dim);
+  font-size: clamp(1.4rem, 8vmin, 2.4rem);
+}
+
+body.vdi-skin-call .call-overlay:not(.minimized) .call-controls {
+  position: static;
+  margin: 0;
+  padding: 0.3rem 0;
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body.vdi-skin-call .call-action {
+  background: var(--zc-panel);
+  border-color: var(--zc-border);
+  color: var(--zc-text);
+}
+
+body.vdi-skin-call .call-action.neutral.off { background: #e5484d; border-color: #e5484d; color: #fff; }
+body.vdi-skin-call .call-action.accept { background: #3ba55d; border-color: #3ba55d; }
+body.vdi-skin-call .call-action.accept:hover { background: #46b56a; }
+body.vdi-skin-call .call-action.decline { background: #e5484d; border-color: #e5484d; }
+body.vdi-skin-call .call-action.decline:hover { background: #ea5f63; }
+
+@media (max-width: 560px) {
+  body.vdi-skin-call .call-overlay:not(.minimized) .call-card {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "tile1"
+      "tile2"
+      "controls";
+  }
+  body.vdi-skin-call .call-overlay:not(.minimized) .call-avatar { grid-column: 1; grid-row: 2 / 4; }
 }
 
 /* ─── the always-there way in (and, once inside, "Leave" is the way out) ───
@@ -1511,4 +1681,135 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .vdi-toggle { animation: none; }
+}
+
+/* ─── yt play bar — "play <youtube link>" cues this up. sits in normal
+   flow between the messages and the composer, not floating, so it can
+   never collide with either regardless of window size. the actual
+   iframe is a 1x1px passenger pinned off in the corner (#yt-audio-frame);
+   this bar is the only visible surface, audio keeps playing either way */
+
+.yt-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 1.2rem 0.6rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid rgba(201, 168, 117, 0.28);
+  border-radius: 14px;
+  background: rgba(33, 23, 34, 0.65);
+  backdrop-filter: blur(8px);
+  animation: pop-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.yt-thumb-wrap {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-soft);
+}
+
+.yt-thumb { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.yt-playpause {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 160, 164, 0.5);
+  background: transparent;
+  color: var(--rose);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.25s, transform 0.2s;
+}
+
+.yt-playpause:hover { background: rgba(212, 160, 164, 0.15); transform: scale(1.05); }
+.yt-playpause:disabled { opacity: 0.4; cursor: default; }
+
+.yt-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.28rem; }
+
+.yt-title {
+  font-size: 0.95rem;
+  color: var(--cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yt-bar.error .yt-title { color: #d98a8a; font-style: italic; white-space: normal; }
+
+.yt-seekrow { display: flex; align-items: center; gap: 0.45rem; }
+
+.yt-time {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+}
+
+.yt-seek {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(240, 228, 212, 0.18);
+  cursor: pointer;
+}
+
+.yt-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--rose);
+  cursor: pointer;
+  margin-top: -4px;
+}
+
+.yt-seek::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--rose);
+  border: none;
+  cursor: pointer;
+}
+
+.yt-seek::-moz-range-track { height: 3px; border-radius: 999px; background: rgba(240, 228, 212, 0.18); }
+.yt-seek:disabled { opacity: 0.4; cursor: default; }
+
+.yt-icon-btn {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 160, 164, 0.35);
+  background: transparent;
+  color: var(--cream-dim);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s, border-color 0.25s;
+}
+
+.yt-icon-btn:hover { color: var(--rose); border-color: var(--rose); background: rgba(212, 160, 164, 0.1); }
+
+.yt-audio-frame {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0.01;
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .yt-bar { gap: 0.55rem; padding: 0.45rem 0.65rem; }
+  .yt-thumb-wrap { width: 34px; height: 34px; }
+  .yt-time { display: none; }
 }
