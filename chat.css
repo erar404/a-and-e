@@ -1466,30 +1466,49 @@ body {
   .vdi-meet-title { font-size: 12px; }
 }
 
-/* ─── the always-there way in (and, once inside, "Leave" is the way out) ─── */
+/* ─── the always-there way in (and, once inside, "Leave" is the way out) ───
+   parked mid-height on the right edge, not a corner — corners collide with
+   the composer's send button or the header's icon row once the window gets
+   short, and this needs to survive a small, snapped-to-a-corner work window.
+   dead center on the edge is clear of both at any viewport size, and it's
+   the fastest place for the owner's eye to land under pressure. the pulse
+   borrows the same ring language as .online-dot, so it still reads as an
+   ordinary status light to anyone else glancing over */
 
 .vdi-toggle {
   position: fixed;
-  right: max(0.7rem, env(safe-area-inset-right));
-  bottom: max(0.7rem, env(safe-area-inset-bottom));
+  top: 50%;
+  right: max(0.6rem, env(safe-area-inset-right));
+  transform: translateY(-50%);
   z-index: 150;
-  width: 34px;
-  height: 34px;
+  width: clamp(42px, 10vw, 50px);
+  height: clamp(42px, 10vw, 50px);
   border-radius: 50%;
-  border: 1px solid rgba(212, 160, 164, 0.35);
-  background: rgba(23, 16, 21, 0.55);
-  color: var(--cream-dim);
-  font-size: 0.95rem;
+  border: 1.5px solid var(--rose);
+  background: rgba(23, 16, 21, 0.88);
+  color: var(--rose);
+  font-size: clamp(1.05rem, 3vw, 1.25rem);
   cursor: pointer;
   backdrop-filter: blur(6px);
-  opacity: 0.55;
-  transition: opacity 0.25s, border-color 0.25s, color 0.25s, transform 0.2s;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(212, 160, 164, 0.55);
+  animation: vdi-toggle-pulse 2.8s ease-out infinite;
+  transition: border-color 0.25s, color 0.25s, background 0.25s;
 }
 
 .vdi-toggle:hover,
 .vdi-toggle:focus-visible {
-  opacity: 1;
-  border-color: var(--rose);
-  color: var(--rose);
-  transform: scale(1.06);
+  color: var(--cream);
+  border-color: var(--cream);
+  background: rgba(212, 160, 164, 0.28);
+}
+
+.vdi-toggle:active { transform: translateY(-50%) scale(0.93); }
+
+@keyframes vdi-toggle-pulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(212, 160, 164, 0.5); }
+  60%      { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 9px rgba(212, 160, 164, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vdi-toggle { animation: none; }
 }
