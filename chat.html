@@ -173,6 +173,16 @@
 
     <main id="messages" class="messages" aria-live="polite"></main>
 
+    <!-- collapses via grid-template-rows so it slides in without shifting
+         the composer abruptly — same cursive/rose language as .seen,
+         just for the other direction: she's writing one back ─── -->
+    <div id="typing-wrap" class="typing-wrap" aria-live="polite">
+      <div class="typing-indicator">
+        <span class="typing-dots"><i></i><i></i><i></i></span>
+        <span id="typing-label" class="typing-label"></span>
+      </div>
+    </div>
+
     <div id="attach-preview" class="attach-preview" hidden>
       <img id="attach-preview-img" alt="" />
       <button type="button" id="attach-remove" class="attach-remove" aria-label="Alisin ang larawan">✕</button>

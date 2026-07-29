@@ -36,6 +36,8 @@ const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightbox-img");
 const onlineDot = document.getElementById("online-dot");
 const refreshBtn = document.getElementById("refresh-btn");
+const typingWrap = document.getElementById("typing-wrap");
+const typingLabel = document.getElementById("typing-label");
 
 let me = null; // my user id
 let names = {}; // user_id -> display name
@@ -253,6 +255,7 @@ async function enterChat() {
 
 let presenceChannel = null;
 let partnerOnline = false;
+let partnerTyping = false;
 
 function setupPresence() {
   presenceChannel = sb.channel("usap-tayo-presence", {
@@ -261,12 +264,49 @@ function setupPresence() {
   presenceChannel
     .on("presence", { event: "sync" }, () => {
       const state = presenceChannel.presenceState();
-      partnerOnline = !!(callPeer && state[callPeer] && state[callPeer].length > 0);
+      const partnerState = callPeer && state[callPeer] && state[callPeer][0];
+      partnerOnline = !!partnerState;
       onlineDot.hidden = !partnerOnline;
+      setPartnerTyping(!!(partnerState && partnerState.typing));
     })
     .subscribe(async (status) => {
-      if (status === "SUBSCRIBED") await presenceChannel.track({ online_at: new Date().toISOString() });
+      if (status === "SUBSCRIBED") await presenceChannel.track({ online_at: new Date().toISOString(), typing: false });
     });
+}
+
+/* "nagta-type siya…" — the other half of .seen, driven off the same
+   presence channel via a `typing` flag instead of a second channel */
+
+function setPartnerTyping(typing) {
+  if (typing === partnerTyping) return;
+  partnerTyping = typing;
+  if (typing) {
+    typingLabel.textContent = `nagta-type si ${names[callPeer] || "siya"}…`;
+    typingWrap.classList.add("open");
+    scrollDown(true);
+  } else {
+    typingWrap.classList.remove("open");
+  }
+}
+
+let typingTrackTimeout = null;
+let isTypingTracked = false;
+
+function trackTyping() {
+  if (!presenceChannel) return;
+  if (!isTypingTracked) {
+    isTypingTracked = true;
+    presenceChannel.track({ online_at: new Date().toISOString(), typing: true });
+  }
+  clearTimeout(typingTrackTimeout);
+  typingTrackTimeout = setTimeout(stopTypingTrack, 2500);
+}
+
+function stopTypingTrack() {
+  clearTimeout(typingTrackTimeout);
+  if (!isTypingTracked || !presenceChannel) return;
+  isTypingTracked = false;
+  presenceChannel.track({ online_at: new Date().toISOString(), typing: false });
 }
 
 /* ─── image attachments ─── */
@@ -317,6 +357,7 @@ composer.addEventListener("submit", async (e) => {
   input.value = "";
   autosize();
   clearAttachment();
+  stopTypingTrack();
 
   let attachment_path = null;
   let attachment_type = null;
@@ -378,7 +419,10 @@ input.addEventListener("keydown", (e) => {
   }
 });
 
-input.addEventListener("input", autosize);
+input.addEventListener("input", () => {
+  autosize();
+  trackTyping();
+});
 
 function autosize() {
   input.style.height = "auto";

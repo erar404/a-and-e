@@ -483,11 +483,36 @@ body {
 
 .msg.mine { margin-left: auto; text-align: right; }
 
-.msg.pop { animation: pop-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* mine arrives straight up, as if sent from the composer below; hers
+   drifts in slightly from the left, where her bubbles sit, with a soft
+   gold glow catching on arrival ─── two directions, one shared feel */
 
-@keyframes pop-in {
-  from { opacity: 0; transform: translateY(14px); }
+.msg.pop { animation: msg-in-mine 0.36s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.msg.pop:not(.mine) { animation: msg-in-theirs 0.42s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes msg-in-mine {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
   to   { opacity: 1; transform: none; }
+}
+
+@keyframes msg-in-theirs {
+  from { opacity: 0; transform: translateY(10px) translateX(-8px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.msg.pop:not(.mine) .bubble { animation: bubble-glow 1.1s ease-out; }
+
+@keyframes bubble-glow {
+  0%   { box-shadow: 0 0 0 0 rgba(201, 168, 117, 0.45); }
+  35%  { box-shadow: 0 0 14px 3px rgba(201, 168, 117, 0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(201, 168, 117, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg.pop,
+  .msg.pop:not(.mine),
+  .msg.pop:not(.mine) .bubble { animation: none; }
 }
 
 .bubble {
@@ -523,6 +548,61 @@ body {
   font-family: "La Belle Aurore", cursive;
   font-size: 0.9rem;
   color: var(--rose);
+}
+
+/* the other half of .seen: not "she read it" but "she's writing one back".
+   grid-template-rows (not height) collapses it so the composer never jumps */
+
+.typing-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  padding: 0 1.2rem;
+  transition: grid-template-rows 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.typing-wrap.open { grid-template-rows: 1fr; }
+
+.typing-indicator {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 0;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.typing-wrap.open .typing-indicator { opacity: 1; transition-delay: 0.08s; padding-bottom: 0.6rem; }
+
+.typing-label {
+  font-family: "La Belle Aurore", cursive;
+  font-size: 0.9rem;
+  color: var(--rose);
+}
+
+.typing-dots { display: inline-flex; gap: 0.22rem; }
+
+.typing-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rose);
+  opacity: 0.35;
+  animation: typing-bounce 1.1s ease-in-out infinite;
+}
+
+.typing-dots i:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots i:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-wrap { transition: none; }
+  .typing-indicator { transition: none; }
+  .typing-dots i { animation: none; opacity: 0.7; }
 }
 
 /* ─── composer ─── */
@@ -579,6 +659,8 @@ body {
 }
 
 .send-btn:hover { background: rgba(212, 160, 164, 0.15); transform: scale(1.06); }
+
+.send-btn:active { transform: scale(0.88); }
 
 /* ─── header call buttons ─── */
 
@@ -1816,6 +1898,11 @@ body.vdi-skin-call .call-action.decline:hover { background: #ea5f63; }
   background: rgba(33, 23, 34, 0.65);
   backdrop-filter: blur(8px);
   animation: pop-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
 }
 
 .yt-thumb-wrap {
