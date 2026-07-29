@@ -483,6 +483,9 @@ body {
 
 .msg.mine { margin-left: auto; text-align: right; }
 
+/* only ever shown by the disguise skin's message grid */
+.avatar { display: none; }
+
 /* mine arrives straight up, as if sent from the composer below; hers
    drifts in slightly from the left, where her bubbles sit, with a soft
    gold glow catching on arrival ─── two directions, one shared feel */
@@ -1531,11 +1534,9 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.vdi-chatpanel-title,
-.vdi-chat-header-title { font-size: 14px; font-weight: 600; color: #e8eaed; }
+.vdi-chatpanel-title { font-size: 14px; font-weight: 600; color: #e8eaed; }
 
-.vdi-chatpanel-close,
-.vdi-chat-header-close {
+.vdi-chatpanel-close {
   width: 26px;
   height: 26px;
   border-radius: 4px;
@@ -1547,8 +1548,7 @@ body {
   transition: background 0.2s, color 0.2s;
 }
 
-.vdi-chatpanel-close:hover,
-.vdi-chat-header-close:hover { background: rgba(255, 255, 255, 0.08); color: #e8eaed; }
+.vdi-chatpanel-close:hover { background: rgba(255, 255, 255, 0.08); color: #e8eaed; }
 
 .vdi-chatpanel-empty {
   flex: 1;
@@ -1574,17 +1574,81 @@ body {
   color: #6b6f76;
 }
 
-/* ─── zoom-chat functional skin — reskins the real #chat in place so
-   messages and the composer keep working while disguised */
+/* ─── the functional chat header specifically reads as an everyday team
+   channel, not a meeting client — overrides the shared dark header above
+   for .vdi-chat-header only; the full-block panel (shown pre-login, when
+   there's nothing live yet to reskin) keeps its original look */
+
+.vdi-chat-header {
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0.55rem 0.9rem;
+  gap: 0.6rem;
+}
+
+.vdi-chat-header-back {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: #5f6368;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.vdi-chat-header-back:hover { background: rgba(60, 64, 67, 0.08); }
+
+.vdi-chat-header-icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #4285f4, #34a853 55%, #fbbc04 78%, #ea4335);
+}
+
+.vdi-chat-header-titles {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.vdi-chat-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #202124;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vdi-chat-header-sub { font-size: 11px; color: #5f6368; }
+
+.vdi-chat-header-video { flex: none; font-size: 15px; color: #5f6368; opacity: 0.85; }
+
+/* ─── functional chat skin — reskins the real #chat in place as an
+   everyday team-channel app instead of a meeting client, so it reads as
+   an ordinary workday rather than "a call/meeting is open right now".
+   messages and the composer stay fully live underneath */
 
 body.vdi-skin-chat {
-  --zc-bg: #1c1c1c;
-  --zc-panel: #202124;
-  --zc-border: #35373a;
-  --zc-text: #e4e4e4;
-  --zc-text-dim: #8f939a;
-  --zc-name-other: #6ab0f3;
-  --zc-name-mine: #8bc98f;
+  --zc-bg: #ffffff;
+  --zc-panel: #ffffff;
+  --zc-border: #e0e0e0;
+  --zc-text: #202124;
+  --zc-text-dim: #5f6368;
+  --zc-accent: #1a73e8;
+  --zc-avatar-mine: #1a73e8;
+  --zc-avatar-other: #d93025;
 }
 
 body.vdi-skin-chat .chat {
@@ -1607,8 +1671,8 @@ body.vdi-skin-chat .monthsary-letter-card {
 
 body.vdi-skin-chat .messages {
   background: transparent;
-  padding: 0.7rem 1rem 0.5rem;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  padding: 0.6rem 1rem 0.5rem;
+  scrollbar-color: rgba(95, 99, 104, 0.35) transparent;
 }
 
 body.vdi-skin-chat .day-sep span { background: var(--zc-border); }
@@ -1622,31 +1686,55 @@ body.vdi-skin-chat .day-sep i {
   color: var(--zc-text-dim);
 }
 
+/* one grid per message: the avatar spans the full message height on the
+   left; name and timestamp share row 1 in their own columns (the room a
+   flex column alone can't give them on one line); body text and the seen
+   tag each span the remaining width below */
+
 body.vdi-skin-chat .msg {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 32px auto auto 1fr;
+  align-items: start;
+  column-gap: 8px;
+  row-gap: 2px;
   max-width: 100%;
-  margin: 0 0 0.9rem;
+  margin: 0 0 0.85rem;
   text-align: left;
 }
 
 body.vdi-skin-chat .msg.mine { margin-left: 0; text-align: left; }
 
-body.vdi-skin-chat .msg::before {
-  content: attr(data-sender);
-  order: -1;
+body.vdi-skin-chat .avatar {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   font-size: 13px;
-  font-weight: 700;
-  color: var(--zc-name-other);
-  margin-bottom: 2px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--zc-avatar-other);
 }
 
-body.vdi-skin-chat .msg.mine::before { color: var(--zc-name-mine); }
+body.vdi-skin-chat .msg.mine .avatar { background: var(--zc-avatar-mine); }
+
+body.vdi-skin-chat .msg::before {
+  content: attr(data-sender);
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--zc-text);
+}
 
 body.vdi-skin-chat .bubble {
+  grid-column: 2 / -1;
+  grid-row: 2;
   display: block;
-  max-width: 88%;
+  max-width: 100%;
   padding: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -1655,46 +1743,89 @@ body.vdi-skin-chat .bubble {
   font-size: 14px;
   font-weight: 400;
   font-family: inherit;
+  line-height: 1.45;
 }
 
 body.vdi-skin-chat .msg-img { border-radius: 4px; max-width: min(60vw, 260px); }
 body.vdi-skin-chat .msg-caption { padding: 0.35rem 0 0; font-size: 14px; }
 
 body.vdi-skin-chat .meta {
-  margin-top: 0.2rem;
+  grid-column: 3;
+  grid-row: 1;
+  margin: 0;
   font-size: 11px;
   letter-spacing: 0;
   color: var(--zc-text-dim);
 }
 
-body.vdi-skin-chat .seen { color: var(--zc-name-mine); font-family: inherit; font-size: 11px; }
+body.vdi-skin-chat .seen {
+  grid-column: 2 / -1;
+  grid-row: 3;
+  margin-top: 2px;
+  color: var(--zc-accent);
+  font-family: inherit;
+  font-size: 11px;
+}
 
 body.vdi-skin-chat .attach-preview { background: var(--zc-panel); border-color: var(--zc-border); }
 
 body.vdi-skin-chat .composer {
   background: var(--zc-panel);
   border-top: 1px solid var(--zc-border);
-  padding: 0.6rem 0.8rem calc(0.6rem + env(safe-area-inset-bottom));
+  padding: 0.6rem 0.9rem calc(0.6rem + env(safe-area-inset-bottom));
+  align-items: center;
 }
 
 body.vdi-skin-chat .composer textarea {
-  background: #17181a;
-  border: 1px solid var(--zc-border);
-  border-radius: 6px;
+  background: #f1f3f4;
+  border: 1px solid transparent;
+  border-radius: 20px;
   color: var(--zc-text);
   font-family: inherit;
   font-size: 14px;
+  padding: 0.55rem 1rem;
 }
+
+body.vdi-skin-chat .composer textarea:focus { border-color: var(--zc-accent); background: #fff; }
 
 body.vdi-skin-chat .composer textarea::placeholder { color: var(--zc-text-dim); font-style: normal; }
 
-body.vdi-skin-chat .attach-btn,
-body.vdi-skin-chat .send-btn { border-radius: 4px; border-color: var(--zc-border); color: var(--zc-text-dim); }
-body.vdi-skin-chat .send-btn { color: var(--zc-name-other); }
-body.vdi-skin-chat .attach-btn:hover,
-body.vdi-skin-chat .send-btn:hover { background: rgba(255, 255, 255, 0.06); border-color: #4a4d54; }
+body.vdi-skin-chat .attach-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f3f4;
+  color: transparent;
+  font-size: 0;
+}
 
-body.vdi-skin-chat .yt-bar { background: var(--zc-panel); border-color: var(--zc-border); }
+body.vdi-skin-chat .attach-btn::after {
+  content: "+";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  color: var(--zc-text-dim);
+}
+
+body.vdi-skin-chat .attach-btn:hover { background: #e8eaed; }
+
+body.vdi-skin-chat .send-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--zc-accent);
+  color: #fff;
+  font-size: 15px;
+}
+
+body.vdi-skin-chat .send-btn:hover { background: #1765cc; transform: none; }
+
+body.vdi-skin-chat .yt-bar { background: #f1f3f4; border-color: var(--zc-border); }
 
 /* ─── zoom-grid call skin — same idea as the chat skin above, applied to
    a live call: reskins the REAL #call-overlay in place (both video feeds

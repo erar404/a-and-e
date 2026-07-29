@@ -554,6 +554,13 @@ function appendMsg(m, animate) {
   row.className = "msg" + (m.sender_id === me ? " mine" : "");
   row.dataset.id = m.id;
   row.dataset.sender = names[m.sender_id] || (m.sender_id === me ? "You" : "Guest");
+  row.dataset.time = timeLabel(date);
+
+  // hidden outside the disguise skin — .avatar only ever renders there
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.setAttribute("aria-hidden", "true");
+  avatar.textContent = row.dataset.sender.charAt(0).toUpperCase();
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
@@ -568,6 +575,7 @@ function appendMsg(m, animate) {
   meta.className = "meta";
   meta.textContent = timeLabel(date);
 
+  row.appendChild(avatar);
   row.appendChild(bubble);
   row.appendChild(meta);
   if (animate) row.classList.add("pop");

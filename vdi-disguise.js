@@ -29,10 +29,27 @@
   const callHeaderCloseBtn = document.getElementById("vdi-call-header-close");
   const callNameEl = document.getElementById("call-name");
   const callLabelRemoteEl = document.getElementById("vdi-call-label-remote");
+  const composerInput = document.getElementById("composer-input");
   if (!chrome || !overlay || !toggleBtn || !chatHeaderEl) return;
 
   const STORAGE_KEY = "vdiDisguiseOn";
   const leaveBtns = overlay.querySelectorAll("[data-vdi-leave]");
+
+  // the real placeholder ("sabihin mo, mahal...") gives the game away the
+  // moment the composer is empty — swap it for the fake channel's while
+  // the chat skin is up, stash the real one the first time so it can
+  // come back exactly as it was
+  const DISGUISE_PLACEHOLDER = "Message Meeting Chat";
+  let realPlaceholder = null;
+  function setChatSkinPlaceholder(on) {
+    if (!composerInput) return;
+    if (on) {
+      if (realPlaceholder === null) realPlaceholder = composerInput.placeholder;
+      composerInput.placeholder = DISGUISE_PLACEHOLDER;
+    } else if (realPlaceholder !== null) {
+      composerInput.placeholder = realPlaceholder;
+    }
+  }
 
   // everything the full-block state is meant to hide should also be
   // unreachable by keyboard/screen-reader while it's up — but only in
@@ -96,6 +113,7 @@
     chatHeaderEl.hidden = true;
     if (callHeaderEl) callHeaderEl.hidden = true;
     watchCallLabel(false);
+    setChatSkinPlaceholder(false);
 
     if (callActive) {
       overlay.hidden = true;
@@ -108,6 +126,7 @@
       setCovered(false);
       document.body.classList.add("vdi-skin-chat");
       chatHeaderEl.hidden = false;
+      setChatSkinPlaceholder(true);
     } else {
       overlay.hidden = false;
       setCovered(true);
@@ -139,6 +158,7 @@
       modeObserver = null;
     }
     watchCallLabel(false);
+    setChatSkinPlaceholder(false);
     chrome.hidden = true;
     overlay.hidden = true;
     chatHeaderEl.hidden = true;
