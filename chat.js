@@ -1198,12 +1198,14 @@ window.addEventListener("beforeunload", () => {
   if (callState !== "idle") sendSignal("hangup", { reason: "left" });
 });
 
-/* ─── push notifications for new messages ─── */
+/* ─── push notification toggle for new messages ─── */
 
 const VAPID_PUBLIC_KEY =
   "BNIujtEXG7qLnWE3lUv7FoNV2Jfq_4Y1CCQdR_ZApi3f5tGbEGeIggekWLGIRA_BcDIoPqGWEgiXMPW91FQCKlQ";
 
 const notifyBtn = document.getElementById("notify-btn");
+const pushSupported =
+  "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -1212,33 +1214,51 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 }
 
+function setNotifyToggle(active) {
+  notifyBtn.classList.toggle("active", active);
+  notifyBtn.setAttribute("aria-pressed", String(active));
+  notifyBtn.textContent = active ? "🔔" : "🔕";
+  notifyBtn.title = active ? "Papatayin ang abiso" : "Paganahin ang abiso";
+}
+
 async function setupPush() {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
+  if (!pushSupported) {
+    notifyBtn.hidden = true;
+    return;
+  }
 
   let reg;
   try {
     reg = await navigator.serviceWorker.register("sw.js");
   } catch {
+    notifyBtn.hidden = true;
     return;
   }
 
-  if (Notification.permission === "granted") {
-    notifyBtn.hidden = true;
-    subscribePush(reg);
-  } else if (Notification.permission === "default") {
-    notifyBtn.hidden = false;
-  } else {
-    notifyBtn.hidden = true;
-  }
+  const existing =
+    Notification.permission === "granted" ? await reg.pushManager.getSubscription() : null;
+  setNotifyToggle(!!existing);
 }
 
 notifyBtn.addEventListener("click", async () => {
-  if (!("serviceWorker" in navigator)) return;
+  if (!pushSupported) return;
   const reg = await navigator.serviceWorker.ready;
+
+  if (notifyBtn.classList.contains("active")) {
+    await unsubscribePush(reg);
+    setNotifyToggle(false);
+    return;
+  }
+
+  if (Notification.permission === "denied") {
+    alert("naka-block ang abiso sa browser mo, mahal — paganahin sa settings ♡");
+    return;
+  }
+
   const perm = await Notification.requestPermission();
   if (perm !== "granted") return;
-  notifyBtn.hidden = true;
-  subscribePush(reg);
+  await subscribePush(reg);
+  setNotifyToggle(true);
 });
 
 async function subscribePush(reg) {
@@ -1262,5 +1282,17 @@ async function subscribePush(reg) {
     );
   } catch {
     // notifications are a nice-to-have — a failed subscribe shouldn't break the chat
+  }
+}
+
+async function unsubscribePush(reg) {
+  try {
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+    const endpoint = sub.endpoint;
+    await sub.unsubscribe();
+    await sb.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  } catch {
+    // best-effort — worst case a stale subscription just never gets pushed to
   }
 }

@@ -609,6 +609,13 @@ body {
   transform: scale(1.06);
 }
 
+.call-btn.active,
+.call-btn.active:hover {
+  background: var(--rose);
+  border-color: var(--rose);
+  color: var(--bg);
+}
+
 .call-check-link {
   display: inline-flex;
   align-items: center;
