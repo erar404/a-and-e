@@ -125,12 +125,33 @@
         <h1>Usap Tayo <span id="online-dot" class="online-dot" hidden title="online ngayon ♡"></span></h1>
         <p id="chat-sub">ikaw at ako lang ♡</p>
       </div>
-      <button id="notify-btn" class="call-btn" title="Paganahin ang abiso" aria-label="Toggle push notifications" aria-pressed="false">🔔</button>
-      <button id="refresh-btn" class="call-btn" title="I-refresh ang mga mensahe" aria-label="Refresh messages">↻</button>
       <button id="call-audio-btn" class="call-btn" title="Tawagan" aria-label="Audio call">☎</button>
       <button id="call-video-btn" class="call-btn" title="Video call" aria-label="Video call">⛶</button>
-      <a id="call-check-link" class="call-btn call-check-link" href="call-check.html" target="_blank" rel="noopener" title="Suriin ang koneksyon ng tawag (Call Check)" aria-label="Call connection diagnostics">🛠</a>
-      <button id="signout" class="chat-out" title="Sign out">lisan</button>
+      <button type="button" id="chat-menu-btn" class="call-btn" title="Iba pang opsyon" aria-label="More options" aria-haspopup="true" aria-expanded="false" aria-controls="chat-menu">⋯</button>
+
+      <!-- desktop: display:contents hoists these into the header row above,
+           unchanged from before. mobile (≤640px): becomes a bottom sheet,
+           opened by #chat-menu-btn, so the header row itself stays down to
+           a thumb-reachable four buttons instead of six ─── see chat.css -->
+      <div id="chat-menu-backdrop" class="chat-menu-backdrop" hidden></div>
+      <div id="chat-menu" class="chat-menu" role="menu" aria-label="Iba pang opsyon">
+        <button id="notify-btn" class="call-btn chat-menu-item" role="menuitem" title="Paganahin ang abiso" aria-label="Toggle push notifications" aria-pressed="false">
+          <span class="chat-menu-icon" aria-hidden="true">🔔</span>
+          <span class="chat-menu-label">Paganahin ang abiso</span>
+        </button>
+        <button id="refresh-btn" class="call-btn chat-menu-item" role="menuitem" title="I-refresh ang mga mensahe" aria-label="Refresh messages">
+          <span class="chat-menu-icon" aria-hidden="true">↻</span>
+          <span class="chat-menu-label">I-refresh ang mensahe</span>
+        </button>
+        <a id="call-check-link" class="call-btn call-check-link chat-menu-item" role="menuitem" href="call-check.html" target="_blank" rel="noopener" title="Suriin ang koneksyon ng tawag (Call Check)" aria-label="Call connection diagnostics">
+          <span class="chat-menu-icon" aria-hidden="true">🛠</span>
+          <span class="chat-menu-label">Suriin ang koneksyon</span>
+        </a>
+        <button id="signout" class="chat-out chat-menu-item" role="menuitem" title="Sign out">
+          <span class="chat-menu-icon" aria-hidden="true">🚪</span>
+          <span class="chat-menu-label">lisan</span>
+        </button>
+      </div>
     </header>
 
     <!-- stands in for .chat-head above once the zoom-chat skin is on

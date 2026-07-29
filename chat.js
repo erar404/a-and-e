@@ -1217,8 +1217,10 @@ function urlBase64ToUint8Array(base64String) {
 function setNotifyToggle(active) {
   notifyBtn.classList.toggle("active", active);
   notifyBtn.setAttribute("aria-pressed", String(active));
-  notifyBtn.textContent = active ? "🔔" : "🔕";
-  notifyBtn.title = active ? "Papatayin ang abiso" : "Paganahin ang abiso";
+  const label = active ? "Papatayin ang abiso" : "Paganahin ang abiso";
+  notifyBtn.title = label;
+  notifyBtn.querySelector(".chat-menu-icon").textContent = active ? "🔔" : "🔕";
+  notifyBtn.querySelector(".chat-menu-label").textContent = label;
 }
 
 async function setupPush() {
@@ -1296,3 +1298,40 @@ async function unsubscribePush(reg) {
     // best-effort — worst case a stale subscription just never gets pushed to
   }
 }
+
+/* ─── mobile header "more" menu (bottom sheet on narrow screens) ─── */
+
+const chatMenuBtn = document.getElementById("chat-menu-btn");
+const chatMenu = document.getElementById("chat-menu");
+const chatMenuBackdrop = document.getElementById("chat-menu-backdrop");
+
+function openChatMenu() {
+  chatMenuBtn.setAttribute("aria-expanded", "true");
+  chatMenu.classList.add("open");
+  chatMenuBackdrop.hidden = false;
+  requestAnimationFrame(() => chatMenuBackdrop.classList.add("visible"));
+}
+
+function closeChatMenu() {
+  chatMenuBtn.setAttribute("aria-expanded", "false");
+  chatMenu.classList.remove("open");
+  chatMenuBackdrop.classList.remove("visible");
+  setTimeout(() => {
+    chatMenuBackdrop.hidden = true;
+  }, 400);
+}
+
+chatMenuBtn.addEventListener("click", () => {
+  if (chatMenu.classList.contains("open")) closeChatMenu();
+  else openChatMenu();
+});
+
+chatMenuBackdrop.addEventListener("click", closeChatMenu);
+
+chatMenu.querySelectorAll(".chat-menu-item").forEach((item) => {
+  item.addEventListener("click", closeChatMenu);
+});
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && chatMenu.classList.contains("open")) closeChatMenu();
+});

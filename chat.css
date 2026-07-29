@@ -623,6 +623,115 @@ body {
   text-decoration: none;
 }
 
+/* ─── header "more" menu ───
+   #chat-menu holds the less-urgent header actions (notifications, refresh,
+   call diagnostics, sign out). On wide screens it's a nested flex row
+   matching .chat-head's own gap, so it still reads as one header row —
+   same look as before, six buttons wide. Below 640px that's too many
+   circles for a thumb to find, so the menu instead becomes a bottom sheet
+   behind #chat-menu-btn (⋯), leaving only the call buttons next to it. */
+
+#chat-menu-btn { display: none; }
+
+.chat-menu { display: flex; align-items: center; gap: 1rem; }
+
+.chat-menu-backdrop { display: none; }
+
+.chat-menu-label { display: none; }
+
+/* #signout shipped as plain tracked text, not an icon — keep that look
+   on the desktop row; the icon only earns its place in the sheet list. */
+#signout .chat-menu-icon { display: none; }
+#signout .chat-menu-label { display: inline; }
+
+@media (max-width: 640px) {
+  #chat-menu-btn { display: inline-flex; align-items: center; justify-content: center; }
+
+  .chat-menu-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 94;
+    background: rgba(10, 5, 9, 0.55);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .chat-menu-backdrop.visible { opacity: 1; }
+
+  #chat-menu {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 95;
+    background: var(--bg-soft);
+    border-top: 1px solid rgba(240, 228, 212, 0.14);
+    border-radius: 20px 20px 0 0;
+    padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+    box-shadow: var(--shadow);
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  #chat-menu.open { transform: translateY(0); }
+
+  #chat-menu .chat-menu-item {
+    width: auto;
+    height: auto;
+    min-height: 48px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.9rem;
+    padding: 0.7rem 1.4rem;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 1.05rem;
+    letter-spacing: normal;
+    text-transform: none;
+    text-decoration: none;
+    color: var(--cream-dim);
+  }
+
+  #chat-menu .chat-menu-item + .chat-menu-item {
+    border-top: 1px solid rgba(240, 228, 212, 0.08);
+  }
+
+  #chat-menu .chat-menu-item:hover,
+  #chat-menu .chat-menu-item:active {
+    background: rgba(212, 160, 164, 0.08);
+    color: var(--cream-dim);
+    transform: none;
+  }
+
+  #chat-menu .call-btn.active,
+  #chat-menu .call-btn.active:hover {
+    background: var(--rose);
+    color: var(--bg);
+  }
+
+  #chat-menu .chat-menu-icon {
+    display: inline-block;
+    width: 1.5rem;
+    flex-shrink: 0;
+    text-align: center;
+    font-size: 1.15rem;
+  }
+
+  #chat-menu .chat-menu-label { display: inline-block; }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: reduce) {
+  .chat-menu-backdrop,
+  #chat-menu { transition: none; }
+}
+
 /* ─── image attachments ─── */
 
 .attach-btn {
