@@ -256,11 +256,25 @@ body {
 }
 
 .chat-head {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: calc(0.9rem + env(safe-area-inset-top)) 1.2rem 0.9rem;
   border-bottom: 1px solid rgba(240, 228, 212, 0.12);
+}
+
+/* background lives on a pseudo-element, not .chat-head itself, because
+   backdrop-filter on an element creates a new containing block for its
+   position:fixed descendants (the #chat-menu mobile sheet + its backdrop
+   both live inside this header). With the filter here instead, #chat-menu
+   keeps resolving "fixed" against the real viewport, so it slides fully
+   off-screen when closed instead of resting visible just under the header. */
+.chat-head::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: rgba(23, 16, 21, 0.7);
   backdrop-filter: blur(10px);
 }
