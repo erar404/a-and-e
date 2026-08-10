@@ -39,6 +39,7 @@
   const letterBody = document.getElementById("monthsary-letter-body");
   const letterSign = document.getElementById("monthsary-letter-sign");
   const letterClose = document.getElementById("monthsary-letter-close");
+  const letterSound = new Audio("static/kabisado.mp3");
 
   if (!envelope || !letterCard) return; // markup not present on this page
 
@@ -210,6 +211,8 @@
     if (reduced) {
       envelope.classList.add("landing", "opened");
       letterCard.hidden = false;
+      letterSound.currentTime = 0;
+      letterSound.play().catch(() => {});
       return;
     }
 
@@ -228,6 +231,8 @@
     landTimer = setTimeout(() => {
       envelope.classList.add("opened");
       letterCard.hidden = false;
+      letterSound.currentTime = 0;
+      letterSound.play().catch(() => {});
     }, LAND_MS);
   }
 
