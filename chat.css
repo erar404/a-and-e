@@ -1367,22 +1367,33 @@ body {
 
 .call-action.decline:hover { background: #c85557; }
 
-/* ─── minimized call — shrinks to a draggable bubble so the chat
-   underneath stays readable and usable while the call keeps running.
+/* ─── minimized call — a draggable chat bar, not a video bubble.
    the overlay's own box literally shrinks (not just visually), so
-   everything outside the bubble is real chat again, clickable and all ─── */
+   everything outside it is real chat again, clickable and all — but
+   the small window itself no longer just shows a face too tiny to read
+   any expression on; it surfaces the thing actually worth glancing at
+   mid-call: what she just said. whichever of .call-tile-remote /
+   #call-avatar is on (the JS already toggles exactly one of them)
+   shrinks to a small live ring instead of filling the box, and
+   #call-mini-preview carries the latest message next to it, ticking
+   forward each time a new one lands (see updateMiniPreview() in
+   chat.js) the same way the ordinary thread's bubbles glow on arrival ─── */
 
 .call-overlay.minimized {
   inset: auto;
-  left: var(--call-min-x, calc(100vw - 150px - 1rem));
+  left: var(--call-min-x, calc(100vw - 280px - 1rem));
   top: var(--call-min-y, 5rem);
-  width: clamp(108px, 30vw, 150px);
-  aspect-ratio: 3 / 4;
+  width: clamp(230px, 82vw, 300px);
   height: auto;
-  border-radius: 18px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 999px;
   overflow: hidden;
-  background: #000;
-  backdrop-filter: none;
+  background: var(--bg-soft);
+  backdrop-filter: blur(8px);
   box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(240, 228, 212, 0.15);
   cursor: grab;
   touch-action: none;
@@ -1400,48 +1411,79 @@ body {
   display: none;
 }
 
-.call-overlay.minimized .call-avatar {
-  /* .call-avatar's transform is owned by the heart-pulse/heart-vibrate
-     keyframes at all times, so re-centering happens via top, not transform */
-  font-size: 1.9rem;
-  top: 42%;
+/* the live circle — whichever of these two is actually visible (only
+   ever one, per the existing isVideoCall toggle) fills the same slot */
+.call-overlay.minimized .call-tile-remote {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 0 rgba(212, 160, 164, 0.5);
+  animation: online-pulse 2.6s ease-out infinite;
 }
 
-.call-mini-expand {
+.call-overlay.minimized .call-video-main {
   position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
-  z-index: 3;
-  width: 1.7rem;
-  height: 1.7rem;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.call-overlay.minimized .call-avatar {
+  position: static;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin: 0;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  border: none;
-  background: rgba(10, 5, 9, 0.55);
-  color: var(--cream);
-  font-size: 0.85rem;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  background: rgba(212, 160, 164, 0.14);
+  border: 1px solid rgba(212, 160, 164, 0.4);
+  font-size: 1.2rem;
+  box-shadow: 0 0 0 0 rgba(212, 160, 164, 0.5);
+  /* calmer than the full-screen heart — a call parked this small should
+     read as ambient, not ask for attention the way ringing/active does */
+  animation: online-pulse 2.6s ease-out infinite;
+}
+
+.call-mini-bar {
+  flex: 1;
+  min-width: 0;
+}
+
+.call-mini-preview {
+  font-size: 0.84rem;
+  color: var(--cream-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.call-mini-preview.tick { animation: mini-preview-tick 0.4s var(--ease-out-quart, cubic-bezier(0.25, 1, 0.5, 1)); }
+
+@keyframes mini-preview-tick {
+  from { opacity: 0; transform: translateY(5px); color: var(--cream); }
+  to   { opacity: 1; transform: translateY(0); color: var(--cream-dim); }
 }
 
 .call-mini-controls {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0.45rem;
-  z-index: 3;
+  flex: none;
   display: flex;
-  justify-content: center;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .call-mini-btn {
+  flex: none;
   width: 1.9rem;
   height: 1.9rem;
   border-radius: 50%;
   border: 1px solid rgba(240, 228, 212, 0.3);
-  background: rgba(10, 5, 9, 0.6);
+  background: rgba(10, 5, 9, 0.35);
   color: var(--cream);
   font-size: 0.8rem;
   cursor: pointer;
@@ -1452,8 +1494,16 @@ body {
 
 .call-mini-btn.hangup { background: #b6484a; border-color: #b6484a; }
 
+.call-mini-expand { font-size: 0.75rem; }
+
 @media (prefers-reduced-motion: reduce) {
-  .call-overlay.minimized { transition: none; }
+  .call-overlay.minimized,
+  .call-overlay.minimized .call-tile-remote,
+  .call-overlay.minimized .call-avatar {
+    transition: none;
+    animation: none;
+  }
+  .call-mini-preview.tick { animation: none; }
 }
 
 /* ─── surprise monthsary letter ─── */

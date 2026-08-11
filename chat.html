@@ -294,12 +294,20 @@
         <button type="button" id="call-hangup" class="call-action decline" aria-label="Bumaba" hidden>✕</button>
       </div>
 
-      <!-- shown only while minimized: the bubble itself is draggable and
-           tap-to-expand; these stay as a small always-reachable fallback -->
-      <button type="button" id="call-mini-expand" class="call-mini-expand" aria-label="Palakihin ang tawag" hidden>⤢</button>
+      <!-- shown only while minimized — the call itself keeps running
+           (audio, video feed, timer), but the little window's real job
+           becomes surfacing the conversation underneath it: whichever
+           of .call-tile-remote / #call-avatar is visible shrinks into a
+           small live circle (see chat.css), and this bar carries the
+           latest message instead. the bar itself is draggable and
+           tap-to-expand, same as the old bubble was. -->
+      <div id="call-mini-bar" class="call-mini-bar" hidden>
+        <p id="call-mini-preview" class="call-mini-preview">wala pang mensahe</p>
+      </div>
       <div class="call-mini-controls" hidden>
         <button type="button" id="call-mini-mute" class="call-mini-btn" aria-label="Mute">🎙</button>
         <button type="button" id="call-mini-hangup" class="call-mini-btn hangup" aria-label="Bumaba">✕</button>
+        <button type="button" id="call-mini-expand" class="call-mini-btn call-mini-expand" aria-label="Palakihin ang tawag">⤢</button>
       </div>
     </div>
   </div>

@@ -232,6 +232,7 @@ async function enterChat() {
         appendMsg(payload.new, true);
         refreshSeen();
         if (hasLoveWords(payload.new.body)) celebrateLoveWords();
+        if (callMinimized) updateMiniPreview(true);
         if (payload.new.sender_id !== me) {
           if (document.hidden) bumpUnreadTitle();
           else markRead();
@@ -454,6 +455,7 @@ composer.addEventListener("submit", async (e) => {
     appendMsg(sent, true);
     refreshSeen();
     if (hasLoveWords(sent.body)) celebrateLoveWords();
+    if (callMinimized) updateMiniPreview(true);
   }
 });
 
@@ -777,6 +779,8 @@ const callMiniExpandBtn = document.getElementById("call-mini-expand");
 const callMiniControls = document.querySelector(".call-mini-controls");
 const callMiniMuteBtn = document.getElementById("call-mini-mute");
 const callMiniHangupBtn = document.getElementById("call-mini-hangup");
+const callMiniBar = document.getElementById("call-mini-bar");
+const callMiniPreview = document.getElementById("call-mini-preview");
 
 let callChannel = null;
 let callPeer = null; // partner's user id — this app only ever has two members
@@ -1243,12 +1247,35 @@ function setMiniPosition(x, y) {
   callOverlay.style.setProperty("--call-min-y", `${y}px`);
 }
 
+// what shows in the minimized bar: the latest message in the thread,
+// named if it's hers, plain if it's yours, a photo placeholder if
+// there's no text at all
+function messagePreviewText(m) {
+  if (!m) return "wala pang mensahe";
+  if (m.body) {
+    const isBot = m.sender_id !== me && !names[m.sender_id];
+    const who = m.sender_id === me ? null : names[m.sender_id] || (isBot ? "GPT" : "Siya");
+    return who ? `${who}: ${m.body}` : m.body;
+  }
+  return m.attachment_path ? "📷 nagpadala ng larawan" : "wala pang mensahe";
+}
+
+function updateMiniPreview(animate) {
+  callMiniPreview.textContent = messagePreviewText(msgs[msgs.length - 1]);
+  if (animate) {
+    callMiniPreview.classList.remove("tick");
+    void callMiniPreview.offsetWidth; // restart the animation on repeat ticks
+    callMiniPreview.classList.add("tick");
+  }
+}
+
 function minimizeCall() {
   if (callState !== "active" || callMinimized) return;
   callMinimized = true;
   callOverlay.classList.add("minimized");
-  callMiniExpandBtn.hidden = false;
+  callMiniBar.hidden = false;
   callMiniControls.hidden = false;
+  updateMiniPreview(false);
   // always parks top-right, just under the header, fresh — simpler to
   // predict than remembering a previous drag, and it reliably clears the
   // composer at the bottom regardless of how tall the textarea has grown
@@ -1263,7 +1290,7 @@ function restoreCall() {
   callMinimized = false;
   miniDrag = null;
   callOverlay.classList.remove("minimized");
-  callMiniExpandBtn.hidden = true;
+  callMiniBar.hidden = true;
   callMiniControls.hidden = true;
   callOverlay.style.removeProperty("--call-min-x");
   callOverlay.style.removeProperty("--call-min-y");
