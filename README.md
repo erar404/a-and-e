@@ -132,8 +132,8 @@ e-and-a/
 │   └── main.py                 # stdlib-only ChatGPT bridge; nginx proxies /api/jipiti to it
 │
 ├── docker/
-│   ├── entrypoint.sh            # launches jipiti/main.py, then hands off to nginx's own entrypoint
-│   └── 40-yt-config.sh          # renders yt-config.js from YOUTUBE_API_KEY at container startup
+│   ├── 30-start-jipiti.sh        # launches jipiti/main.py in the background (a /docker-entrypoint.d/ script)
+│   └── 40-yt-config.sh          # renders yt-config.js from YOUTUBE_API_KEY (also /docker-entrypoint.d/)
 │
 ├── static/
 │   ├── data/
@@ -194,7 +194,7 @@ docker run -p 8080:8080 walong-buwan
 > **No required environment variables** for the site itself — the Supabase project URL and *publishable* key live directly in `chat.js`, and access is enforced entirely by Row Level Security on the Supabase side (only the two seeded `chat_members` accounts can read or write anything). Two features add **optional** vars, both consumed only inside the container — never committed, never shipped to the browser except where noted:
 >
 > - **`YOUTUBE_API_KEY`** powers `chat.html`'s "play `<song title>`" search (top-5 picker instead of a direct link). Without it the direct-link form of "play" still works; only the text-search form shows a friendly "not set up" message. At container startup, `docker/40-yt-config.sh` renders `yt-config.js.template` → `yt-config.js` (loaded by the browser) with whatever the platform injects — same `envsubst` trick the Dockerfile already uses for `PORT`. Get a free key from [Google Cloud Console](https://console.cloud.google.com/) (enable **YouTube Data API v3**, create an API key, restrict it to that API + your site's HTTP referrer). The free tier's default quota (10,000 units/day, 100 units per search) is good for ~100 searches/day.
-> - **`GPT_API_KEY`** + **`SUPABASE_SERVICE_ROLE_KEY`** power `chat.html`'s "jipiti `<prompt>`" command — the message sends normally, and `jipiti/main.py` (a stdlib-only Python process nginx proxies `/api/jipiti` to, started by `docker/entrypoint.sh` alongside nginx in the same container — see that file) asks OpenAI (model via optional `GPT_MODEL`, default `gpt-4o-mini`) and posts the reply back into `chat_messages` as a dedicated `GPT` sender, so it lands for both of you through the chat's existing Realtime subscription. **Unlike the YouTube key, these two never reach the browser** — `main.py` only listens on `127.0.0.1`, nginx is the only thing that can reach it. The service-role key bypasses RLS on purpose (needed to insert as the bot account) but `main.py` re-checks the caller's Supabase access token against `chat_members` before doing anything, so only Erwin/Alliah can trigger it.
+> - **`GPT_API_KEY`** + **`SUPABASE_SERVICE_ROLE_KEY`** power `chat.html`'s "jipiti `<prompt>`" command — the message sends normally, and `jipiti/main.py` (a stdlib-only Python process nginx proxies `/api/jipiti` to, started by `docker/30-start-jipiti.sh` alongside nginx in the same container — see that file) asks OpenAI (model via optional `GPT_MODEL`, default `gpt-4o-mini`) and posts the reply back into `chat_messages` as a dedicated `GPT` sender, so it lands for both of you through the chat's existing Realtime subscription. **Unlike the YouTube key, these two never reach the browser** — `main.py` only listens on `127.0.0.1`, nginx is the only thing that can reach it. The service-role key bypasses RLS on purpose (needed to insert as the bot account) but `main.py` re-checks the caller's Supabase access token against `chat_members` before doing anything, so only Erwin/Alliah can trigger it.
 
 ## ☁️ Deployment
 

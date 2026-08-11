@@ -2,7 +2,7 @@
 jipiti bot — backend for the "jipiti <prompt>" chat command.
 
 Runs as a background process inside the same container as nginx (see
-docker/entrypoint.sh), bound to 127.0.0.1 only. nginx proxies
+docker/30-start-jipiti.sh), bound to 127.0.0.1 only. nginx proxies
 POST /api/jipiti to it (see nginx.conf.template) so it's never reachable
 directly from outside the container and needs no CORS handling — the
 browser calls it same-origin.
@@ -27,7 +27,6 @@ Flow per request:
 
 import json
 import os
-import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 

@@ -1,7 +1,7 @@
 # Walong Buwan — static keepsake site
 FROM nginx:alpine
 
-# python3 backs the "jipiti <prompt>" chatgpt bridge (docker/entrypoint.sh
+# python3 backs the "jipiti <prompt>" chatgpt bridge (docker/30-start-jipiti.sh
 # runs it alongside nginx); stdlib-only, so no pip install needed.
 RUN apk add --no-cache python3
 
@@ -19,12 +19,14 @@ COPY yt-config.js.template /usr/share/nginx/html/yt-config.js.template
 COPY docker/40-yt-config.sh /docker-entrypoint.d/40-yt-config.sh
 RUN chmod +x /docker-entrypoint.d/40-yt-config.sh
 
-# jipiti bot backend + the custom entrypoint that launches it before
-# handing off to the stock nginx entrypoint (see docker/entrypoint.sh)
+# jipiti bot backend. No custom ENTRYPOINT: 30-start-jipiti.sh is just
+# another /docker-entrypoint.d/ script — the stock nginx image already
+# runs everything in that directory (in sorted order) before it execs
+# nginx itself, so this launches alongside it the same proven way
+# 40-yt-config.sh does, without needing to touch the entrypoint chain.
 COPY jipiti/main.py /opt/jipiti/main.py
-COPY docker/entrypoint.sh /docker/entrypoint.sh
-RUN chmod +x /docker/entrypoint.sh
-ENTRYPOINT ["/docker/entrypoint.sh"]
+COPY docker/30-start-jipiti.sh /docker-entrypoint.d/30-start-jipiti.sh
+RUN chmod +x /docker-entrypoint.d/30-start-jipiti.sh
 
 COPY index.html chat.html call-check.html \
      styles.css chat.css call-check.css \

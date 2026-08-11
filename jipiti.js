@@ -4,7 +4,7 @@
    it sends as a completely normal message (so it's visible in the thread
    like anything else), and this just also pings the server-side bridge
    (POST /api/jipiti, proxied by nginx to jipiti/main.py — see that file
-   and docker/entrypoint.sh) to fetch a reply and post it back as a new
+   and docker/30-start-jipiti.sh) to fetch a reply and post it back as a new
    message from the dedicated GPT sender. The reply arrives through the
    chat's normal Realtime subscription, same as any other message.
    ════════════════════════════════════════════ */

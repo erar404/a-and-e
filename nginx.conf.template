@@ -26,7 +26,7 @@ server {
     }
 
     # "jipiti <prompt>" chat command — proxied to the python process
-    # started by docker/entrypoint.sh, bound to 127.0.0.1 only.
+    # started by docker/30-start-jipiti.sh, bound to 127.0.0.1 only.
     location /api/jipiti {
         proxy_pass http://127.0.0.1:8001/jipiti;
         proxy_http_version 1.1;
