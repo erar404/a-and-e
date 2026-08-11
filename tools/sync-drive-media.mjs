@@ -7,6 +7,16 @@
 
    Usage:  node tools/sync-drive-media.mjs [folderId]
    Rerun it anytime new photos/videos land in the folder.
+
+   Optional: set GOOGLE_DRIVE_API_KEY to also fetch each photo's real
+   EXIF capture date (Drive API v3's imageMediaMetadata.time — the same
+   DateTimeOriginal tag the camera itself wrote). Without it, photo
+   dates are simply omitted rather than guessed — an earlier version of
+   this script guessed from a 13-digit number some filenames carry, but
+   that turned out to be an export/upload timestamp, not the capture
+   date, and showed the wrong date on the site. Video dates don't need
+   the API at all: Android's own VID_YYYYMMDD_HHMMSS filename convention
+   already *is* the real capture date.
    ════════════════════════════════════════════ */
 
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -16,28 +26,58 @@ import { fileURLToPath } from "node:url";
 const DEFAULT_FOLDER = "14kA3EyvaUASX175rQICR_lDgoe9m0KWa";
 const folder = process.argv[2] || DEFAULT_FOLDER;
 const outFile = join(dirname(fileURLToPath(import.meta.url)), "..", "static", "data", "drive-media.json");
+const apiKey = process.env.GOOGLE_DRIVE_API_KEY || "";
 
 const IMAGE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp"]);
 const VIDEO_EXT = new Set(["mp4", "mov", "webm", "m4v", "3gp", "mkv", "avi"]);
 
-// the public folder listing gives us no real metadata (no Drive API here,
-// just scraped HTML) — but most filenames carry their own date, either the
-// Android camera convention (VID_/IMG_YYYYMMDD_...) or a bare 13-digit
-// millisecond epoch some gallery/export tools use for their filenames.
-// Returns an ISO string, or null if neither pattern is found.
-function extractTakenAt(name) {
+// Android's own camera convention (VID_/IMG_YYYYMMDD_HHMMSS...) embeds the
+// real capture date right in the filename — no API needed, and it's what
+// the OS itself wrote, so it's trustworthy.
+function dateFromCameraFilename(name) {
   const cam = name.match(/(?:VID|IMG)_(\d{4})(\d{2})(\d{2})_/);
-  if (cam) {
-    const [, y, m, d] = cam;
-    const date = new Date(`${y}-${m}-${d}T12:00:00+08:00`);
-    if (!isNaN(date)) return date.toISOString();
+  if (!cam) return null;
+  const [, y, m, d] = cam;
+  const date = new Date(`${y}-${m}-${d}T12:00:00+08:00`);
+  return isNaN(date) ? null : date.toISOString();
+}
+
+// Drive API's imageMediaMetadata.time mirrors the file's own EXIF
+// DateTimeOriginal tag, formatted "YYYY:MM:DD HH:MM:SS" with no timezone —
+// treated as PH local time throughout this site, so it's built as one.
+function parseExifTime(raw) {
+  const m = raw && raw.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi, s] = m;
+  const date = new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}+08:00`);
+  return isNaN(date) ? null : date.toISOString();
+}
+
+async function fetchExifDate(id) {
+  try {
+    const url = `https://www.googleapis.com/drive/v3/files/${id}?fields=imageMediaMetadata(time)&key=${apiKey}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return parseExifTime(data.imageMediaMetadata && data.imageMediaMetadata.time);
+  } catch {
+    return null;
   }
-  const ms = name.match(/(?<!\d)(\d{13})(?!\d)/);
-  if (ms) {
-    const date = new Date(Number(ms[1]));
-    if (!isNaN(date) && date.getFullYear() > 2000 && date.getFullYear() < 2100) return date.toISOString();
+}
+
+// small concurrency limit — hundreds of individual files.get calls, but
+// gentle enough not to trip Drive API's rate limit
+async function mapWithConcurrency(list, limit, fn) {
+  const results = new Array(list.length);
+  let next = 0;
+  async function worker() {
+    while (next < list.length) {
+      const i = next++;
+      results[i] = await fn(list[i], i);
+    }
   }
-  return null;
+  await Promise.all(Array.from({ length: Math.min(limit, list.length) }, worker));
+  return results;
 }
 
 const items = [];
@@ -80,12 +120,28 @@ async function walk(folderId, album) {
       console.log(`  (nilaktawan: ${name} — hindi larawan o video)`);
       continue;
     }
-    const takenAt = extractTakenAt(name);
+    const takenAt = type === "video" ? dateFromCameraFilename(name) : null;
     items.push({ id, name, type, ...(album ? { album } : {}), ...(takenAt ? { takenAt } : {}) });
   }
 }
 
 await walk(folder, "");
+
+if (apiKey) {
+  const photos = items.filter((i) => i.type === "image");
+  console.log(`↻ kinukuha ang tunay na petsa (EXIF) ng ${photos.length} larawan sa Drive API…`);
+  const dates = await mapWithConcurrency(photos, 8, (item) => fetchExifDate(item.id));
+  let dated = 0;
+  photos.forEach((item, i) => {
+    if (dates[i]) {
+      item.takenAt = dates[i];
+      dated++;
+    }
+  });
+  console.log(`  ${dated} / ${photos.length} may EXIF na petsa (walang EXIF ang iba — screenshot o na-edit na)`);
+} else {
+  console.log("  (walang GOOGLE_DRIVE_API_KEY — nilaktawan ang tunay na petsa ng mga larawan; buo pa rin ang petsa ng mga video mula sa filename)");
+}
 
 items.sort(
   (a, b) =>

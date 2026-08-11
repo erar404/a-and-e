@@ -104,7 +104,7 @@
       const taken = new Date(item.takenAt);
       const date = document.createElement("span");
       date.className = "cine-date";
-      date.textContent = `${dateLabel(taken)} · ika-${monthsAt(taken)} buwan namin`;
+      date.textContent = `${dateLabel(taken)} · ika-${monthsAt(taken)} buwan natin`;
       slide.appendChild(date);
     }
 

@@ -81,7 +81,14 @@ Every 11th of the month at midnight (PH time), the site rewrites its titles, ent
 
 ### 🖼️ Photo Deck & Cloud Slideshow
 
-An 87-photo draggable polaroid deck (`photos.js`) supports drag, swipe, arrow keys, and keyboard nav with a deal-in animation. Alongside it, the "mula sa ating ulap" section streams **448 photos/videos live from a public Google Drive folder** — nothing is copied into the repo or Docker image. The order is reshuffled every visit, and each slide that has a date-bearing filename (Android's `VID_YYYYMMDD_...` convention, or a bare 13-digit millisecond-epoch name some gallery exports use) shows when it was taken and which monthsary month it fell in, computed with the same whole-month rule the monthsary engine itself uses. Re-sync the list anytime with `node tools/sync-drive-media.mjs` — it re-derives those dates from filenames too, no Google Drive API access needed.
+An 87-photo draggable polaroid deck (`photos.js`) supports drag, swipe, arrow keys, and keyboard nav with a deal-in animation. Alongside it, the "mula sa ating ulap" section streams **448 photos/videos live from a public Google Drive folder** — nothing is copied into the repo or Docker image. The order is reshuffled every visit, and slides show when they were taken and which monthsary month that fell in (computed with the same whole-month rule the monthsary engine itself uses) — for videos that's read straight from Android's own `VID_YYYYMMDD_...` filename convention (no API needed); for photos it's the file's real EXIF `DateTimeOriginal`, fetched via the Drive API when re-syncing. An earlier version guessed photo dates from a 13-digit number some filenames carried — that turned out to be an export timestamp, not the capture date, so it showed the wrong day; photos without a fetched EXIF date now simply show no date rather than a guessed one.
+
+> To backfill real photo dates: Google Cloud Console → enable **Google Drive API** on a project (the same one as `YOUTUBE_API_KEY` works fine) → Credentials → Create API key. No application restriction needed — this key is only ever used locally by `sync-drive-media.mjs`, never shipped to the browser; just restrict its **API restrictions** to Google Drive API. Then:
+>
+> ```powershell
+> $env:GOOGLE_DRIVE_API_KEY = "..."
+> node tools/sync-drive-media.mjs
+> ```
 
 ### 📜 Poems, the Letter & the Letters Archive
 
@@ -153,7 +160,7 @@ e-and-a/
 │   └── *.jpg / *.mp4           # original full-res assets (excluded from the Docker image)
 │
 ├── tools/
-│   └── sync-drive-media.mjs    # regenerates static/data/drive-media.json from a public Drive folder
+│   └── sync-drive-media.mjs    # regenerates static/data/drive-media.json; GOOGLE_DRIVE_API_KEY backfills real photo EXIF dates
 │
 ├── Dockerfile                  # nginx:alpine + python3, custom entrypoint, envsubst PORT templating
 ├── nginx.conf.template         # cache rules, /api/jipiti proxy to the local python process
