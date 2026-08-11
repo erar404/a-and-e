@@ -38,6 +38,8 @@ const onlineDot = document.getElementById("online-dot");
 const refreshBtn = document.getElementById("refresh-btn");
 const typingWrap = document.getElementById("typing-wrap");
 const typingLabel = document.getElementById("typing-label");
+const partnerPlayingEl = document.getElementById("partner-playing");
+const partnerPlayingText = document.getElementById("partner-playing-text");
 
 let me = null; // my user id
 let names = {}; // user_id -> display name
@@ -229,6 +231,7 @@ async function enterChat() {
         msgs.push(payload.new);
         appendMsg(payload.new, true);
         refreshSeen();
+        if (hasLoveWords(payload.new.body)) celebrateLoveWords();
         if (payload.new.sender_id !== me) {
           if (document.hidden) bumpUnreadTitle();
           else markRead();
@@ -257,6 +260,18 @@ let presenceChannel = null;
 let partnerOnline = false;
 let partnerTyping = false;
 
+// the single source of truth for what we broadcast about ourselves —
+// .track() replaces the whole payload every call, so typing (below) and
+// "now playing" (set from yt-player.js via trackPresence()) have to
+// share and merge into this instead of stomping on each other
+const presenceState = { typing: false, nowPlaying: null };
+
+function trackPresence(partial) {
+  if (!presenceChannel) return;
+  Object.assign(presenceState, partial);
+  presenceChannel.track({ online_at: new Date().toISOString(), ...presenceState });
+}
+
 function setupPresence() {
   presenceChannel = sb.channel("usap-tayo-presence", {
     config: { presence: { key: me } },
@@ -268,9 +283,10 @@ function setupPresence() {
       partnerOnline = !!partnerState;
       onlineDot.hidden = !partnerOnline;
       setPartnerTyping(!!(partnerState && partnerState.typing));
+      setPartnerNowPlaying(partnerState && partnerState.nowPlaying);
     })
     .subscribe(async (status) => {
-      if (status === "SUBSCRIBED") await presenceChannel.track({ online_at: new Date().toISOString(), typing: false });
+      if (status === "SUBSCRIBED") trackPresence({});
     });
 }
 
@@ -296,7 +312,7 @@ function trackTyping() {
   if (!presenceChannel) return;
   if (!isTypingTracked) {
     isTypingTracked = true;
-    presenceChannel.track({ online_at: new Date().toISOString(), typing: true });
+    trackPresence({ typing: true });
   }
   clearTimeout(typingTrackTimeout);
   typingTrackTimeout = setTimeout(stopTypingTrack, 2500);
@@ -306,7 +322,18 @@ function stopTypingTrack() {
   clearTimeout(typingTrackTimeout);
   if (!isTypingTracked || !presenceChannel) return;
   isTypingTracked = false;
-  presenceChannel.track({ online_at: new Date().toISOString(), typing: false });
+  trackPresence({ typing: false });
+}
+
+/* "🎵 nakikinig si Alliah kay <song>" — the other half of this, set from
+   yt-player.js via trackPresence({ nowPlaying }), tracks the partner's
+   YT_PlayerState.PLAYING specifically (pausing hides it again) */
+
+function setPartnerNowPlaying(nowPlaying) {
+  partnerPlayingEl.hidden = !nowPlaying;
+  if (nowPlaying) {
+    partnerPlayingText.textContent = `nakikinig si ${names[callPeer] || "siya"} kay ${nowPlaying.title || "isang kanta"}`;
+  }
 }
 
 /* ─── image attachments ─── */
@@ -426,8 +453,74 @@ composer.addEventListener("submit", async (e) => {
     msgs.push(sent);
     appendMsg(sent, true);
     refreshSeen();
+    if (hasLoveWords(sent.body)) celebrateLoveWords();
   }
 });
+
+/* ─── surprise "mahal kita" counter ───
+   fires for BOTH of you whenever a new message (sent or received)
+   contains "I love you" / "mahal kita" — a running, all-time tally over
+   every message ever exchanged, via a simple ILIKE count query (already
+   allowed by the same RLS policy that lets either of you read every
+   message; no new backend needed) */
+
+function hasLoveWords(text) {
+  const t = (text || "").toLowerCase();
+  return t.includes("i love you") || t.includes("mahal kita");
+}
+
+async function celebrateLoveWords() {
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let count = null;
+  try {
+    const res = await sb
+      .from("chat_messages")
+      .select("id", { count: "exact", head: true })
+      .or("body.ilike.%i love you%,body.ilike.%mahal kita%");
+    count = res.count;
+  } catch {
+    // no count? still worth the surprise, just without the tally
+  }
+  showLoveBurst(count, reduced);
+}
+
+function showLoveBurst(count, reduced) {
+  const el = document.createElement("div");
+  el.className = "love-burst";
+
+  const label = document.createElement("p");
+  label.className = "love-burst-label";
+  label.textContent =
+    typeof count === "number" && count > 0
+      ? `ika-${count} beses n'yo nang sinabi 'yan, mahal ♡`
+      : "sinabi n'yo na naman 'yan, mahal ♡";
+  el.appendChild(label);
+
+  if (!reduced) {
+    const particleCount = 8;
+    for (let i = 0; i < particleCount; i++) {
+      const p = document.createElement("span");
+      p.className = "love-particle";
+      p.textContent = "♡";
+      const angle = (Math.PI * 2 * i) / particleCount + Math.random() * 0.4;
+      const dist = 70 + Math.random() * 40;
+      p.style.setProperty("--dx", `${Math.cos(angle) * dist}px`);
+      p.style.setProperty("--dy", `${Math.sin(angle) * dist}px`);
+      p.style.animationDelay = `${Math.random() * 0.15}s`;
+      el.appendChild(p);
+    }
+  }
+
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+
+  const dismiss = () => {
+    el.classList.add("leaving");
+    setTimeout(() => el.remove(), 500);
+  };
+  el.addEventListener("click", dismiss);
+  setTimeout(dismiss, 3200);
+}
 
 // Enter sends; Shift+Enter makes a new line
 input.addEventListener("keydown", (e) => {

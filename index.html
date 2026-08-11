@@ -149,6 +149,20 @@
       <p class="count-note reveal">— at tumatakbo pa rin, mahal</p>
     </section>
 
+    <!-- ═══════════ the chat count ═══════════ -->
+    <section class="chatcount" id="chatcount">
+      <p class="kicker reveal">bawat mensahe, binibilang</p>
+      <h2 class="display reveal">Every &ldquo;good morning,&rdquo;<br /><em>every goodnight.</em></h2>
+      <p class="lede reveal">hindi lang numero ito, mahal — bawat isa'y tawag ko sa'yo, kwento ng araw natin, o simpleng miss na kita.</p>
+
+      <div class="chatcount-row reveal">
+        <span class="chatcount-num" id="chatcount-num">0</span>
+        <span class="chatcount-label">mga mensaheng napagpalitan natin</span>
+      </div>
+      <p class="chatcount-note reveal">— at tuloy-tuloy pa rin</p>
+      <p class="chat-link reveal"><a href="chat.html">usap tayo, mahal&nbsp;♡</a></p>
+    </section>
+
     <!-- ═══════════ the archive ═══════════ -->
     <section class="gallery" id="gallery">
       <p class="kicker reveal">our little archive</p>
@@ -255,14 +269,35 @@
       </div>
       <p class="footer-note reveal">walong buwan na, at marami pang darating · ♡</p>
       <p class="chat-link reveal"><a href="chat.html">usap tayo, mahal&nbsp;♡</a></p>
+      <p class="chat-link reveal"><button type="button" id="letters-archive-open">basahin muli ang mga naunang sulat&nbsp;♡</button></p>
     </section>
 
   </main>
+
+  <!-- ═══════════ mga naunang sulat — an on-demand archive of every past
+       monthsary letter, separate from the one live "surprise" envelope
+       above which only ever shows the CURRENT month ═══════════ -->
+  <div id="letters-archive-backdrop" class="letters-archive-backdrop" hidden></div>
+
+  <div id="letters-archive-modal" class="letters-archive-modal" hidden>
+    <button type="button" id="letters-archive-close" class="letters-archive-close" aria-label="Isara">✕</button>
+    <p class="letters-archive-kicker">mga sulat na naipadala na</p>
+    <div id="letters-archive-tabs" class="letters-archive-tabs" role="tablist" aria-label="Piliin ang buwan"></div>
+
+    <div class="letters-archive-letter">
+      <p class="letters-archive-salutation" id="letters-archive-salutation">Mahal,</p>
+      <h2 class="letters-archive-title" id="letters-archive-title"></h2>
+      <div class="letters-archive-body" id="letters-archive-body"></div>
+      <p class="letters-archive-sign" id="letters-archive-sign"></p>
+    </div>
+  </div>
 
   <script src="photos.js"></script>
   <script src="monthsary.js"></script>
   <script src="script.js"></script>
   <script src="drive-show.js"></script>
   <script src="monthsary-timer.js"></script>
+  <script src="letters-archive.js"></script>
+  <script src="chat-counter.js"></script>
 </body>
 </html>

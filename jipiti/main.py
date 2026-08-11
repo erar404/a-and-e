@@ -34,6 +34,20 @@ SUPABASE_URL = "https://rrfelwwoypouqcjbdzrb.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_RPXksA5y0cj00OUH9lW6eA_2q4FtbFi"
 GPT_BOT_SENDER_ID = "fb893ccc-5c16-4d6b-9042-62b139f2b6bc"  # auth.users row seeded for this bot; not a chat_members row
 
+_missing = [
+    name
+    for name in ("SUPABASE_SERVICE_ROLE_KEY", "GPT_API_KEY")
+    if not os.environ.get(name)
+]
+if _missing:
+    # printed, not raised: a bare KeyError traceback here is easy to miss
+    # in Render's log stream and gives no hint about *which* var to add.
+    # This process is backgrounded by docker/30-start-jipiti.sh, so exiting
+    # only disables "jipiti" — nginx and the rest of the site start fine
+    # regardless, but every /api/jipiti call 502s until this is fixed.
+    print(f"jipiti: missing required env var(s): {', '.join(_missing)} — exiting, 'jipiti' will 502 until set")
+    raise SystemExit(1)
+
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 GPT_API_KEY = os.environ["GPT_API_KEY"]
 GPT_MODEL = os.environ.get("GPT_MODEL", "gpt-4o-mini")

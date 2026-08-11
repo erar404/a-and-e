@@ -124,6 +124,9 @@
       <div class="chat-title">
         <h1>Usap Tayo <span id="online-dot" class="online-dot" hidden title="online ngayon ♡"></span></h1>
         <p id="chat-sub">ikaw at ako lang ♡</p>
+        <p id="partner-playing" class="partner-playing" hidden>
+          <span aria-hidden="true">🎵</span> <span id="partner-playing-text"></span>
+        </p>
       </div>
       <button id="call-audio-btn" class="call-btn" title="Tawagan" aria-label="Audio call">☎</button>
       <button id="call-video-btn" class="call-btn" title="Video call" aria-label="Video call">⛶</button>
@@ -199,9 +202,9 @@
     <div id="yt-bar" class="yt-bar" hidden>
       <div class="yt-thumb-wrap"><img id="yt-thumb" class="yt-thumb" alt="" /></div>
       <div class="yt-transport">
-        <button type="button" id="yt-prev" class="yt-icon-btn yt-skip" aria-label="Nakaraang kanta sa playlist" disabled>⏮</button>
+        <button type="button" id="yt-prev" class="yt-icon-btn yt-skip" aria-label="Nakaraang kanta" disabled>⏮</button>
         <button type="button" id="yt-playpause" class="yt-playpause" aria-label="I-pause">⏸</button>
-        <button type="button" id="yt-next" class="yt-icon-btn yt-skip" aria-label="Susunod na kanta sa playlist" disabled>⏭</button>
+        <button type="button" id="yt-next" class="yt-icon-btn yt-skip" aria-label="Susunod na kanta" disabled>⏭</button>
       </div>
       <div class="yt-info">
         <p id="yt-title" class="yt-title">Kumukonekta…</p>
@@ -210,6 +213,7 @@
           <input id="yt-seek" class="yt-seek" type="range" min="0" max="0" step="1" value="0" aria-label="Posisyon ng kanta" />
           <span id="yt-time-dur" class="yt-time">0:00</span>
         </div>
+        <p id="yt-queue-label" class="yt-queue-label" hidden></p>
       </div>
       <button type="button" id="yt-mute" class="yt-icon-btn" aria-label="Patayin ang tunog">🔊</button>
       <button type="button" id="yt-close" class="yt-icon-btn" aria-label="Ihinto ang pagpapatugtog">✕</button>

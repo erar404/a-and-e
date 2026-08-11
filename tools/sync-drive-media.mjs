@@ -20,6 +20,26 @@ const outFile = join(dirname(fileURLToPath(import.meta.url)), "..", "static", "d
 const IMAGE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp"]);
 const VIDEO_EXT = new Set(["mp4", "mov", "webm", "m4v", "3gp", "mkv", "avi"]);
 
+// the public folder listing gives us no real metadata (no Drive API here,
+// just scraped HTML) — but most filenames carry their own date, either the
+// Android camera convention (VID_/IMG_YYYYMMDD_...) or a bare 13-digit
+// millisecond epoch some gallery/export tools use for their filenames.
+// Returns an ISO string, or null if neither pattern is found.
+function extractTakenAt(name) {
+  const cam = name.match(/(?:VID|IMG)_(\d{4})(\d{2})(\d{2})_/);
+  if (cam) {
+    const [, y, m, d] = cam;
+    const date = new Date(`${y}-${m}-${d}T12:00:00+08:00`);
+    if (!isNaN(date)) return date.toISOString();
+  }
+  const ms = name.match(/(?<!\d)(\d{13})(?!\d)/);
+  if (ms) {
+    const date = new Date(Number(ms[1]));
+    if (!isNaN(date) && date.getFullYear() > 2000 && date.getFullYear() < 2100) return date.toISOString();
+  }
+  return null;
+}
+
 const items = [];
 const visited = new Set();
 
@@ -60,7 +80,8 @@ async function walk(folderId, album) {
       console.log(`  (nilaktawan: ${name} — hindi larawan o video)`);
       continue;
     }
-    items.push({ id, name, type, ...(album ? { album } : {}) });
+    const takenAt = extractTakenAt(name);
+    items.push({ id, name, type, ...(album ? { album } : {}), ...(takenAt ? { takenAt } : {}) });
   }
 }
 

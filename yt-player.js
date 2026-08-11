@@ -5,6 +5,14 @@
    playlist's own sequence). Anything else after "play " is treated as a
    search: the YouTube Data API (key in yt-config.js, see README) returns
    the top 5 matches in an overlay so you can pick which one plays.
+
+   "play next <link OR text>" adds to a small local queue instead of
+   playing immediately (falls back to playing right away if nothing's
+   currently loaded) — played out in order as each track ends, or on ⏭.
+   The queue is local to whoever typed it; it isn't shared with the
+   partner's player, only surfaced to them as a "now playing" line (see
+   broadcastNowPlaying() / chat.js's trackPresence()) over the same
+   Supabase Presence channel the typing indicator already uses.
    ════════════════════════════════════════════ */
 
 (() => {
@@ -22,13 +30,15 @@
   const durTimeEl = document.getElementById("yt-time-dur");
   const muteBtn = document.getElementById("yt-mute");
   const closeBtn = document.getElementById("yt-close");
+  const queueLabelEl = document.getElementById("yt-queue-label");
   const searchOverlay = document.getElementById("yt-search-overlay");
   const searchStatus = document.getElementById("yt-search-status");
   const searchList = document.getElementById("yt-search-list");
   const searchClose = document.getElementById("yt-search-close");
-  if (!composer || !input || !bar) return;
+  if (!composer || !input || !bar || !queueLabelEl) return;
   if (!searchOverlay || !searchStatus || !searchList || !searchClose) return;
 
+  const PLAY_NEXT_RE = /^play\s+next\s+(.+)$/i;
   const PLAY_RE = /^play\s+(.+)$/i;
 
   function parseYouTubeUrl(raw) {
@@ -121,6 +131,67 @@
     });
   }
 
+  // ─── "play next" queue ───
+  // local to this browser only — plays out in order as each track ends
+  // (or on ⏭, which prefers the queue over a loaded playlist's own next)
+
+  let queue = []; // { videoId, playlistId, title, thumb }
+
+  function renderQueueLabel() {
+    if (!queue.length) {
+      queueLabelEl.hidden = true;
+    } else {
+      const next = queue[0];
+      const label = next.title || (next.playlistId ? "playlist" : "kanta");
+      const more = queue.length > 1 ? ` (+${queue.length - 1} pa)` : "";
+      queueLabelEl.hidden = false;
+      queueLabelEl.textContent = `susunod: ${label}${more}`;
+    }
+    if (!bar.hidden) nextBtn.disabled = !isPlaylist && !queue.length;
+  }
+
+  function playNextInQueue() {
+    if (!queue.length) return false;
+    const next = queue.shift();
+    renderQueueLabel();
+    playYouTube({ videoId: next.videoId, playlistId: next.playlistId });
+    return true;
+  }
+
+  // queues if something's already loaded, otherwise just plays now —
+  // "play next" on an empty (or dead-ended, errored-out) player has
+  // nothing to queue behind
+  function queueOrPlay(parsed, meta) {
+    if (bar.hidden || bar.classList.contains("error")) {
+      playYouTube(parsed);
+      return;
+    }
+    const entry = { videoId: parsed.videoId, playlistId: parsed.playlistId, title: (meta && meta.title) || null, thumb: (meta && meta.thumb) || null };
+    queue.push(entry);
+    renderQueueLabel();
+    if (!entry.title && entry.videoId) {
+      fetchOEmbedTitle(entry.videoId).then((title) => {
+        if (!title) return;
+        entry.title = title;
+        renderQueueLabel();
+      });
+    }
+  }
+
+  // no API key needed for a single known video's title — used only to
+  // label a directly-linked "play next" entry while it waits in the queue
+  async function fetchOEmbedTitle(videoId) {
+    try {
+      const url = `https://www.youtube.com/oembed?url=${encodeURIComponent(`https://youtu.be/${videoId}`)}&format=json`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.title || null;
+    } catch {
+      return null;
+    }
+  }
+
   // ─── bar state ───
 
   function showBar() {
@@ -129,7 +200,7 @@
     playPauseBtn.disabled = false;
     seekEl.disabled = false;
     prevBtn.disabled = !isPlaylist;
-    nextBtn.disabled = !isPlaylist;
+    nextBtn.disabled = !isPlaylist && !queue.length;
   }
 
   function hideBar() {
@@ -137,7 +208,10 @@
     isPlaylist = false;
     prevBtn.disabled = true;
     nextBtn.disabled = true;
+    queue = [];
+    renderQueueLabel();
     stopProgressLoop();
+    broadcastNowPlaying();
   }
 
   function setBarLoading() {
@@ -203,10 +277,16 @@
     playPauseBtn.setAttribute("aria-label", playing ? "I-pause" : "I-play");
     if (playing || state === YT.PlayerState.CUED) updateTrackInfo();
     if (playing) startProgressLoop();
-    else if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.ENDED) stopProgressLoop();
+    else if (state === YT.PlayerState.PAUSED) stopProgressLoop();
+    else if (state === YT.PlayerState.ENDED) {
+      stopProgressLoop();
+      playNextInQueue();
+    }
+    broadcastNowPlaying();
   }
 
   function onPlayerError(e) {
+    if (playNextInQueue()) return; // skip a broken track instead of dead-ending the queue
     const code = e.data;
     const message =
       code === 100
@@ -215,6 +295,20 @@
         ? "hindi pwedeng i-embed 'yan, mahal — baka pribado ♡"
         : "hindi ma-play 'yan, mahal, subukan mo ulit ♡";
     showBarError(message);
+  }
+
+  // ─── "now playing" indicator for the partner ───
+  // broadcast over the same Supabase Presence channel chat.js's typing
+  // indicator uses; trackPresence() is a plain top-level function there,
+  // reachable here the same way sb/me/names already are across scripts
+  function broadcastNowPlaying() {
+    if (typeof trackPresence !== "function") return;
+    if (player && typeof player.getPlayerState === "function" && player.getPlayerState() === YT.PlayerState.PLAYING) {
+      const data = typeof player.getVideoData === "function" ? player.getVideoData() : null;
+      trackPresence({ nowPlaying: { title: (data && data.title) || null } });
+    } else {
+      trackPresence({ nowPlaying: null });
+    }
   }
 
   // ─── bar controls ───
@@ -230,6 +324,8 @@
   });
 
   nextBtn.addEventListener("click", () => {
+    // the queue takes priority — it's what you explicitly asked to hear next
+    if (playNextInQueue()) return;
     if (player && typeof player.nextVideo === "function") player.nextVideo();
   });
 
@@ -257,13 +353,16 @@
     hideBar();
   });
 
-  // ─── the "play" command itself ───
+  // ─── the "play" / "play next" commands ───
   // registered on document, capture phase: this runs before chat.js's own
   // submit listener on #composer, which otherwise reads and clears the
   // textarea synchronously at the top of its handler. "play " followed by
   // anything at all is treated as a command now — a real link plays
   // directly, plain text triggers a search — so it never falls through to
-  // a normal chat send once it matches.
+  // a normal chat send once it matches. "play next " is checked first
+  // since it's a stricter match of the same prefix.
+
+  let searchMode = "play"; // "play" | "queue" — which the picker overlay should do on click
 
   document.addEventListener(
     "submit",
@@ -271,7 +370,13 @@
       if (e.target !== composer) return;
       if (attachPreviewEl && !attachPreviewEl.hidden) return; // a captioned photo sends normally
       const raw = input.value.trim();
-      const match = raw.match(PLAY_RE);
+
+      let isQueueCmd = true;
+      let match = raw.match(PLAY_NEXT_RE);
+      if (!match) {
+        isQueueCmd = false;
+        match = raw.match(PLAY_RE);
+      }
       if (!match) return;
       const query = match[1].trim();
       if (!query) return;
@@ -282,8 +387,13 @@
       input.style.height = "auto";
 
       const parsed = parseYouTubeUrl(query);
-      if (parsed) playYouTube(parsed);
-      else searchYouTube(query);
+      if (parsed) {
+        if (isQueueCmd) queueOrPlay(parsed);
+        else playYouTube(parsed);
+      } else {
+        searchMode = isQueueCmd ? "queue" : "play";
+        searchYouTube(query);
+      }
     },
     true
   );
@@ -331,7 +441,9 @@
       btn.append(thumb, meta);
       btn.addEventListener("click", () => {
         hideSearchOverlay();
-        playYouTube({ videoId: item.videoId, playlistId: null });
+        const picked = { videoId: item.videoId, playlistId: null };
+        if (searchMode === "queue") queueOrPlay(picked, { title: item.title, thumb: item.thumb });
+        else playYouTube(picked);
       });
       li.appendChild(btn);
       searchList.appendChild(li);

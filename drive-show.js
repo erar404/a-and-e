@@ -16,16 +16,54 @@
   const imgUrl = (id, w) => `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`;
   const videoUrl = (id) => `https://drive.google.com/file/d/${id}/preview`;
 
+  // date-taken caption + "which month were we" tag — takenAt comes from
+  // tools/sync-drive-media.mjs, parsed straight out of the filename (no
+  // Drive API access here, just the public folder listing)
+  const TZ = "Asia/Manila";
+  const LOVE_START_ISO = "2025-10-11"; // keep in sync with static/data/monthsary.json's "start"
+  const [LOVE_Y, LOVE_M, LOVE_D] = LOVE_START_ISO.split("-").map(Number);
+  const dateFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
+  const MONTHS_TL = [
+    "Enero", "Pebrero", "Marso", "Abril", "Mayo", "Hunyo",
+    "Hulyo", "Agosto", "Setyembre", "Oktubre", "Nobyembre", "Disyembre",
+  ];
+
+  function phParts(date) {
+    const [y, m, d] = dateFmt.format(date).split("-").map(Number);
+    return { y, m, d };
+  }
+
+  // same whole-month rule the monthsary engine uses, just aimed at
+  // whatever date the photo was taken instead of "today"
+  function monthsAt(date) {
+    const { y, m, d } = phParts(date);
+    return Math.max(1, (y - LOVE_Y) * 12 + (m - LOVE_M) + (d >= LOVE_D ? 0 : -1));
+  }
+
+  function dateLabel(date) {
+    const { y, m, d } = phParts(date);
+    return `${MONTHS_TL[m - 1]} ${d}, ${y}`;
+  }
+
   const HOLD_MS = 5500; // how long each photo lingers
   let items = [];
   let current = 0;
   let timer = null;
   let videoOpen = false;
 
+  // Fisher-Yates — a fresh order every visit
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
   fetch("static/data/drive-media.json")
     .then((r) => r.json())
     .then((data) => {
-      items = (data.items || []).filter((i) => i.id && (i.type === "image" || i.type === "video"));
+      items = shuffle((data.items || []).filter((i) => i.id && (i.type === "image" || i.type === "video")));
       if (!items.length) {
         section.style.display = "none";
         return;
@@ -60,6 +98,14 @@
       cap.className = "cine-album";
       cap.textContent = item.album;
       slide.appendChild(cap);
+    }
+
+    if (item.takenAt) {
+      const taken = new Date(item.takenAt);
+      const date = document.createElement("span");
+      date.className = "cine-date";
+      date.textContent = `${dateLabel(taken)} · ika-${monthsAt(taken)} buwan namin`;
+      slide.appendChild(date);
     }
 
     if (item.type === "video") {

@@ -30,7 +30,7 @@ RUN chmod +x /docker-entrypoint.d/30-start-jipiti.sh
 
 COPY index.html chat.html call-check.html \
      styles.css chat.css call-check.css \
-     script.js monthsary.js monthsary-timer.js drive-show.js chat.js photos.js supabase.min.js call-check.js vdi-disguise.js yt-player.js jipiti.js sw.js \
+     script.js monthsary.js monthsary-timer.js letters-archive.js drive-show.js chat.js photos.js supabase.min.js call-check.js vdi-disguise.js yt-player.js jipiti.js chat-counter.js sw.js \
      /usr/share/nginx/html/
 COPY static/ /usr/share/nginx/html/static/
 

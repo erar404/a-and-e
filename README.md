@@ -81,11 +81,11 @@ Every 11th of the month at midnight (PH time), the site rewrites its titles, ent
 
 ### 🖼️ Photo Deck & Cloud Slideshow
 
-An 87-photo draggable polaroid deck (`photos.js`) supports drag, swipe, arrow keys, and keyboard nav with a deal-in animation. Alongside it, the "mula sa ating ulap" section streams **448 photos/videos live from a public Google Drive folder** — nothing is copied into the repo or Docker image. Re-sync the list anytime with `node tools/sync-drive-media.mjs`.
+An 87-photo draggable polaroid deck (`photos.js`) supports drag, swipe, arrow keys, and keyboard nav with a deal-in animation. Alongside it, the "mula sa ating ulap" section streams **448 photos/videos live from a public Google Drive folder** — nothing is copied into the repo or Docker image. The order is reshuffled every visit, and each slide that has a date-bearing filename (Android's `VID_YYYYMMDD_...` convention, or a bare 13-digit millisecond-epoch name some gallery exports use) shows when it was taken and which monthsary month it fell in, computed with the same whole-month rule the monthsary engine itself uses. Re-sync the list anytime with `node tools/sync-drive-media.mjs` — it re-derives those dates from filenames too, no Google Drive API access needed.
 
-### 📜 Poems & the Letter
+### 📜 Poems, the Letter & the Letters Archive
 
-Eight roman-numeral poem cards with a 3D wax-seal flip, unsealed progressively by the monthsary engine, plus a closing handwritten letter section with scroll-driven lens-focus.
+Eight roman-numeral poem cards with a 3D wax-seal flip, unsealed progressively by the monthsary engine, plus a closing handwritten letter section with scroll-driven lens-focus. "basahin muli ang mga naunang sulat ♡" opens a modal (`letters-archive.js`) listing every past monthsary letter as tabs, reusing the same `static/data/monthsary.json` the live envelope surprise (`monthsary-timer.js`) draws from — so a written month stays readable anytime, not just the one day it first arrived.
 
 ### 🎧 Cinematic Atmosphere
 
@@ -107,7 +107,12 @@ A two-person-only chat (`chat.html`), reachable via a discreet "usap tayo ♡" l
 | 🔔 Push notifications | Web Push + VAPID, registered via `sw.js`, suppressed if the recipient already has the chat focused |
 | ↻ Manual refresh | Re-fetches the last 100 messages on demand, in case a realtime event ever got dropped |
 | 🎵 `play <link or text>` | A direct YouTube link/playlist plays immediately; plain text shows a top-5 search picker (`yt-player.js`) |
+| ⏭ `play next <link or text>` | Queues instead of interrupting — falls back to playing immediately if nothing's loaded; auto-advances on track end, error, or ⏭ |
+| 🎧 "now playing" indicator | While your partner's player is actually playing (not just paused), a small line under the header shows what — same Presence channel as the typing indicator |
 | 🤖 `jipiti <prompt>` | Sends normally, then a Python bridge (`jipiti/main.py`) asks ChatGPT and posts the reply for both of you to see (`jipiti.js`) |
+| 💗 "mahal kita" counter | Any new message containing "I love you" / "mahal kita" triggers a bouncy heart-burst popup for both of you, tallying every time it's ever been said (`body.ilike.%...%` count query, no new backend) |
+
+`index.html`'s public "the chat count" section (`chat-counter.js`) shows the running total of Usap Tayo messages — it calls a `public.chat_message_count()` Postgres function (`SECURITY DEFINER`, granted to `anon`) that returns only a number, never row content, so the total is visible on the public landing page without weakening the RLS that protects the messages themselves.
 
 Full build/decision log: [`CHAT_PLAN.md`](CHAT_PLAN.md).
 
@@ -119,8 +124,11 @@ e-and-a/
 ├── styles.css                  # all site styling, animations, reduced-motion fallbacks
 ├── script.js                   # preloader, audio analyser, cinema rAF loop, deck/poem logic, counter
 ├── monthsary.js                # monthsary engine — computes the current month, applies overrides
-├── drive-show.js                # cloud slideshow — fetches & renders static/data/drive-media.json
+├── monthsary-timer.js           # the live monthsary-day envelope surprise (current month only)
+├── letters-archive.js           # "basahin muli..." modal — every past monthsary letter, on demand
+├── drive-show.js                # cloud slideshow — fetches & renders static/data/drive-media.json (shuffled, dated)
 ├── photos.js                   # generated array of 87 static/opt/*.jpg paths
+├── chat-counter.js              # "the chat count" section — total Usap Tayo messages, via a count-only RPC
 │
 ├── chat.html / chat.css / chat.js   # Usap Tayo — private two-person chat, calls, presence
 ├── yt-player.js / yt-config.js.template  # "play <link/text>" audio bar + YouTube search picker

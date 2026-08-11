@@ -316,6 +316,28 @@ body {
   color: var(--ink-soft);
 }
 
+/* "🎵 nakikinig si Alliah kay <song>" — appears only while the partner's
+   player is actually playing (not just loaded/paused), same presence
+   channel the typing indicator uses ─── see chat.js trackPresence() */
+.partner-playing {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gold) !important;
+}
+
+.partner-playing span[aria-hidden] { display: inline-block; animation: note-bob 1.4s ease-in-out infinite; }
+
+@keyframes note-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .partner-playing span[aria-hidden] { animation: none; }
+}
+
 .chat-out {
   border: 0;
   background: none;
@@ -909,6 +931,78 @@ body {
   font-size: 1.02rem;
   white-space: pre-line;
   overflow-wrap: anywhere;
+}
+
+/* ─── surprise "mahal kita" counter ───
+   a bouncy little burst, dynamically created by showLoveBurst() in
+   chat.js whenever "I love you" / "mahal kita" appears in a new message —
+   deliberately punchier than the rest of the site's calm reveal fades,
+   since the whole point is to catch you off guard, sweetly */
+
+.love-burst {
+  position: fixed;
+  left: 50%;
+  top: 26%;
+  z-index: 120;
+  transform: translate(-50%, -50%) scale(0.3) rotate(-8deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.love-burst.show {
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+  transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.love-burst.leaving {
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  transform: translate(-50%, -50%) scale(0.85) translateY(-10px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.love-burst-label {
+  position: relative;
+  z-index: 2;
+  max-width: min(80vw, 340px);
+  padding: 0.9rem 1.5rem;
+  border-radius: 999px;
+  background: rgba(33, 23, 34, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 160, 164, 0.5);
+  box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.55);
+  color: var(--rose);
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.15rem;
+  text-align: center;
+}
+
+.love-particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  color: var(--rose);
+  font-size: 1.1rem;
+  opacity: 0;
+  animation: love-particle-burst 0.9s ease-out forwards;
+}
+
+@keyframes love-particle-burst {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.6); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .love-burst,
+  .love-burst.show,
+  .love-burst.leaving {
+    transition: opacity 0.3s ease;
+    transform: translate(-50%, -50%);
+  }
+  .love-particle { display: none; }
 }
 
 /* ─── lightbox ─── */
@@ -2226,6 +2320,17 @@ body.vdi-skin-call .call-action.decline:hover { background: #ea5f63; }
 }
 
 .yt-bar.error .yt-title { color: #d98a8a; font-style: italic; white-space: normal; }
+
+/* "susunod: <song> (+2 pa)" — front of the "play next" queue, see
+   renderQueueLabel() in yt-player.js */
+.yt-queue-label {
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: var(--rose);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .yt-seekrow { display: flex; align-items: center; gap: 0.45rem; }
 

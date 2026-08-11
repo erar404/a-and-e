@@ -694,6 +694,39 @@ section {
   color: var(--cream-dim);
 }
 
+/* ─── the chat count ─── */
+
+.chatcount-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 4rem;
+}
+
+.chatcount-num {
+  font-size: clamp(3.4rem, 10vw, 6rem);
+  font-weight: 300;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--rose);
+}
+
+.chatcount-label {
+  max-width: 20em;
+  font-size: 0.74rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.chatcount-note {
+  margin-top: 2.6rem;
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.3rem;
+  color: var(--cream-dim);
+}
+
 /* ─── gallery deck ─── */
 
 .deck-wrap {
@@ -953,15 +986,21 @@ section {
 /* a quiet door to our private chat */
 .chat-link { margin-top: 1.6rem; }
 
-.chat-link a {
+.chat-link a,
+.chat-link button {
   font-family: "La Belle Aurore", cursive;
   font-size: 1.2rem;
   color: var(--gold);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
   text-decoration: none;
   transition: color 0.35s;
 }
 
-.chat-link a:hover { color: var(--rose); }
+.chat-link a:hover,
+.chat-link button:hover { color: var(--rose); }
 
 /* ─── responsive ─── */
 
@@ -1076,6 +1115,26 @@ section {
 }
 
 .cine-slide.playing .cine-album { visibility: hidden; }
+
+.cine-date {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  max-width: 70%;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(20, 14, 18, 0.6);
+  backdrop-filter: blur(6px);
+  color: var(--cream);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.cine-slide.playing .cine-date { visibility: hidden; }
 
 .cine-tag {
   position: absolute;
@@ -1546,6 +1605,140 @@ body.theme-anniversary .cine-tag {
 }
 
 .monthsary-letter-sign {
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.5rem;
+  margin-top: 1.4rem;
+  color: #6e3a42;
+}
+
+/* ─── mga naunang sulat — archive of every past monthsary letter,
+   opened on demand (letters-archive.js), separate from the one live
+   "surprise" envelope above which only ever shows the current month ─── */
+
+.letters-archive-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 97;
+  background: rgba(10, 5, 9, 0.92);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.letters-archive-backdrop.visible { opacity: 1; }
+
+.letters-archive-modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 98;
+  width: min(560px, calc(100vw - 2.8rem));
+  max-height: 86vh;
+  overflow-y: auto;
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+  padding: clamp(1.8rem, 6vw, 3rem);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.92);
+  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.letters-archive-modal.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .letters-archive-backdrop, .letters-archive-modal { transition: none; }
+}
+
+.letters-archive-close {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid var(--paper-edge);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.letters-archive-close:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+.letters-archive-kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 1rem;
+  padding-right: 2rem;
+}
+
+.letters-archive-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.9rem;
+  margin-bottom: 1.3rem;
+  border-bottom: 1px solid var(--paper-edge);
+  scrollbar-width: thin;
+}
+
+.letters-tab {
+  flex: none;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--paper-edge);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.letters-tab:hover { border-color: var(--rose); color: var(--ink); }
+
+.letters-tab.active {
+  background: var(--rose);
+  border-color: var(--rose);
+  color: var(--paper);
+}
+
+.letters-archive-salutation {
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.6rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.3rem;
+}
+
+.letters-archive-title {
+  font-weight: 300;
+  font-size: clamp(2rem, 6vw, 2.8rem);
+  line-height: 1.05;
+  margin-bottom: 1.4rem;
+  color: #6e3a42;
+}
+
+.letters-archive-body p {
+  margin-bottom: 1.1rem;
+  font-size: 1.02rem;
+  font-weight: 500;
+}
+
+.letters-archive-body p.aside {
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.2rem;
+  color: var(--ink-soft);
+}
+
+.letters-archive-sign {
   font-family: "La Belle Aurore", cursive;
   font-size: 1.5rem;
   margin-top: 1.4rem;
