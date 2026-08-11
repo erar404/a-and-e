@@ -553,6 +553,21 @@ body {
   border-radius: 14px 14px 4px 14px;
 }
 
+/* "jipiti" bot replies — same left-side placement as the partner's
+   messages, tagged and tinted gold so they're never mistaken for one */
+.bot-tag {
+  margin: 0 0 0.2rem 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+}
+
+.msg.bot .bubble {
+  background: rgba(201, 168, 117, 0.1);
+  border-color: rgba(201, 168, 117, 0.35);
+}
+
 .meta {
   margin-top: 0.25rem;
   font-size: 0.72rem;
@@ -915,6 +930,127 @@ body {
   max-height: 100%;
   border-radius: 6px;
   box-shadow: var(--shadow);
+}
+
+/* ─── yt search results ─── */
+
+.yt-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 92;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(10, 5, 9, 0.85);
+  backdrop-filter: blur(6px);
+}
+
+.yt-search-card {
+  width: 100%;
+  max-width: 420px;
+  max-height: min(70vh, 520px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(201, 168, 117, 0.28);
+  border-radius: 16px;
+  background: var(--bg-soft);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: pop-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.yt-search-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(201, 168, 117, 0.2);
+}
+
+.yt-search-heading {
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.3rem;
+  color: var(--rose);
+}
+
+.yt-search-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 160, 164, 0.35);
+  background: transparent;
+  color: var(--cream-dim);
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s, border-color 0.25s;
+}
+
+.yt-search-close:hover { color: var(--rose); border-color: var(--rose); background: rgba(212, 160, 164, 0.1); }
+
+.yt-search-status {
+  padding: 1.4rem 1rem;
+  text-align: center;
+  color: var(--cream-dim);
+  font-style: italic;
+}
+
+.yt-search-list {
+  list-style: none;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.yt-search-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.yt-search-item:hover,
+.yt-search-item:focus-visible { background: rgba(212, 160, 164, 0.12); }
+
+.yt-search-thumb {
+  flex: none;
+  width: 64px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg);
+}
+
+.yt-search-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.yt-search-item-title {
+  font-size: 0.95rem;
+  color: var(--cream);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yt-search-item-channel {
+  font-size: 0.78rem;
+  color: var(--cream-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── call overlay ─── */

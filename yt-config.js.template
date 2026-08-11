@@ -1,0 +1,4 @@
+/* generated at container startup by docker/40-yt-config.sh, which runs
+   envsubst against this template using Render/Cloud Run's injected
+   YOUTUBE_API_KEY env var — see README.md § YouTube search */
+window.YOUTUBE_API_KEY = "${YOUTUBE_API_KEY}";

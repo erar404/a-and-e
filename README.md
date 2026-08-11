@@ -106,6 +106,8 @@ A two-person-only chat (`chat.html`), reachable via a discreet "usap tayo ♡" l
 | ☎️ Audio/video calls | WebRTC peer connection signaled over a Supabase Realtime broadcast channel (offer/answer/ICE/hangup/busy) |
 | 🔔 Push notifications | Web Push + VAPID, registered via `sw.js`, suppressed if the recipient already has the chat focused |
 | ↻ Manual refresh | Re-fetches the last 100 messages on demand, in case a realtime event ever got dropped |
+| 🎵 `play <link or text>` | A direct YouTube link/playlist plays immediately; plain text shows a top-5 search picker (`yt-player.js`) |
+| 🤖 `jipiti <prompt>` | Sends normally, then a Python bridge (`jipiti/main.py`) asks ChatGPT and posts the reply for both of you to see (`jipiti.js`) |
 
 Full build/decision log: [`CHAT_PLAN.md`](CHAT_PLAN.md).
 
@@ -121,8 +123,17 @@ e-and-a/
 ├── photos.js                   # generated array of 87 static/opt/*.jpg paths
 │
 ├── chat.html / chat.css / chat.js   # Usap Tayo — private two-person chat, calls, presence
+├── yt-player.js / yt-config.js.template  # "play <link/text>" audio bar + YouTube search picker
+├── jipiti.js                    # "jipiti <prompt>" — pings the bot backend below
 ├── sw.js                       # service worker for Usap Tayo push notifications
 ├── supabase.min.js             # vendored Supabase JS client
+│
+├── jipiti/
+│   └── main.py                 # stdlib-only ChatGPT bridge; nginx proxies /api/jipiti to it
+│
+├── docker/
+│   ├── entrypoint.sh            # launches jipiti/main.py, then hands off to nginx's own entrypoint
+│   └── 40-yt-config.sh          # renders yt-config.js from YOUTUBE_API_KEY at container startup
 │
 ├── static/
 │   ├── data/
@@ -136,8 +147,8 @@ e-and-a/
 ├── tools/
 │   └── sync-drive-media.mjs    # regenerates static/data/drive-media.json from a public Drive folder
 │
-├── Dockerfile                  # nginx:alpine, envsubst PORT templating
-├── nginx.conf.template         # cache rules: media 30d immutable, html/js/css/json no-cache
+├── Dockerfile                  # nginx:alpine + python3, custom entrypoint, envsubst PORT templating
+├── nginx.conf.template         # cache rules, /api/jipiti proxy to the local python process
 ├── .dockerignore                # keeps ~528 MB of originals out of the image
 │
 ├── CHAT_PLAN.md                 # Usap Tayo build & decision log
@@ -180,7 +191,10 @@ docker build -t walong-buwan .
 docker run -p 8080:8080 walong-buwan
 ```
 
-> **No environment variables to configure.** The site has no server-side secrets — the Supabase project URL and *publishable* key live directly in `chat.js`, and access is enforced entirely by Row Level Security on the Supabase side (only the two seeded `chat_members` accounts can read or write anything).
+> **No required environment variables** for the site itself — the Supabase project URL and *publishable* key live directly in `chat.js`, and access is enforced entirely by Row Level Security on the Supabase side (only the two seeded `chat_members` accounts can read or write anything). Two features add **optional** vars, both consumed only inside the container — never committed, never shipped to the browser except where noted:
+>
+> - **`YOUTUBE_API_KEY`** powers `chat.html`'s "play `<song title>`" search (top-5 picker instead of a direct link). Without it the direct-link form of "play" still works; only the text-search form shows a friendly "not set up" message. At container startup, `docker/40-yt-config.sh` renders `yt-config.js.template` → `yt-config.js` (loaded by the browser) with whatever the platform injects — same `envsubst` trick the Dockerfile already uses for `PORT`. Get a free key from [Google Cloud Console](https://console.cloud.google.com/) (enable **YouTube Data API v3**, create an API key, restrict it to that API + your site's HTTP referrer). The free tier's default quota (10,000 units/day, 100 units per search) is good for ~100 searches/day.
+> - **`GPT_API_KEY`** + **`SUPABASE_SERVICE_ROLE_KEY`** power `chat.html`'s "jipiti `<prompt>`" command — the message sends normally, and `jipiti/main.py` (a stdlib-only Python process nginx proxies `/api/jipiti` to, started by `docker/entrypoint.sh` alongside nginx in the same container — see that file) asks OpenAI (model via optional `GPT_MODEL`, default `gpt-4o-mini`) and posts the reply back into `chat_messages` as a dedicated `GPT` sender, so it lands for both of you through the chat's existing Realtime subscription. **Unlike the YouTube key, these two never reach the browser** — `main.py` only listens on `127.0.0.1`, nginx is the only thing that can reach it. The service-role key bypasses RLS on purpose (needed to insert as the bot account) but `main.py` re-checks the caller's Supabase access token against `chat_members` before doing anything, so only Erwin/Alliah can trigger it.
 
 ## ☁️ Deployment
 
@@ -190,17 +204,20 @@ docker run -p 8080:8080 walong-buwan
 gcloud run deploy walong-buwan --source . --region asia-southeast1 --allow-unauthenticated
 ```
 
-Cloud Run builds the `Dockerfile`, injects `PORT`, and returns a URL — nothing else to configure.
+Cloud Run builds the `Dockerfile`, injects `PORT`, and returns a URL. Add `--set-env-vars YOUTUBE_API_KEY=...,GPT_API_KEY=...,SUPABASE_SERVICE_ROLE_KEY=...` for the optional features above.
 
 **Render:**
 
 1. Push this repo to GitHub (already at [`erar404/a-and-e`](https://github.com/erar404/a-and-e)).
 2. Render Dashboard → **New → Web Service** → connect the repo.
-3. Runtime: **Docker**. No other settings needed — the container honors Render's `PORT`.
+3. Runtime: **Docker**. The container honors Render's `PORT` automatically.
+4. Optional: Render Dashboard → **Environment** → add `YOUTUBE_API_KEY` for song search, and/or `GPT_API_KEY` + `SUPABASE_SERVICE_ROLE_KEY` (Supabase Dashboard → Project Settings → API → `service_role` secret) for "jipiti".
 
 ```diff
 - Do not bake real Supabase service-role keys or secrets into the image — only the
-- RLS-safe publishable key belongs in client-side JS.
+- RLS-safe publishable key belongs in client-side JS. GPT_API_KEY and
+- SUPABASE_SERVICE_ROLE_KEY are the one intentional exception: they're read
+- server-side only, by jipiti/main.py, which never exposes them to the browser.
 ```
 
 ## 🔗 Related applications

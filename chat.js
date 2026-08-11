@@ -321,13 +321,7 @@ fileInput.addEventListener("change", () => {
     alert("larawan lang, mahal ♡");
     return;
   }
-  if (file.size > 8 * 1024 * 1024) {
-    alert("masyadong malaki ang larawan, mahal ♡");
-    return;
-  }
-  pendingFile = file;
-  attachPreviewImg.src = URL.createObjectURL(file);
-  attachPreview.hidden = false;
+  attachImageFile(file);
 });
 
 attachRemove.addEventListener("click", clearAttachment);
@@ -337,6 +331,30 @@ function clearAttachment() {
   attachPreview.hidden = true;
   attachPreviewImg.src = "";
 }
+
+function attachImageFile(file) {
+  if (!file || !file.type.startsWith("image/")) return false;
+  if (file.size > 8 * 1024 * 1024) {
+    alert("masyadong malaki ang larawan, mahal ♡");
+    return false;
+  }
+  pendingFile = file;
+  attachPreviewImg.src = URL.createObjectURL(file);
+  attachPreview.hidden = false;
+  return true;
+}
+
+input.addEventListener("paste", (e) => {
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.kind === "file" && item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      if (file && attachImageFile(file)) e.preventDefault();
+      break;
+    }
+  }
+});
 
 const attachmentUrlCache = new Map(); // path -> { url, expires }
 
@@ -550,10 +568,15 @@ function appendMsg(m, animate) {
     messagesEl.appendChild(sep);
   }
 
+  // anyone who isn't me and isn't a known chat_members row (populated
+  // from the real two-person member list) is the "jipiti" bot — see
+  // jipiti.js / jipiti/main.py, which posts its replies this way
+  const isBot = m.sender_id !== me && !names[m.sender_id];
+
   const row = document.createElement("div");
-  row.className = "msg" + (m.sender_id === me ? " mine" : "");
+  row.className = "msg" + (m.sender_id === me ? " mine" : "") + (isBot ? " bot" : "");
   row.dataset.id = m.id;
-  row.dataset.sender = names[m.sender_id] || (m.sender_id === me ? "You" : "Guest");
+  row.dataset.sender = m.sender_id === me ? "You" : names[m.sender_id] || (isBot ? "GPT" : "Guest");
   row.dataset.time = timeLabel(date);
 
   // hidden outside the disguise skin — .avatar only ever renders there
@@ -561,6 +584,13 @@ function appendMsg(m, animate) {
   avatar.className = "avatar";
   avatar.setAttribute("aria-hidden", "true");
   avatar.textContent = row.dataset.sender.charAt(0).toUpperCase();
+
+  if (isBot) {
+    const tag = document.createElement("div");
+    tag.className = "bot-tag";
+    tag.textContent = "GPT";
+    row.appendChild(tag);
+  }
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";

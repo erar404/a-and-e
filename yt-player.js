@@ -1,9 +1,10 @@
 /* ════════════════════════════════════════════
-   "play <youtube link>" — a small audio-only play bar.
-   Video and playlist links both work with no API key (the official
+   "play <youtube link OR text>" — a small audio-only play bar.
+   Video and playlist links play directly with no API key (the official
    IFrame Player API handles both, including advancing through a
-   playlist's own sequence). Plain-title search is intentionally not
-   supported yet — it needs the YouTube Data API and a key we don't have.
+   playlist's own sequence). Anything else after "play " is treated as a
+   search: the YouTube Data API (key in yt-config.js, see README) returns
+   the top 5 matches in an overlay so you can pick which one plays.
    ════════════════════════════════════════════ */
 
 (() => {
@@ -21,9 +22,14 @@
   const durTimeEl = document.getElementById("yt-time-dur");
   const muteBtn = document.getElementById("yt-mute");
   const closeBtn = document.getElementById("yt-close");
+  const searchOverlay = document.getElementById("yt-search-overlay");
+  const searchStatus = document.getElementById("yt-search-status");
+  const searchList = document.getElementById("yt-search-list");
+  const searchClose = document.getElementById("yt-search-close");
   if (!composer || !input || !bar) return;
+  if (!searchOverlay || !searchStatus || !searchList || !searchClose) return;
 
-  const PLAY_RE = /^play\s+(\S+)\s*$/i;
+  const PLAY_RE = /^play\s+(.+)$/i;
 
   function parseYouTubeUrl(raw) {
     let url;
@@ -254,9 +260,10 @@
   // ─── the "play" command itself ───
   // registered on document, capture phase: this runs before chat.js's own
   // submit listener on #composer, which otherwise reads and clears the
-  // textarea synchronously at the top of its handler. only a genuine,
-  // parseable youtube link gets intercepted — "play mo yung ganito" or a
-  // bare "play" with no real link just falls through and sends normally.
+  // textarea synchronously at the top of its handler. "play " followed by
+  // anything at all is treated as a command now — a real link plays
+  // directly, plain text triggers a search — so it never falls through to
+  // a normal chat send once it matches.
 
   document.addEventListener(
     "submit",
@@ -266,15 +273,122 @@
       const raw = input.value.trim();
       const match = raw.match(PLAY_RE);
       if (!match) return;
-      const parsed = parseYouTubeUrl(match[1]);
-      if (!parsed) return;
+      const query = match[1].trim();
+      if (!query) return;
 
       e.preventDefault();
       e.stopPropagation();
       input.value = "";
       input.style.height = "auto";
-      playYouTube(parsed);
+
+      const parsed = parseYouTubeUrl(query);
+      if (parsed) playYouTube(parsed);
+      else searchYouTube(query);
     },
     true
   );
+
+  // ─── "play <text>" search — top 5 results, you pick ───
+
+  function showSearchStatus(message) {
+    searchOverlay.hidden = false;
+    searchStatus.textContent = message;
+    searchStatus.hidden = false;
+    searchList.hidden = true;
+    searchList.innerHTML = "";
+  }
+
+  function hideSearchOverlay() {
+    searchOverlay.hidden = true;
+  }
+
+  function renderSearchResults(items) {
+    searchList.innerHTML = "";
+    items.forEach((item) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "yt-search-item";
+
+      const thumb = document.createElement("img");
+      thumb.className = "yt-search-thumb";
+      thumb.alt = "";
+      thumb.loading = "lazy";
+      if (item.thumb) thumb.src = item.thumb;
+
+      const meta = document.createElement("span");
+      meta.className = "yt-search-meta";
+
+      const itemTitle = document.createElement("span");
+      itemTitle.className = "yt-search-item-title";
+      itemTitle.textContent = item.title || "";
+
+      const itemChannel = document.createElement("span");
+      itemChannel.className = "yt-search-item-channel";
+      itemChannel.textContent = item.channel || "";
+
+      meta.append(itemTitle, itemChannel);
+      btn.append(thumb, meta);
+      btn.addEventListener("click", () => {
+        hideSearchOverlay();
+        playYouTube({ videoId: item.videoId, playlistId: null });
+      });
+      li.appendChild(btn);
+      searchList.appendChild(li);
+    });
+    searchStatus.hidden = true;
+    searchList.hidden = false;
+  }
+
+  async function searchYouTube(query) {
+    showSearchStatus("naghahanap, mahal…");
+
+    const key = window.YOUTUBE_API_KEY;
+    if (!key) {
+      showSearchStatus("hindi pa naka-set up ang YouTube search, mahal ♡");
+      return;
+    }
+
+    let data;
+    try {
+      const url = new URL("https://www.googleapis.com/youtube/v3/search");
+      url.searchParams.set("part", "snippet");
+      url.searchParams.set("type", "video");
+      url.searchParams.set("maxResults", "5");
+      url.searchParams.set("q", query);
+      url.searchParams.set("key", key);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`yt search ${res.status}`);
+      data = await res.json();
+    } catch {
+      showSearchStatus("hindi ma-search ngayon, mahal, subukan mo mamaya ♡");
+      return;
+    }
+
+    const items = (data.items || [])
+      .map((it) => ({
+        videoId: it.id && it.id.videoId,
+        title: it.snippet && it.snippet.title,
+        channel: it.snippet && it.snippet.channelTitle,
+        thumb:
+          it.snippet &&
+          it.snippet.thumbnails &&
+          (it.snippet.thumbnails.default || it.snippet.thumbnails.medium || {}).url,
+      }))
+      .filter((it) => it.videoId);
+
+    if (!items.length) {
+      showSearchStatus(`wala akong nahanap para kay “${query}”, mahal ♡`);
+      return;
+    }
+    renderSearchResults(items);
+  }
+
+  searchClose.addEventListener("click", hideSearchOverlay);
+  searchOverlay.addEventListener("click", (e) => {
+    if (e.target === searchOverlay) hideSearchOverlay();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !searchOverlay.hidden) hideSearchOverlay();
+  });
 })();

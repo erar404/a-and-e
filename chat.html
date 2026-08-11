@@ -234,6 +234,19 @@
     <img id="lightbox-img" alt="" />
   </div>
 
+  <!-- ═══════════ yt search results — appears after "play <text>" with
+       no direct link; top 5 YouTube matches, tap one to play ═══════════ -->
+  <div id="yt-search-overlay" class="yt-search-overlay" hidden>
+    <div class="yt-search-card">
+      <div class="yt-search-head">
+        <p class="yt-search-heading">piliin ang kanta, mahal</p>
+        <button type="button" id="yt-search-close" class="yt-search-close" aria-label="Isara">✕</button>
+      </div>
+      <p id="yt-search-status" class="yt-search-status"></p>
+      <ul id="yt-search-list" class="yt-search-list" hidden></ul>
+    </div>
+  </div>
+
   <!-- ═══════════ call overlay ═══════════
        .call-tile wraps around each <video> only so the zoom-grid skin
        (body.vdi-skin-call) has somewhere to anchor a name label and a
@@ -313,6 +326,8 @@
   <script src="chat.js"></script>
   <script src="monthsary-timer.js"></script>
   <script src="vdi-disguise.js"></script>
+  <script src="yt-config.js"></script>
   <script src="yt-player.js"></script>
+  <script src="jipiti.js"></script>
 </body>
 </html>
