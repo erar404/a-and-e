@@ -933,6 +933,47 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* ─── "sound check" pill ───
+   a quiet toast while static/music.mp3 previews for 5s, see sound-check.js */
+
+.sound-check-pill {
+  position: fixed;
+  left: 50%;
+  bottom: max(1.2rem, env(safe-area-inset-bottom));
+  z-index: 70;
+  transform: translate(-50%, 16px);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(33, 23, 34, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 160, 164, 0.4);
+  color: var(--cream);
+  font-family: "La Belle Aurore", cursive;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.sound-check-pill.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.sound-check-pill.leaving {
+  opacity: 0;
+  transform: translate(-50%, 10px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sound-check-pill { transition: opacity 0.2s ease; transform: translate(-50%, 0) !important; }
+}
+
 /* ─── surprise "mahal kita" counter ───
    a bouncy little burst, dynamically created by showLoveBurst() in
    chat.js whenever "I love you" / "mahal kita" appears in a new message —
