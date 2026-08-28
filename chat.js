@@ -40,6 +40,11 @@ const typingWrap = document.getElementById("typing-wrap");
 const typingLabel = document.getElementById("typing-label");
 const partnerPlayingEl = document.getElementById("partner-playing");
 const partnerPlayingText = document.getElementById("partner-playing-text");
+const ytJamNotification = document.getElementById("yt-jam-notification");
+const ytJamNameEl = document.getElementById("yt-jam-name");
+const ytJamTitleEl = document.getElementById("yt-jam-title");
+const ytJamJoinBtn = document.getElementById("yt-jam-join");
+const ytJamDismissBtn = document.getElementById("yt-jam-dismiss");
 
 let me = null; // my user id
 let names = {}; // user_id -> display name
@@ -331,12 +336,66 @@ function stopTypingTrack() {
    yt-player.js via trackPresence({ nowPlaying }), tracks the partner's
    YT_PlayerState.PLAYING specifically (pausing hides it again) */
 
+let lastPartnerNowPlaying = null;
+let ytJamAutoHideTimer = null;
+
 function setPartnerNowPlaying(nowPlaying) {
   partnerPlayingEl.hidden = !nowPlaying;
   if (nowPlaying) {
     partnerPlayingText.textContent = `nakikinig si ${names[callPeer] || "siya"} kay ${nowPlaying.title || "isang kanta"}`;
   }
+
+  const prevTitle = lastPartnerNowPlaying && lastPartnerNowPlaying.title;
+  const newTitle = nowPlaying && nowPlaying.title;
+  lastPartnerNowPlaying = nowPlaying;
+
+  if (newTitle && newTitle !== prevTitle) {
+    showJamNotification(nowPlaying);
+  } else if (!newTitle) {
+    dismissJamNotification();
+  }
 }
+
+function showJamNotification(nowPlaying) {
+  clearTimeout(ytJamAutoHideTimer);
+  const partnerName = names[callPeer] || "siya";
+  ytJamNameEl.textContent = `nakikinig si ${partnerName}`;
+  ytJamTitleEl.textContent = nowPlaying.title || "isang kanta";
+  ytJamJoinBtn.dataset.videoId = nowPlaying.videoId || "";
+  ytJamJoinBtn.dataset.title = nowPlaying.title || "";
+
+  ytJamNotification.hidden = false;
+  ytJamNotification.classList.remove("leaving");
+  requestAnimationFrame(() => ytJamNotification.classList.add("show"));
+
+  ytJamAutoHideTimer = setTimeout(dismissJamNotification, 10000);
+}
+
+function dismissJamNotification() {
+  clearTimeout(ytJamAutoHideTimer);
+  ytJamNotification.classList.add("leaving");
+  ytJamNotification.classList.remove("show");
+  setTimeout(() => {
+    if (!ytJamNotification.classList.contains("show")) {
+      ytJamNotification.hidden = true;
+      ytJamNotification.classList.remove("leaving");
+    }
+  }, 420);
+}
+
+ytJamDismissBtn.addEventListener("click", dismissJamNotification);
+
+ytJamJoinBtn.addEventListener("click", () => {
+  const videoId = ytJamJoinBtn.dataset.videoId;
+  const title = ytJamJoinBtn.dataset.title;
+  dismissJamNotification();
+  if (typeof window.playPartnerVideo === "function") {
+    window.playPartnerVideo(videoId, title);
+  } else if (videoId) {
+    input.value = `play https://youtu.be/${videoId}`;
+    composer.requestSubmit();
+  }
+});
 
 /* ─── image attachments ─── */
 

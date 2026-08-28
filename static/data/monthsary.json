@@ -94,6 +94,21 @@
         "sign": "Mahal na mahal kita. Sobra. Alliah Edricah Hisita Jangas (Arellano. Siyempre naman. hehe) ♡"
       }
     },
+    "11": {
+      "letter": {
+        "salutation": "Mahal,",
+        "titleLines": ["Happy 11th", "Monthsary!"],
+        "paragraphs": [
+          "Sampung buwan na tayo mahal. Sobrang daming nangyari. Parang Sampung taon na kitang kilala",
+          "Maraming salamat parin dahil alam kong di ako laging madaling mahalin.",
+          "Pasensya ka na kung bahay trippings lang tayo ngayon. Masaya ako na binigyan tayo ng oras na kagaya neto.",
+          "Mahal na mahal parin kita. Nawa ang pagbabago lang na maranasan natin ay kung may singsing ka na sa kamay at totoong misis na kita. hahaha ",
+          { "aside": "Hintayin natin ang araw na yun, ha?" },
+          "Lubos akong nagpapasalamat kay Lord dahil binigyan niya ako ng pagkakataon na maranasan maging boyfriend mo."
+        ],
+        "sign": "Mahal na mahal kita. Sobra. Alliah Edricah Hisita Jangas (Arellano. Siyempre naman. hehe) ♡"
+      }
+    },
     "12": {
       "theme": "anniversary",
       "entryKicker": "ang unang anibersaryo, mahal",

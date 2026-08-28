@@ -1188,6 +1188,116 @@ body {
   white-space: nowrap;
 }
 
+/* ─── "join the jam" now-playing notification ─── */
+
+.yt-jam-notification {
+  position: fixed;
+  left: 50%;
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 18px);
+  z-index: 75;
+  width: min(400px, calc(100vw - 2rem));
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.75rem 0.7rem 0.9rem;
+  border-radius: 16px;
+  background: rgba(27, 18, 28, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 160, 164, 0.32);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 0 0 0 rgba(212, 160, 164, 0);
+  opacity: 0;
+  transition: opacity 0.38s ease, transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.yt-jam-notification.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+  animation: jam-arrive 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes jam-arrive {
+  from { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.7), 0 0 0 0 rgba(212,160,164,0.45); }
+  60%  { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.7), 0 0 0 8px rgba(212,160,164,0); }
+  to   { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.7), 0 0 0 0 rgba(212,160,164,0); }
+}
+
+.yt-jam-notification.leaving {
+  opacity: 0;
+  transform: translate(-50%, 10px);
+  pointer-events: none;
+}
+
+.yt-jam-icon {
+  flex: none;
+  font-size: 1.25rem;
+  animation: note-bob 1.4s ease-in-out infinite;
+}
+
+.yt-jam-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.yt-jam-name {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.yt-jam-title {
+  font-size: 0.93rem;
+  color: var(--cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yt-jam-join {
+  flex: none;
+  padding: 0.36rem 0.88rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 160, 164, 0.5);
+  background: rgba(212, 160, 164, 0.12);
+  color: var(--rose);
+  font-family: inherit;
+  font-size: 0.84rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s, transform 0.15s;
+}
+
+.yt-jam-join:hover { background: rgba(212, 160, 164, 0.24); border-color: var(--rose); }
+.yt-jam-join:active { transform: scale(0.93); }
+
+.yt-jam-dismiss {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 160, 164, 0.28);
+  background: transparent;
+  color: var(--cream-dim);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.yt-jam-dismiss:hover { color: var(--rose); border-color: var(--rose); }
+
+@media (prefers-reduced-motion: reduce) {
+  .yt-jam-notification { transition: opacity 0.25s ease; transform: translate(-50%, 0) !important; }
+  .yt-jam-notification.show { animation: none; }
+  .yt-jam-icon { animation: none; }
+}
+
 /* ─── call overlay ─── */
 
 .call-overlay {

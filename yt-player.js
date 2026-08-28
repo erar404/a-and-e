@@ -305,11 +305,21 @@
     if (typeof trackPresence !== "function") return;
     if (player && typeof player.getPlayerState === "function" && player.getPlayerState() === YT.PlayerState.PLAYING) {
       const data = typeof player.getVideoData === "function" ? player.getVideoData() : null;
-      trackPresence({ nowPlaying: { title: (data && data.title) || null } });
+      trackPresence({ nowPlaying: { title: (data && data.title) || null, videoId: (data && data.video_id) || null } });
     } else {
       trackPresence({ nowPlaying: null });
     }
   }
+
+  // exposed so chat.js's "join the jam" button can play the partner's exact video
+  window.playPartnerVideo = function(videoId, title) {
+    if (videoId) {
+      playYouTube({ videoId, playlistId: null });
+    } else if (title) {
+      searchMode = "play";
+      searchYouTube(title);
+    }
+  };
 
   // ─── bar controls ───
 
