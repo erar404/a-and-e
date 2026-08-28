@@ -291,7 +291,27 @@
         <button type="button" id="call-mute" class="call-action neutral" aria-label="Mute" hidden>🎙</button>
         <button type="button" id="call-cam" class="call-action neutral" aria-label="Camera" hidden>⛶</button>
         <button type="button" id="call-minimize" class="call-action neutral" aria-label="I-minimize ang tawag" title="I-minimize" hidden>⌄</button>
+        <button type="button" id="call-chat-toggle" class="call-action neutral" aria-label="Chat" title="Chat" hidden>💬</button>
         <button type="button" id="call-hangup" class="call-action decline" aria-label="Bumaba" hidden>✕</button>
+      </div>
+
+      <!-- ═══════════ in-call chat panel ═══════════ -->
+      <div id="call-chat-panel" class="call-chat-panel">
+        <div class="call-chat-head">
+          <span class="call-chat-title">Usap Tayo ♡</span>
+          <button type="button" id="call-chat-close" class="call-chat-close" aria-label="Isara ang chat">✕</button>
+        </div>
+        <div id="call-chat-messages" class="call-chat-messages" aria-live="polite"></div>
+        <form id="call-chat-form" class="call-chat-form">
+          <textarea
+            id="call-chat-input"
+            class="call-chat-input"
+            rows="1"
+            placeholder="sabihin mo, mahal…"
+            aria-label="Message"
+          ></textarea>
+          <button type="submit" class="call-chat-send" aria-label="Ipadala">➤</button>
+        </form>
       </div>
 
       <!-- shown only while minimized — the call itself keeps running

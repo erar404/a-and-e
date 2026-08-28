@@ -233,6 +233,7 @@ async function enterChat() {
         refreshSeen();
         if (hasLoveWords(payload.new.body)) celebrateLoveWords();
         if (callMinimized) updateMiniPreview(true);
+        if (callChatOpen && !callMinimized) appendCallChatMsg(payload.new, true);
         if (payload.new.sender_id !== me) {
           if (document.hidden) bumpUnreadTitle();
           else markRead();
@@ -456,6 +457,7 @@ composer.addEventListener("submit", async (e) => {
     refreshSeen();
     if (hasLoveWords(sent.body)) celebrateLoveWords();
     if (callMinimized) updateMiniPreview(true);
+    if (callChatOpen && !callMinimized) appendCallChatMsg(sent, true);
   }
 });
 
@@ -781,6 +783,12 @@ const callMiniMuteBtn = document.getElementById("call-mini-mute");
 const callMiniHangupBtn = document.getElementById("call-mini-hangup");
 const callMiniBar = document.getElementById("call-mini-bar");
 const callMiniPreview = document.getElementById("call-mini-preview");
+const callChatToggleBtn = document.getElementById("call-chat-toggle");
+const callChatPanel = document.getElementById("call-chat-panel");
+const callChatMessages = document.getElementById("call-chat-messages");
+const callChatInput = document.getElementById("call-chat-input");
+const callChatForm = document.getElementById("call-chat-form");
+const callChatClose = document.getElementById("call-chat-close");
 
 let callChannel = null;
 let callPeer = null; // partner's user id — this app only ever has two members
@@ -798,6 +806,7 @@ let pipIsLocal = true; // which feed is the small floating one — tap it to swa
 let callFailureReported = false; // guards against double-reporting the same failure via both the timeout and the native "failed" event
 let connectTimeoutId = null;
 let callMinimized = false; // shrunk to a draggable bubble so the chat underneath is usable mid-call
+let callChatOpen = false; // in-call chat panel visible
 let miniDrag = null; // { startX, startY, origX, origY, moved } while a drag is in progress
 
 // browsers don't always land on connectionState "failed" — ICE can just sit in
@@ -1184,9 +1193,10 @@ function showCallUI() {
 function hideCallUI() {
   callOverlay.hidden = true;
   callAvatar.classList.remove("ringing");
-  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callMinimizeBtn, callHangupBtn].forEach(
+  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callMinimizeBtn, callChatToggleBtn, callHangupBtn].forEach(
     (b) => (b.hidden = true)
   );
+  closeCallChat();
   restoreCall();
 }
 
@@ -1214,10 +1224,12 @@ function showActiveControls() {
   callMuteBtn.hidden = false;
   callCamBtn.hidden = !isVideoCall;
   callMinimizeBtn.hidden = false;
+  callChatToggleBtn.hidden = false;
   callHangupBtn.hidden = false;
   callAvatar.hidden = isVideoCall;
   callAvatar.classList.remove("ringing");
   setCallStatus("");
+  openCallChat();
 }
 
 // --- minimize: shrinks the overlay's real box to a small draggable bubble,
@@ -1398,6 +1410,106 @@ function applyVideoRoles() {
 
 window.addEventListener("beforeunload", () => {
   if (callState !== "idle") sendSignal("hangup", { reason: "left" });
+});
+
+/* ─── in-call chat panel ─── */
+
+function openCallChat() {
+  if (callChatOpen) return;
+  callChatOpen = true;
+  renderCallChatMessages();
+  callChatPanel.classList.add("open");
+  callChatToggleBtn.classList.add("active");
+  callChatToggleBtn.setAttribute("aria-label", "Isara ang chat");
+}
+
+function closeCallChat() {
+  if (!callChatOpen) return;
+  callChatOpen = false;
+  callChatPanel.classList.remove("open");
+  callChatToggleBtn.classList.remove("active");
+  callChatToggleBtn.setAttribute("aria-label", "Chat");
+}
+
+function renderCallChatMessages() {
+  callChatMessages.innerHTML = "";
+  msgs.slice(-60).forEach((m) => appendCallChatMsg(m, false));
+  callChatMessages.scrollTop = callChatMessages.scrollHeight;
+}
+
+function appendCallChatMsg(m, animate) {
+  const isMine = m.sender_id === me;
+  const row = document.createElement("div");
+  row.className = "call-chat-msg" + (isMine ? " mine" : "");
+  row.dataset.id = m.id;
+
+  const bubble = document.createElement("div");
+  bubble.className = "call-chat-bubble";
+  bubble.textContent = m.body || (m.attachment_path ? "📷 larawan" : "");
+
+  const date = new Date(m.created_at);
+  const h = date.getHours() % 12 || 12;
+  const min = String(date.getMinutes()).padStart(2, "0");
+  const ampm = date.getHours() < 12 ? "AM" : "PM";
+  const meta = document.createElement("div");
+  meta.className = "call-chat-meta";
+  meta.textContent = `${h}:${min} ${ampm}`;
+
+  row.appendChild(bubble);
+  row.appendChild(meta);
+
+  if (animate) {
+    row.style.cssText = "opacity:0;transform:translateY(8px)";
+    callChatMessages.appendChild(row);
+    requestAnimationFrame(() => {
+      row.style.cssText = "opacity:1;transform:none;transition:opacity 0.3s ease,transform 0.3s ease";
+    });
+    callChatMessages.scrollTop = callChatMessages.scrollHeight;
+  } else {
+    callChatMessages.appendChild(row);
+  }
+}
+
+callChatToggleBtn.addEventListener("click", () => {
+  if (callChatOpen) closeCallChat();
+  else openCallChat();
+});
+
+callChatClose.addEventListener("click", closeCallChat);
+
+callChatInput.addEventListener("input", () => {
+  callChatInput.style.height = "auto";
+  callChatInput.style.height = Math.min(callChatInput.scrollHeight, 100) + "px";
+});
+
+callChatInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    callChatForm.requestSubmit();
+  }
+});
+
+callChatForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const body = callChatInput.value.trim();
+  if (!body || !sb || !me) return;
+  callChatInput.value = "";
+  callChatInput.style.height = "auto";
+
+  const row = { sender_id: me, body, attachment_path: null, attachment_type: null };
+  const { data: sent, error } = await sb.from("chat_messages").insert(row).select().single();
+  if (error) {
+    callChatInput.value = body;
+    return;
+  }
+  if (sent && !msgs.some((m) => m.id === sent.id)) {
+    msgs.push(sent);
+    appendMsg(sent, true);
+    refreshSeen();
+    if (hasLoveWords(sent.body)) celebrateLoveWords();
+    if (callMinimized) updateMiniPreview(true);
+    appendCallChatMsg(sent, true);
+  }
 });
 
 /* ─── push notification toggle for new messages ─── */
