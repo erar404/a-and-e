@@ -146,6 +146,10 @@
           <span class="chat-menu-icon" aria-hidden="true">↻</span>
           <span class="chat-menu-label">I-refresh ang mensahe</span>
         </button>
+        <button id="mic-settings-btn" class="call-btn chat-menu-item" role="menuitem" title="Piliin ang mikropono" aria-label="Choose microphone">
+          <span class="chat-menu-icon" aria-hidden="true">🎛</span>
+          <span class="chat-menu-label">Piliin ang mikropono</span>
+        </button>
         <a id="call-check-link" class="call-btn call-check-link chat-menu-item" role="menuitem" href="call-check.html" target="_blank" rel="noopener" title="Suriin ang koneksyon ng tawag (Call Check)" aria-label="Call connection diagnostics">
           <span class="chat-menu-icon" aria-hidden="true">🛠</span>
           <span class="chat-menu-label">Suriin ang koneksyon</span>
@@ -251,6 +255,20 @@
     </div>
   </div>
 
+  <!-- ═══════════ microphone picker — opened from the chat menu (sets the
+       default for the next call) or from the in-call controls (also
+       live-swaps the mic on the active call) ═══════════ -->
+  <div id="mic-picker-overlay" class="mic-picker-overlay" hidden>
+    <div class="mic-picker-card">
+      <div class="mic-picker-head">
+        <p class="mic-picker-heading">piliin ang mikropono, mahal</p>
+        <button type="button" id="mic-picker-close" class="mic-picker-close" aria-label="Isara">✕</button>
+      </div>
+      <p id="mic-picker-status" class="mic-picker-status" hidden></p>
+      <ul id="mic-picker-list" class="mic-picker-list" role="listbox" aria-label="Mga mikropono" hidden></ul>
+    </div>
+  </div>
+
   <!-- ═══════════ "join the jam" now-playing notification ═══════════ -->
   <div id="yt-jam-notification" class="yt-jam-notification" hidden>
     <div class="yt-jam-icon" aria-hidden="true">🎵</div>
@@ -301,6 +319,7 @@
 
         <button type="button" id="call-mute" class="call-action neutral" aria-label="Mute" hidden>🎙</button>
         <button type="button" id="call-cam" class="call-action neutral" aria-label="Camera" hidden>⛶</button>
+        <button type="button" id="call-mic-btn" class="call-action neutral" aria-label="Piliin ang mikropono" title="Mikropono" hidden>🎛</button>
         <button type="button" id="call-minimize" class="call-action neutral" aria-label="I-minimize ang tawag" title="I-minimize" hidden>⌄</button>
         <button type="button" id="call-chat-toggle" class="call-action neutral" aria-label="Chat" title="Chat" hidden>💬</button>
         <button type="button" id="call-hangup" class="call-action decline" aria-label="Bumaba" hidden>✕</button>
@@ -308,7 +327,7 @@
 
       <!-- ═══════════ in-call chat panel ═══════════ -->
       <div id="call-chat-panel" class="call-chat-panel">
-        <div class="call-chat-head">
+        <div id="call-chat-head" class="call-chat-head">
           <span class="call-chat-title">Usap Tayo ♡</span>
           <button type="button" id="call-chat-close" class="call-chat-close" aria-label="Isara ang chat">✕</button>
         </div>
