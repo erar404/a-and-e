@@ -835,6 +835,7 @@ const callDeclineBtn = document.getElementById("call-decline");
 const callMuteBtn = document.getElementById("call-mute");
 const callCamBtn = document.getElementById("call-cam");
 const callMinimizeBtn = document.getElementById("call-minimize");
+const callMicBtn = document.getElementById("call-mic-btn");
 const callHangupBtn = document.getElementById("call-hangup");
 const callMiniExpandBtn = document.getElementById("call-mini-expand");
 const callMiniControls = document.querySelector(".call-mini-controls");
@@ -848,6 +849,7 @@ const callChatMessages = document.getElementById("call-chat-messages");
 const callChatInput = document.getElementById("call-chat-input");
 const callChatForm = document.getElementById("call-chat-form");
 const callChatClose = document.getElementById("call-chat-close");
+const callChatHead = document.getElementById("call-chat-head");
 
 let callChannel = null;
 let callPeer = null; // partner's user id — this app only ever has two members
@@ -867,6 +869,8 @@ let connectTimeoutId = null;
 let callMinimized = false; // shrunk to a draggable bubble so the chat underneath is usable mid-call
 let callChatOpen = false; // in-call chat panel visible
 let miniDrag = null; // { startX, startY, origX, origY, moved } while a drag is in progress
+let chatSwipe = null; // { startY, dy } while a swipe-down-to-dismiss on the in-call chat sheet is in progress
+let preferredMicId = localStorage.getItem("preferredMicId") || ""; // "" = system default
 
 // browsers don't always land on connectionState "failed" — ICE can just sit in
 // "checking"/"new" forever with no terminal state at all, which used to mean
@@ -967,93 +971,6 @@ function reportCallError(kind, detail) {
       },
     })
     .catch((e) => console.error("[call] failed to report error email:", e));
-}
-
-/* ─── microphone picker ─── */
-
-const micPickerBackdrop = document.getElementById("mic-picker-backdrop");
-const micPickerEl = document.getElementById("mic-picker");
-const micPickerList = document.getElementById("mic-picker-list");
-const micPickerCancelBtn = document.getElementById("mic-picker-cancel");
-
-let micPickerResolve = null;
-
-function showMicPicker(mics) {
-  return new Promise((resolve) => {
-    micPickerResolve = resolve;
-    micPickerList.innerHTML = "";
-    mics.forEach((d, i) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "mic-picker-btn";
-      btn.textContent = d.label || `Mikropono ${i + 1}`;
-      btn.addEventListener("click", () => {
-        hideMicPicker();
-        micPickerResolve = null;
-        resolve(d.deviceId);
-      });
-      micPickerList.appendChild(btn);
-    });
-    micPickerBackdrop.hidden = false;
-    micPickerEl.hidden = false;
-    requestAnimationFrame(() => {
-      micPickerBackdrop.classList.add("visible");
-      micPickerEl.classList.add("visible");
-    });
-  });
-}
-
-function hideMicPicker() {
-  micPickerBackdrop.classList.remove("visible");
-  micPickerEl.classList.remove("visible");
-  setTimeout(() => {
-    if (!micPickerEl.classList.contains("visible")) {
-      micPickerBackdrop.hidden = true;
-      micPickerEl.hidden = true;
-    }
-  }, 280);
-}
-
-function dismissMicPicker(resolve) {
-  hideMicPicker();
-  if (micPickerResolve) {
-    micPickerResolve = null;
-    resolve(null);
-  }
-}
-
-micPickerCancelBtn.addEventListener("click", () => {
-  if (!micPickerResolve) return;
-  const res = micPickerResolve;
-  micPickerResolve = null;
-  hideMicPicker();
-  res(null);
-});
-
-micPickerBackdrop.addEventListener("click", () => {
-  if (!micPickerResolve) return;
-  const res = micPickerResolve;
-  micPickerResolve = null;
-  hideMicPicker();
-  res(null);
-});
-
-async function pickMicrophone() {
-  let devices;
-  try {
-    devices = await navigator.mediaDevices.enumerateDevices();
-  } catch {
-    return "default";
-  }
-  const mics = devices.filter((d) => d.kind === "audioinput");
-  if (mics.length <= 1) return "default";
-  const chosen = await showMicPicker(mics);
-  return chosen; // deviceId string or null (cancelled)
-}
-
-function audioConstraint(deviceId) {
-  if (!deviceId || deviceId === "default") return true;
-  return { deviceId: { exact: deviceId } };
 }
 
 /* ─── peer mic control (remote mic switching during an active call) ─── */
@@ -1251,6 +1168,23 @@ function mediaErrorMessage(err) {
   return "hindi ma-access ang camera/mic, mahal ♡";
 }
 
+// requests the local media stream for a call, preferring whichever mic the
+// user picked in the mic picker — falls back to the system default if that
+// device disappeared since (unplugged headset, etc.) rather than failing outright
+async function getLocalStream(video) {
+  const audio = preferredMicId ? { deviceId: { exact: preferredMicId } } : true;
+  try {
+    return await navigator.mediaDevices.getUserMedia({ audio, video });
+  } catch (e) {
+    if (preferredMicId && (e.name === "OverconstrainedError" || e.name === "NotFoundError")) {
+      preferredMicId = "";
+      localStorage.removeItem("preferredMicId");
+      return await navigator.mediaDevices.getUserMedia({ audio: true, video });
+    }
+    throw e;
+  }
+}
+
 // ends the call locally with a readable status, optionally telling the other side why
 function failCall(message, signalReason) {
   stopRingtone();
@@ -1265,7 +1199,7 @@ function offlinePrompt() {
   callAvatar.hidden = false;
   callNameEl.textContent = names[callPeer] || "mahal";
   setCallStatus(`wala si ${names[callPeer] || "siya"} online ngayon, mahal ♡`);
-  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callHangupBtn].forEach((b) => (b.hidden = true));
+  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callMicBtn, callHangupBtn].forEach((b) => (b.hidden = true));
   setTimeout(hideCallUI, 2200);
 }
 
@@ -1275,9 +1209,6 @@ async function startCall(video) {
     offlinePrompt();
     return;
   }
-
-  const micDeviceId = await pickMicrophone();
-  if (micDeviceId === null) return; // user cancelled the picker
 
   isVideoCall = video;
   callId = crypto.randomUUID();
@@ -1290,7 +1221,7 @@ async function startCall(video) {
   playRingtone();
 
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraint(micDeviceId), video });
+    localStream = await getLocalStream(video);
   } catch (e) {
     // no offer was ever sent — she was never rung, so there's no one to signal
     reportCallError("media-error", e && e.name);
@@ -1332,16 +1263,9 @@ async function acceptCall() {
   if (callState !== "incoming" || !pendingOffer) return;
   stopRingtone();
 
-  const micDeviceId = await pickMicrophone();
-  if (micDeviceId === null) {
-    // user cancelled — treat as a decline
-    declineCall();
-    return;
-  }
-
   setCallStatus("kumokonekta…");
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraint(micDeviceId), video: isVideoCall });
+    localStream = await getLocalStream(isVideoCall);
   } catch (e) {
     // caller is actively waiting on this one — tell them why it failed, not just "declined"
     reportCallError("media-error", e && e.name);
@@ -1461,7 +1385,7 @@ function showCallUI() {
 function hideCallUI() {
   callOverlay.hidden = true;
   callAvatar.classList.remove("ringing");
-  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callPeerMicBtn, callMinimizeBtn, callChatToggleBtn, callHangupBtn].forEach(
+  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callMicBtn, callPeerMicBtn, callMinimizeBtn, callChatToggleBtn, callHangupBtn].forEach(
     (b) => (b.hidden = true)
   );
   closePeerMicPanel();
@@ -1476,6 +1400,7 @@ function showOutgoingControls() {
   callDeclineBtn.hidden = false;
   callMuteBtn.hidden = true;
   callCamBtn.hidden = true;
+  callMicBtn.hidden = true;
   callMinimizeBtn.hidden = true;
   callHangupBtn.hidden = true;
 }
@@ -1485,6 +1410,7 @@ function showIncomingControls() {
   callDeclineBtn.hidden = false;
   callMuteBtn.hidden = true;
   callCamBtn.hidden = true;
+  callMicBtn.hidden = true;
   callMinimizeBtn.hidden = true;
   callHangupBtn.hidden = true;
 }
@@ -1494,6 +1420,7 @@ function showActiveControls() {
   callDeclineBtn.hidden = true;
   callMuteBtn.hidden = false;
   callCamBtn.hidden = !isVideoCall;
+  callMicBtn.hidden = false;
   callMinimizeBtn.hidden = false;
   callChatToggleBtn.hidden = false;
   callHangupBtn.hidden = false;
@@ -1662,6 +1589,114 @@ callCamBtn.addEventListener("click", () => {
   localVideoEl.hidden = !track.enabled;
 });
 
+/* ─── microphone picker ───
+   reachable from the chat menu any time (just sets the default used by the
+   next call) and from the in-call controls (also live-swaps the active
+   call's outgoing audio track, no hangup needed) */
+
+const micSettingsBtn = document.getElementById("mic-settings-btn");
+const micPickerOverlay = document.getElementById("mic-picker-overlay");
+const micPickerClose = document.getElementById("mic-picker-close");
+const micPickerStatus = document.getElementById("mic-picker-status");
+const micPickerList = document.getElementById("mic-picker-list");
+
+// device labels come back blank until mic permission has been granted at
+// least once — request a throwaway stream just to unlock them if needed,
+// rather than showing an unhelpful list of "Microphone 1", "Microphone 2"
+async function ensureMicLabels() {
+  let devices = await navigator.mediaDevices.enumerateDevices();
+  if (devices.some((d) => d.kind === "audioinput" && d.label)) return devices;
+  try {
+    const tmp = await navigator.mediaDevices.getUserMedia({ audio: true });
+    tmp.getTracks().forEach((t) => t.stop());
+    devices = await navigator.mediaDevices.enumerateDevices();
+  } catch {
+    // permission denied — show what we have, unlabeled
+  }
+  return devices;
+}
+
+async function renderMicPicker() {
+  micPickerStatus.hidden = true;
+  micPickerList.hidden = true;
+  let devices;
+  try {
+    devices = await ensureMicLabels();
+  } catch {
+    devices = [];
+  }
+  const mics = devices.filter((d) => d.kind === "audioinput");
+
+  if (!mics.length) {
+    micPickerStatus.textContent = "walang nahanap na mikropono, mahal ♡";
+    micPickerStatus.hidden = false;
+    return;
+  }
+
+  micPickerList.innerHTML = "";
+  mics.forEach((d, i) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "mic-picker-item";
+    btn.setAttribute("role", "option");
+    const isSelected = preferredMicId ? d.deviceId === preferredMicId : i === 0;
+    btn.setAttribute("aria-selected", String(isSelected));
+    btn.innerHTML = `<span class="mic-picker-item-check" aria-hidden="true">♡</span><span class="mic-picker-item-label"></span>`;
+    btn.querySelector(".mic-picker-item-label").textContent = d.label || `mikropono ${i + 1}`;
+    btn.addEventListener("click", () => selectMic(d.deviceId));
+    li.appendChild(btn);
+    micPickerList.appendChild(li);
+  });
+  micPickerList.hidden = false;
+}
+
+async function selectMic(deviceId) {
+  preferredMicId = deviceId;
+  localStorage.setItem("preferredMicId", deviceId);
+  renderMicPicker();
+
+  // mid-call: swap the live outgoing track instead of making them hang up
+  if (pc && callState === "active") {
+    try {
+      const swapStream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } } });
+      const newTrack = swapStream.getAudioTracks()[0];
+      const oldTrack = localStream && localStream.getAudioTracks()[0];
+      if (oldTrack) newTrack.enabled = oldTrack.enabled;
+      const sender = pc.getSenders().find((s) => s.track && s.track.kind === "audio");
+      if (sender) await sender.replaceTrack(newTrack);
+      if (localStream) {
+        if (oldTrack) {
+          localStream.removeTrack(oldTrack);
+          oldTrack.stop();
+        }
+        localStream.addTrack(newTrack);
+      }
+    } catch (e) {
+      console.log("[call] could not switch microphone live:", e && e.name);
+    }
+  }
+}
+
+function openMicPicker() {
+  micPickerOverlay.hidden = false;
+  renderMicPicker();
+}
+
+function closeMicPicker() {
+  micPickerOverlay.hidden = true;
+}
+
+micSettingsBtn.addEventListener("click", openMicPicker);
+callMicBtn.addEventListener("click", openMicPicker);
+micPickerClose.addEventListener("click", closeMicPicker);
+micPickerOverlay.addEventListener("click", (e) => {
+  if (e.target === micPickerOverlay) closeMicPicker();
+});
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !micPickerOverlay.hidden) closeMicPicker();
+});
+
 // tap the small floating feed to swap it with the big one, same as Instagram
 function applyVideoRoles() {
   const mainEl = pipIsLocal ? remoteVideoEl : localVideoEl;
@@ -1748,6 +1783,36 @@ callChatToggleBtn.addEventListener("click", () => {
 });
 
 callChatClose.addEventListener("click", closeCallChat);
+
+// swipe the header down to dismiss — only the bottom-sheet layout (mobile
+// portrait) needs this; the desktop side panel slides in from the edge, not
+// up from the bottom, so a vertical drag there wouldn't make sense
+const isChatSheetLayout = () => window.matchMedia("(max-width: 640px)").matches;
+
+callChatHead.addEventListener("pointerdown", (e) => {
+  if (!isChatSheetLayout() || !callChatOpen || e.target.closest(".call-chat-close")) return;
+  chatSwipe = { startY: e.clientY, dy: 0 };
+  callChatPanel.style.transition = "none";
+  callChatHead.setPointerCapture(e.pointerId);
+});
+
+callChatHead.addEventListener("pointermove", (e) => {
+  if (!chatSwipe) return;
+  chatSwipe.dy = Math.max(0, e.clientY - chatSwipe.startY);
+  callChatPanel.style.transform = `translateY(${chatSwipe.dy}px)`;
+});
+
+function endCallChatSwipe() {
+  if (!chatSwipe) return;
+  const dy = chatSwipe.dy;
+  chatSwipe = null;
+  callChatPanel.style.transition = "";
+  callChatPanel.style.transform = "";
+  if (dy > 90) closeCallChat();
+}
+
+callChatHead.addEventListener("pointerup", endCallChatSwipe);
+callChatHead.addEventListener("pointercancel", endCallChatSwipe);
 
 callChatInput.addEventListener("input", () => {
   callChatInput.style.height = "auto";
