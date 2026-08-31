@@ -262,6 +262,16 @@
     <button type="button" id="yt-jam-dismiss" class="yt-jam-dismiss" aria-label="Isara">✕</button>
   </div>
 
+  <!-- ═══════════ microphone picker ═══════════ -->
+  <div id="mic-picker-backdrop" class="mic-picker-backdrop" hidden></div>
+  <div id="mic-picker" class="mic-picker" hidden>
+    <div class="mic-picker-card">
+      <p class="mic-picker-kicker">piliin ang mikropono ♡</p>
+      <div id="mic-picker-list" class="mic-picker-list" role="list"></div>
+      <button type="button" id="mic-picker-cancel" class="mic-picker-cancel">kanselahin</button>
+    </div>
+  </div>
+
   <!-- ═══════════ call overlay ═══════════
        .call-tile wraps around each <video> only so the zoom-grid skin
        (body.vdi-skin-call) has somewhere to anchor a name label and a
@@ -295,12 +305,19 @@
         <p id="call-status" class="call-status">tumatawag…</p>
       </div>
 
+      <!-- peer mic selector panel — slides up above controls when open -->
+      <div id="call-peer-mic-panel" class="call-peer-mic-panel" hidden>
+        <p class="call-peer-mic-title">mikropono ni <span id="call-peer-mic-name">siya</span> ♡</p>
+        <div id="call-peer-mic-list" class="call-peer-mic-list"></div>
+      </div>
+
       <div class="call-controls">
         <button type="button" id="call-decline" class="call-action decline" aria-label="Tanggihan" hidden>✕</button>
         <button type="button" id="call-accept" class="call-action accept" aria-label="Sagutin" hidden>☎</button>
 
         <button type="button" id="call-mute" class="call-action neutral" aria-label="Mute" hidden>🎙</button>
         <button type="button" id="call-cam" class="call-action neutral" aria-label="Camera" hidden>⛶</button>
+        <button type="button" id="call-peer-mic-btn" class="call-action neutral" aria-label="Baguhin ang mikropono" title="Baguhin ang mikropono" hidden>🎤</button>
         <button type="button" id="call-minimize" class="call-action neutral" aria-label="I-minimize ang tawag" title="I-minimize" hidden>⌄</button>
         <button type="button" id="call-chat-toggle" class="call-action neutral" aria-label="Chat" title="Chat" hidden>💬</button>
         <button type="button" id="call-hangup" class="call-action decline" aria-label="Bumaba" hidden>✕</button>

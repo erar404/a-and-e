@@ -969,6 +969,200 @@ function reportCallError(kind, detail) {
     .catch((e) => console.error("[call] failed to report error email:", e));
 }
 
+/* ─── microphone picker ─── */
+
+const micPickerBackdrop = document.getElementById("mic-picker-backdrop");
+const micPickerEl = document.getElementById("mic-picker");
+const micPickerList = document.getElementById("mic-picker-list");
+const micPickerCancelBtn = document.getElementById("mic-picker-cancel");
+
+let micPickerResolve = null;
+
+function showMicPicker(mics) {
+  return new Promise((resolve) => {
+    micPickerResolve = resolve;
+    micPickerList.innerHTML = "";
+    mics.forEach((d, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "mic-picker-btn";
+      btn.textContent = d.label || `Mikropono ${i + 1}`;
+      btn.addEventListener("click", () => {
+        hideMicPicker();
+        micPickerResolve = null;
+        resolve(d.deviceId);
+      });
+      micPickerList.appendChild(btn);
+    });
+    micPickerBackdrop.hidden = false;
+    micPickerEl.hidden = false;
+    requestAnimationFrame(() => {
+      micPickerBackdrop.classList.add("visible");
+      micPickerEl.classList.add("visible");
+    });
+  });
+}
+
+function hideMicPicker() {
+  micPickerBackdrop.classList.remove("visible");
+  micPickerEl.classList.remove("visible");
+  setTimeout(() => {
+    if (!micPickerEl.classList.contains("visible")) {
+      micPickerBackdrop.hidden = true;
+      micPickerEl.hidden = true;
+    }
+  }, 280);
+}
+
+function dismissMicPicker(resolve) {
+  hideMicPicker();
+  if (micPickerResolve) {
+    micPickerResolve = null;
+    resolve(null);
+  }
+}
+
+micPickerCancelBtn.addEventListener("click", () => {
+  if (!micPickerResolve) return;
+  const res = micPickerResolve;
+  micPickerResolve = null;
+  hideMicPicker();
+  res(null);
+});
+
+micPickerBackdrop.addEventListener("click", () => {
+  if (!micPickerResolve) return;
+  const res = micPickerResolve;
+  micPickerResolve = null;
+  hideMicPicker();
+  res(null);
+});
+
+async function pickMicrophone() {
+  let devices;
+  try {
+    devices = await navigator.mediaDevices.enumerateDevices();
+  } catch {
+    return "default";
+  }
+  const mics = devices.filter((d) => d.kind === "audioinput");
+  if (mics.length <= 1) return "default";
+  const chosen = await showMicPicker(mics);
+  return chosen; // deviceId string or null (cancelled)
+}
+
+function audioConstraint(deviceId) {
+  if (!deviceId || deviceId === "default") return true;
+  return { deviceId: { exact: deviceId } };
+}
+
+/* ─── peer mic control (remote mic switching during an active call) ─── */
+
+const callPeerMicBtn = document.getElementById("call-peer-mic-btn");
+const callPeerMicPanel = document.getElementById("call-peer-mic-panel");
+const callPeerMicList = document.getElementById("call-peer-mic-list");
+const callPeerMicNameEl = document.getElementById("call-peer-mic-name");
+
+let peerMics = []; // partner's audioinput devices, received via signal
+let peerMicPanelOpen = false;
+let activePeerMicId = null; // deviceId currently in use on the partner's side
+
+async function broadcastPeerMics() {
+  let devices;
+  try {
+    devices = await navigator.mediaDevices.enumerateDevices();
+  } catch {
+    return;
+  }
+  const mics = devices
+    .filter((d) => d.kind === "audioinput")
+    .map((d) => ({ deviceId: d.deviceId, label: d.label || "" }));
+  const currentId = localStream && localStream.getAudioTracks()[0]
+    ? localStream.getAudioTracks()[0].getSettings().deviceId || null
+    : null;
+  sendSignal("peer-mics", { mics, currentId });
+}
+
+function handlePeerMics({ from, mics, currentId }) {
+  if (!from || from === me || from !== callPeer) return;
+  if (!Array.isArray(mics)) return;
+  peerMics = mics;
+  activePeerMicId = currentId || null;
+  renderPeerMicList();
+  if (callState === "active") {
+    callPeerMicBtn.hidden = peerMics.length < 2;
+  }
+}
+
+function renderPeerMicList() {
+  callPeerMicList.innerHTML = "";
+  if (callPeerMicNameEl) callPeerMicNameEl.textContent = names[callPeer] || "siya";
+  peerMics.forEach((mic, i) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "call-peer-mic-item" + (mic.deviceId === activePeerMicId ? " active-mic" : "");
+    btn.textContent = mic.label || `Mikropono ${i + 1}`;
+    btn.addEventListener("click", () => {
+      sendSignal("switch-peer-mic", { deviceId: mic.deviceId });
+      activePeerMicId = mic.deviceId;
+      renderPeerMicList(); // update the active highlight immediately
+      closePeerMicPanel();
+    });
+    callPeerMicList.appendChild(btn);
+  });
+}
+
+async function handleSwitchPeerMic({ from, deviceId }) {
+  if (!from || from === me || from !== callPeer) return;
+  if (!pc || !localStream || callState !== "active") return;
+
+  let newStream;
+  try {
+    newStream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } }, video: false });
+  } catch {
+    return;
+  }
+
+  const newTrack = newStream.getAudioTracks()[0];
+  if (!newTrack) return;
+
+  // preserve muted state
+  const oldTrack = localStream.getAudioTracks()[0];
+  newTrack.enabled = oldTrack ? oldTrack.enabled : true;
+
+  const sender = pc.getSenders().find((s) => s.track && s.track.kind === "audio");
+  if (sender) await sender.replaceTrack(newTrack).catch(() => {});
+
+  if (oldTrack) { oldTrack.stop(); localStream.removeTrack(oldTrack); }
+  localStream.addTrack(newTrack);
+
+  // tell the other side what's now active so their panel highlights it
+  broadcastPeerMics();
+
+  const prev = callStatusEl.textContent;
+  setCallStatus("mikropono binago ♡");
+  setTimeout(() => { if (callState === "active") setCallStatus(prev); }, 1800);
+}
+
+function openPeerMicPanel() {
+  if (peerMicPanelOpen || peerMics.length < 2) return;
+  peerMicPanelOpen = true;
+  callPeerMicPanel.hidden = false;
+  requestAnimationFrame(() => callPeerMicPanel.classList.add("open"));
+}
+
+function closePeerMicPanel() {
+  if (!peerMicPanelOpen) return;
+  peerMicPanelOpen = false;
+  callPeerMicPanel.classList.remove("open");
+  setTimeout(() => { if (!peerMicPanelOpen) callPeerMicPanel.hidden = true; }, 240);
+}
+
+callPeerMicBtn.addEventListener("click", () => {
+  if (peerMicPanelOpen) closePeerMicPanel();
+  else openPeerMicPanel();
+});
+
 function setupCallChannel() {
   callChannel = sb.channel("usap-tayo-call", { config: { broadcast: { self: false } } });
   callChannel
@@ -977,6 +1171,8 @@ function setupCallChannel() {
     .on("broadcast", { event: "ice" }, ({ payload }) => handleRemoteIce(payload))
     .on("broadcast", { event: "hangup" }, ({ payload }) => handleHangup(payload))
     .on("broadcast", { event: "busy" }, ({ payload }) => handleBusy(payload))
+    .on("broadcast", { event: "peer-mics" }, ({ payload }) => handlePeerMics(payload))
+    .on("broadcast", { event: "switch-peer-mic" }, ({ payload }) => handleSwitchPeerMic(payload))
     .subscribe();
 }
 
@@ -1004,6 +1200,7 @@ async function createPeerConnection() {
       startTimer();
       // baseline for comparison against a future failure — which path a working call actually used
       logIceStats(conn, "connected");
+      broadcastPeerMics();
     } else if (conn.connectionState === "failed") {
       // ICE never found a path through — almost always a blocked-UDP/firewall
       // network (common on locked-down VDI like Amazon WorkSpaces), not a
@@ -1078,6 +1275,10 @@ async function startCall(video) {
     offlinePrompt();
     return;
   }
+
+  const micDeviceId = await pickMicrophone();
+  if (micDeviceId === null) return; // user cancelled the picker
+
   isVideoCall = video;
   callId = crypto.randomUUID();
   callState = "outgoing";
@@ -1089,7 +1290,7 @@ async function startCall(video) {
   playRingtone();
 
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraint(micDeviceId), video });
   } catch (e) {
     // no offer was ever sent — she was never rung, so there's no one to signal
     reportCallError("media-error", e && e.name);
@@ -1130,9 +1331,17 @@ async function handleOffer({ from, sdp, video, callId: incomingId }) {
 async function acceptCall() {
   if (callState !== "incoming" || !pendingOffer) return;
   stopRingtone();
+
+  const micDeviceId = await pickMicrophone();
+  if (micDeviceId === null) {
+    // user cancelled — treat as a decline
+    declineCall();
+    return;
+  }
+
   setCallStatus("kumokonekta…");
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraint(micDeviceId), video: isVideoCall });
   } catch (e) {
     // caller is actively waiting on this one — tell them why it failed, not just "declined"
     reportCallError("media-error", e && e.name);
@@ -1252,9 +1461,12 @@ function showCallUI() {
 function hideCallUI() {
   callOverlay.hidden = true;
   callAvatar.classList.remove("ringing");
-  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callMinimizeBtn, callChatToggleBtn, callHangupBtn].forEach(
+  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callPeerMicBtn, callMinimizeBtn, callChatToggleBtn, callHangupBtn].forEach(
     (b) => (b.hidden = true)
   );
+  closePeerMicPanel();
+  peerMics = [];
+  activePeerMicId = null;
   closeCallChat();
   restoreCall();
 }
@@ -1342,6 +1554,7 @@ function updateMiniPreview(animate) {
 
 function minimizeCall() {
   if (callState !== "active" || callMinimized) return;
+  closePeerMicPanel();
   callMinimized = true;
   callOverlay.classList.add("minimized");
   callMiniBar.hidden = false;
