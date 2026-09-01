@@ -868,6 +868,61 @@ body {
   #chat-menu { transition: none; }
 }
 
+/* ─── call settings submenu ───
+   desktop (>640px): wrap + submenu both use display:contents so the
+   sub-items flow directly into the header flex row as plain icon buttons.
+   the trigger itself is hidden — no collapse needed when there's room.
+   mobile (≤640px): trigger is a normal bottom-sheet row; the submenu
+   is a max-height accordion that slides open/closed below it. */
+
+.chat-submenu-wrap { display: contents; }
+.chat-submenu-trigger { display: none; }
+.chat-submenu { display: contents; }
+.chat-submenu-caret { display: none; }
+
+@media (max-width: 640px) {
+  .chat-submenu-wrap { display: block; }
+
+  .chat-submenu-trigger {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .chat-submenu-caret {
+    display: inline-block;
+    font-style: normal;
+    transition: transform 0.22s ease;
+    margin-left: auto;
+    opacity: 0.55;
+  }
+
+  .chat-submenu-trigger[aria-expanded="true"] .chat-submenu-caret {
+    transform: rotate(90deg);
+  }
+
+  .chat-submenu {
+    display: flex;
+    flex-direction: column;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .chat-submenu.open { max-height: 160px; }
+
+  .chat-submenu .chat-submenu-item {
+    padding-left: 3.75rem;
+    border-top: 1px solid rgba(240, 228, 212, 0.06) !important;
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: reduce) {
+  .chat-submenu { transition: none; }
+  .chat-submenu-caret { transition: none; }
+}
+
 /* ─── image attachments ─── */
 
 .attach-btn {

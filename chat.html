@@ -146,14 +146,25 @@
           <span class="chat-menu-icon" aria-hidden="true">↻</span>
           <span class="chat-menu-label">I-refresh ang mensahe</span>
         </button>
-        <button id="mic-settings-btn" class="call-btn chat-menu-item" role="menuitem" title="Piliin ang mikropono" aria-label="Choose microphone">
-          <span class="chat-menu-icon" aria-hidden="true">🎛</span>
-          <span class="chat-menu-label">Piliin ang mikropono</span>
-        </button>
-        <a id="call-check-link" class="call-btn call-check-link chat-menu-item" role="menuitem" href="call-check.html" target="_blank" rel="noopener" title="Suriin ang koneksyon ng tawag (Call Check)" aria-label="Call connection diagnostics">
-          <span class="chat-menu-icon" aria-hidden="true">🛠</span>
-          <span class="chat-menu-label">Suriin ang koneksyon</span>
-        </a>
+        <!-- call settings submenu ─ on desktop: display:contents unwraps
+             items into the header row as individual icon buttons, trigger hidden.
+             on mobile: trigger shows, items collapse/expand as an accordion. -->
+        <div class="chat-submenu-wrap">
+          <button type="button" id="call-settings-btn" class="call-btn chat-menu-item chat-submenu-trigger" role="menuitem" aria-expanded="false" aria-controls="call-settings-submenu">
+            <span class="chat-menu-icon" aria-hidden="true">☎</span>
+            <span class="chat-menu-label">Mga setting ng tawag <span class="chat-submenu-caret" aria-hidden="true">›</span></span>
+          </button>
+          <div id="call-settings-submenu" class="chat-submenu">
+            <button id="mic-settings-btn" class="call-btn chat-menu-item chat-submenu-item" role="menuitem" title="Piliin ang mikropono" aria-label="Choose microphone">
+              <span class="chat-menu-icon" aria-hidden="true">🎛</span>
+              <span class="chat-menu-label">Piliin ang mikropono</span>
+            </button>
+            <a id="call-check-link" class="call-btn call-check-link chat-menu-item chat-submenu-item" role="menuitem" href="call-check.html" target="_blank" rel="noopener" title="Suriin ang koneksyon ng tawag (Call Check)" aria-label="Call connection diagnostics">
+              <span class="chat-menu-icon" aria-hidden="true">🛠</span>
+              <span class="chat-menu-label">Suriin ang koneksyon</span>
+            </a>
+          </div>
+        </div>
         <button id="signout" class="chat-out chat-menu-item" role="menuitem" title="Sign out">
           <span class="chat-menu-icon" aria-hidden="true">🚪</span>
           <span class="chat-menu-label">lisan</span>

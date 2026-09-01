@@ -1967,6 +1967,7 @@ function closeChatMenu() {
   chatMenuBtn.setAttribute("aria-expanded", "false");
   chatMenu.classList.remove("open");
   chatMenuBackdrop.classList.remove("visible");
+  closeCallSettingsSubmenu();
   setTimeout(() => {
     chatMenuBackdrop.hidden = true;
   }, 400);
@@ -1979,8 +1980,24 @@ chatMenuBtn.addEventListener("click", () => {
 
 chatMenuBackdrop.addEventListener("click", closeChatMenu);
 
-chatMenu.querySelectorAll(".chat-menu-item").forEach((item) => {
+chatMenu.querySelectorAll(".chat-menu-item:not(.chat-submenu-trigger)").forEach((item) => {
   item.addEventListener("click", closeChatMenu);
+});
+
+/* ─── call settings submenu ─── */
+
+const callSettingsBtn = document.getElementById("call-settings-btn");
+const callSettingsSubmenu = document.getElementById("call-settings-submenu");
+
+function closeCallSettingsSubmenu() {
+  callSettingsSubmenu.classList.remove("open");
+  callSettingsBtn.setAttribute("aria-expanded", "false");
+}
+
+callSettingsBtn.addEventListener("click", () => {
+  const opening = !callSettingsSubmenu.classList.contains("open");
+  callSettingsSubmenu.classList.toggle("open", opening);
+  callSettingsBtn.setAttribute("aria-expanded", String(opening));
 });
 
 window.addEventListener("keydown", (e) => {
