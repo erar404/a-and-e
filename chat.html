@@ -62,6 +62,51 @@
 
   <button type="button" id="vdi-toggle" class="vdi-toggle" title="Presentation view" aria-label="Toggle presentation view">⧉</button>
 
+  <!-- ═══════════ zoom workplace desktop chrome ═══════════
+       purely decorative — no state, no JS, shown/hidden entirely by
+       `body.vdi-skin-chat` + a min-width media query in chat.css. widens
+       the disguise from "one reskinned header" into the full Zoom
+       Workplace shell (brand top bar, app rail, chat list) on desktop;
+       collapses away below that width so phones keep the simpler
+       single-pane skin instead of a cramped fake sidebar. -->
+  <div id="vdi-zoom-topbar" class="vdi-zoom-topbar" aria-hidden="true">
+    <span class="vdi-zoom-logo"><i class="vdi-zoom-logo-dot"></i>zoom <b>Workplace</b></span>
+    <span class="vdi-zoom-nav">‹&nbsp;&nbsp;›&nbsp;&nbsp;↻</span>
+    <span class="vdi-zoom-search">🔍 Search (Ctrl+E)</span>
+    <span class="vdi-zoom-topbar-spacer"></span>
+    <span class="vdi-zoom-room">⌂ Room</span>
+    <span class="vdi-zoom-topbar-icons">🔔 🗓</span>
+    <span class="vdi-zoom-avatar-chip">A</span>
+  </div>
+
+  <nav id="vdi-zoom-rail" class="vdi-zoom-rail" aria-hidden="true">
+    <span class="vdi-zoom-rail-item active"><i>💬</i>Chat</span>
+    <span class="vdi-zoom-rail-item"><i>☎</i>Phone</span>
+    <span class="vdi-zoom-rail-item"><i>✉</i>Mail</span>
+    <span class="vdi-zoom-rail-item"><i>⌂</i>Home</span>
+    <span class="vdi-zoom-rail-item"><i>📅</i>Calendar</span>
+    <span class="vdi-zoom-rail-item"><i>◔</i>Workvivo</span>
+    <span class="vdi-zoom-rail-item"><i>☺</i>Contacts</span>
+    <span class="vdi-zoom-rail-item"><i>▤</i>Tasks</span>
+    <span class="vdi-zoom-rail-item vdi-zoom-rail-fill"></span>
+    <span class="vdi-zoom-rail-item"><i>⚙</i>Settings</span>
+  </nav>
+
+  <aside id="vdi-zoom-list" class="vdi-zoom-list" aria-hidden="true">
+    <div class="vdi-zoom-list-head">Chat <i>⌄</i><span class="vdi-zoom-list-head-spacer"></span><i>⚙</i><i class="vdi-zoom-list-compose">+</i></div>
+    <div class="vdi-zoom-list-filters">
+      <span class="active">All</span><span>@</span><span>💬</span><span>⚡</span><span>⋯</span>
+    </div>
+    <div class="vdi-zoom-list-section">Chats</div>
+    <div class="vdi-zoom-list-row"><i class="vdi-zoom-avatar" style="background:#5f6368">S</i>Schematta</div>
+    <div class="vdi-zoom-list-row active"><i class="vdi-zoom-avatar" style="background:#841930">M</i>Meeting Chat</div>
+    <div class="vdi-zoom-list-row"><i class="vdi-zoom-avatar" style="background:#3c6e9e">J</i>Jomar Castillo</div>
+    <div class="vdi-zoom-list-row"><i class="vdi-zoom-avatar" style="background:#6a4a9e">K</i>Kim Alvarado</div>
+    <div class="vdi-zoom-list-row"><i class="vdi-zoom-avatar" style="background:#3f8f6b">T</i>Team Standup (C)</div>
+    <div class="vdi-zoom-list-row"><i class="vdi-zoom-avatar" style="background:#b06a2e">R</i>Ronald Cruz</div>
+    <div class="vdi-zoom-list-row"><i class="vdi-zoom-avatar" style="background:#5f6368">D</i>Dario Reyes, Nico Tan</div>
+  </aside>
+
   <!-- the same dim atmosphere as home -->
   <div class="grain" aria-hidden="true"></div>
   <div class="vignette" aria-hidden="true"></div>
@@ -174,15 +219,27 @@
 
     <!-- stands in for .chat-head above once the zoom-chat skin is on
          (body.vdi-skin-chat hides the real header); the real messages
-         and composer below keep working the whole time -->
+         and composer below keep working the whole time. two rows, same
+         as a Zoom Workplace conversation pane: name + action icons, then
+         a Chat/Resources/Canvas tab strip underneath ─── purely decorative
+         below the back button, which stays the real exit hotspot -->
     <div id="vdi-chat-header" class="vdi-chat-header" hidden>
-      <button type="button" id="vdi-chat-header-close" class="vdi-chat-header-back" aria-label="Exit presentation view">‹</button>
-      <span class="vdi-chat-header-icon" aria-hidden="true">◆</span>
-      <span class="vdi-chat-header-titles">
-        <span class="vdi-chat-header-title">Meeting Chat</span>
-        <span class="vdi-chat-header-sub">4 members · Private</span>
-      </span>
-      <span class="vdi-chat-header-video" aria-hidden="true">⛶</span>
+      <div class="vdi-zoom-header-top">
+        <button type="button" id="vdi-chat-header-close" class="vdi-chat-header-back" aria-label="Exit presentation view">‹</button>
+        <span class="vdi-chat-header-icon" aria-hidden="true">◆</span>
+        <span class="vdi-chat-header-titles">
+          <span class="vdi-chat-header-title">Meeting Chat</span>
+        </span>
+        <span class="vdi-zoom-header-actions" aria-hidden="true">
+          <span>☆</span><span>⛶</span><span>☎</span><span>⧉</span><span>🔍</span><span>⋯</span>
+        </span>
+      </div>
+      <div class="vdi-zoom-header-tabs" aria-hidden="true">
+        <span class="vdi-zoom-tab active">💬 Chat</span>
+        <span class="vdi-zoom-tab">📄 Resources</span>
+        <span class="vdi-zoom-tab">▤ Add Canvas doc</span>
+        <span class="vdi-zoom-tab-plus">+</span>
+      </div>
     </div>
 
     <div id="monthsary-banner" class="monthsary-banner" role="status" hidden>
@@ -324,10 +381,34 @@
         <p id="call-status" class="call-status">tumatawag…</p>
       </div>
 
-      <!-- peer mic selector panel — slides up above controls when open -->
+      <!-- peer mic selector panel — slides up above controls when open.
+           re-requests a fresh device list from the peer every time it
+           opens (their side may have plugged in a headset, or fixed a
+           WorkSpaces audio-redirection setting, since the call started)
+           instead of trusting the one-time snapshot taken at connect ─── see
+           requestPeerMics()/handleRequestPeerMics() in chat.js -->
       <div id="call-peer-mic-panel" class="call-peer-mic-panel" hidden>
         <p class="call-peer-mic-title">mikropono ni <span id="call-peer-mic-name">siya</span> ♡</p>
+        <p id="call-peer-mic-status" class="call-peer-mic-status" hidden></p>
         <div id="call-peer-mic-list" class="call-peer-mic-list"></div>
+        <button type="button" id="call-peer-mic-refresh" class="call-peer-mic-refresh">🔄 i-refresh ang listahan</button>
+      </div>
+
+      <!-- mic diagnostics panel — reads the peer's live mic settings
+           (echo cancellation / noise suppression / AGC) to catch the
+           "sounds muffled through a redirected/virtual mic" case common
+           on AWS WorkSpaces and similar VDI, and can push a one-tap fix
+           that re-opens their mic with that processing turned off ─────
+           see collectMicDiagnostics()/handleApplyMicFix() in chat.js -->
+      <div id="call-mic-diagnose-panel" class="call-mic-diagnose-panel" hidden>
+        <p class="call-mic-diagnose-title">kalusugan ng mikropono ni <span id="call-mic-diagnose-name">siya</span> ♡</p>
+        <p id="call-mic-diagnose-status" class="call-mic-diagnose-status">kinukuha ang detalye…</p>
+        <div id="call-mic-diagnose-result" class="call-mic-diagnose-result" hidden>
+          <p class="call-mic-diagnose-device" id="call-mic-diagnose-device"></p>
+          <ul class="call-mic-diagnose-flags" id="call-mic-diagnose-flags"></ul>
+          <p class="call-mic-diagnose-verdict" id="call-mic-diagnose-verdict"></p>
+          <button type="button" id="call-mic-diagnose-fix" class="call-mic-diagnose-fix" hidden>ayusin ngayon ♡</button>
+        </div>
       </div>
 
       <div class="call-controls">
@@ -338,6 +419,7 @@
         <button type="button" id="call-cam" class="call-action neutral" aria-label="Camera" hidden>⛶</button>
         <button type="button" id="call-mic-btn" class="call-action neutral" aria-label="Piliin ang mikropono" title="Mikropono" hidden>🎛</button>
         <button type="button" id="call-peer-mic-btn" class="call-action neutral" aria-label="Baguhin ang mikropono" title="Baguhin ang mikropono" hidden>🎤</button>
+        <button type="button" id="call-mic-diagnose-btn" class="call-action neutral" aria-label="Suriin ang mikropono niya" title="Suriin ang mikropono niya" hidden>🩺</button>
         <button type="button" id="call-minimize" class="call-action neutral" aria-label="I-minimize ang tawag" title="I-minimize" hidden>⌄</button>
         <button type="button" id="call-chat-toggle" class="call-action neutral" aria-label="Chat" title="Chat" hidden>💬</button>
         <button type="button" id="call-hangup" class="call-action decline" aria-label="Bumaba" hidden>✕</button>

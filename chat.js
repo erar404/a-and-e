@@ -977,12 +977,30 @@ function reportCallError(kind, detail) {
 
 const callPeerMicBtn = document.getElementById("call-peer-mic-btn");
 const callPeerMicPanel = document.getElementById("call-peer-mic-panel");
+const callPeerMicStatusEl = document.getElementById("call-peer-mic-status");
 const callPeerMicList = document.getElementById("call-peer-mic-list");
 const callPeerMicNameEl = document.getElementById("call-peer-mic-name");
+const callPeerMicRefreshBtn = document.getElementById("call-peer-mic-refresh");
 
 let peerMics = []; // partner's audioinput devices, received via signal
 let peerMicPanelOpen = false;
 let activePeerMicId = null; // deviceId currently in use on the partner's side
+let peerMicRequestTimeoutId = null;
+
+// AWS WorkSpaces (and similar VDI) commonly redirects only ONE virtual
+// audio-input device into the browser, whichever source is selected
+// inside the WorkSpaces client itself (its own device picker, separate
+// from ours) — a headset plugged into the physical machine may simply
+// never appear here no matter how many times we re-scan, because from
+// Chrome's point of view there's only ever one microphone. Reused from
+// the mic diagnostics feature so this panel can name that possibility
+// instead of just looking broken when the list stays stuck at one entry.
+function clearPeerMicRequestTimeout() {
+  if (peerMicRequestTimeoutId) {
+    clearTimeout(peerMicRequestTimeoutId);
+    peerMicRequestTimeoutId = null;
+  }
+}
 
 async function broadcastPeerMics() {
   let devices;
@@ -1000,20 +1018,63 @@ async function broadcastPeerMics() {
   sendSignal("peer-mics", { mics, currentId });
 }
 
+// the peer asked us (via the refresh button on their side) to re-scan and
+// resend our own mic list right now, instead of them waiting on whatever
+// snapshot we happened to send at connect time
+function handleRequestPeerMics({ from }) {
+  if (!from || from === me || from !== callPeer) return;
+  broadcastPeerMics();
+}
+
+// fires when the OS's device topology changes — plugging in a headset,
+// a WorkSpaces client re-negotiating which input it redirects, etc. — so
+// the peer's list updates on its own mid-call instead of only ever
+// reflecting whatever was plugged in at connect time or the last manual refresh
+navigator.mediaDevices.addEventListener?.("devicechange", () => {
+  if (callState === "active") broadcastPeerMics();
+});
+
 function handlePeerMics({ from, mics, currentId }) {
   if (!from || from === me || from !== callPeer) return;
   if (!Array.isArray(mics)) return;
+  clearPeerMicRequestTimeout();
   peerMics = mics;
   activePeerMicId = currentId || null;
   renderPeerMicList();
-  if (callState === "active") {
-    callPeerMicBtn.hidden = peerMics.length < 2;
-  }
+}
+
+function requestPeerMics() {
+  callPeerMicStatusEl.textContent = "kinukuha ang listahan ng mikropono niya…";
+  callPeerMicStatusEl.hidden = false;
+  callPeerMicList.hidden = true;
+  sendSignal("request-peer-mics", {});
+  clearPeerMicRequestTimeout();
+  peerMicRequestTimeoutId = setTimeout(() => {
+    callPeerMicStatusEl.textContent = `hindi sumagot si ${names[callPeer] || "siya"} — tingnan kung stable ang tawag ♡`;
+  }, 5000);
 }
 
 function renderPeerMicList() {
   callPeerMicList.innerHTML = "";
+  callPeerMicList.hidden = false;
   if (callPeerMicNameEl) callPeerMicNameEl.textContent = names[callPeer] || "siya";
+
+  if (peerMics.length === 0) {
+    callPeerMicStatusEl.textContent = "wala kaming nakitang mikropono sa panig niya ngayon ♡";
+    callPeerMicStatusEl.hidden = false;
+    return;
+  }
+
+  if (peerMics.length === 1) {
+    const onlyLooksVirtual = isLikelyVirtualMic(peerMics[0].label);
+    callPeerMicStatusEl.textContent = onlyLooksVirtual
+      ? "iisang mikropono lang ang nakikita namin sa kanya, at parang virtual/redirected mic ito — malamang isa lang talaga ang dine-redirect ng AWS WorkSpaces niya kahit may naka-plug na headset. hilingin sa kaniyang piliin ang headset bilang input sa loob mismo ng WorkSpaces client niya, tapos i-refresh dito ♡"
+      : "iisang mikropono lang ang nakikita namin sa kanya ngayon — kung may headset siyang gustong gamitin, siguraduhing naka-plug na ito bago mag-refresh ♡";
+    callPeerMicStatusEl.hidden = false;
+  } else {
+    callPeerMicStatusEl.hidden = true;
+  }
+
   peerMics.forEach((mic, i) => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -1062,15 +1123,20 @@ async function handleSwitchPeerMic({ from, deviceId }) {
 }
 
 function openPeerMicPanel() {
-  if (peerMicPanelOpen || peerMics.length < 2) return;
+  if (peerMicPanelOpen) return;
   peerMicPanelOpen = true;
   callPeerMicPanel.hidden = false;
   requestAnimationFrame(() => callPeerMicPanel.classList.add("open"));
+  // always pull a fresh list on open rather than trusting whatever
+  // snapshot arrived at connect time — she may have fixed her WorkSpaces
+  // audio redirection or plugged in the headset since then
+  requestPeerMics();
 }
 
 function closePeerMicPanel() {
   if (!peerMicPanelOpen) return;
   peerMicPanelOpen = false;
+  clearPeerMicRequestTimeout();
   callPeerMicPanel.classList.remove("open");
   setTimeout(() => { if (!peerMicPanelOpen) callPeerMicPanel.hidden = true; }, 240);
 }
@@ -1079,6 +1145,211 @@ callPeerMicBtn.addEventListener("click", () => {
   if (peerMicPanelOpen) closePeerMicPanel();
   else openPeerMicPanel();
 });
+
+callPeerMicRefreshBtn.addEventListener("click", requestPeerMics);
+
+/* ─── peer mic diagnostics (muffled / virtual-mic troubleshooting) ───
+   AWS WorkSpaces (and similar VDI — Citrix, generic RDP) redirects the
+   client's real microphone into the remote session as a virtual audio
+   device. Chrome still runs its own echo cancellation / noise suppression
+   / auto gain control on top of that already-processed signal, which is
+   the usual cause of a muffled/underwater voice with no actual hardware
+   fault — there's no real acoustic echo for AEC to find on a loopback
+   device, so it just over-suppresses.
+
+   This reads the peer's live audio track settings to confirm that theory
+   (device label + which processing stages are on) and can push a fix
+   that re-opens their mic with all three turned off, the same
+   replaceTrack() dance handleSwitchPeerMic() already does above. */
+
+const callMicDiagnoseBtn = document.getElementById("call-mic-diagnose-btn");
+const callMicDiagnosePanel = document.getElementById("call-mic-diagnose-panel");
+const callMicDiagnoseNameEl = document.getElementById("call-mic-diagnose-name");
+const callMicDiagnoseStatusEl = document.getElementById("call-mic-diagnose-status");
+const callMicDiagnoseResultEl = document.getElementById("call-mic-diagnose-result");
+const callMicDiagnoseDeviceEl = document.getElementById("call-mic-diagnose-device");
+const callMicDiagnoseFlagsEl = document.getElementById("call-mic-diagnose-flags");
+const callMicDiagnoseVerdictEl = document.getElementById("call-mic-diagnose-verdict");
+const callMicDiagnoseFixBtn = document.getElementById("call-mic-diagnose-fix");
+
+const VIRTUAL_MIC_PATTERN = /aws|workspace|virtual|redirect|remote\s*audio|citrix|rdp|dvc/i;
+
+let micDiagnosePanelOpen = false;
+let micDiagnoseTimeoutId = null;
+let lastMicDiagnostics = null; // most recent report received from the peer
+
+function collectMicDiagnostics() {
+  const track = localStream && localStream.getAudioTracks()[0];
+  if (!track) return null;
+  const settings = track.getSettings ? track.getSettings() : {};
+  return {
+    deviceId: settings.deviceId || null,
+    label: track.label || "",
+    echoCancellation: settings.echoCancellation ?? null,
+    noiseSuppression: settings.noiseSuppression ?? null,
+    autoGainControl: settings.autoGainControl ?? null,
+  };
+}
+
+function isLikelyVirtualMic(label) {
+  return VIRTUAL_MIC_PATTERN.test(label || "");
+}
+
+function clearMicDiagnoseTimeout() {
+  if (micDiagnoseTimeoutId) {
+    clearTimeout(micDiagnoseTimeoutId);
+    micDiagnoseTimeoutId = null;
+  }
+}
+
+// the peer asked what our mic currently looks like — answer with our own
+// track's settings, whoever "our" is (this runs identically on both sides)
+function handleRequestMicDiagnostics({ from }) {
+  if (!from || from === me || from !== callPeer) return;
+  sendSignal("mic-diagnostics", collectMicDiagnostics() || { error: "no-track" });
+}
+
+function handleMicDiagnostics(payload) {
+  const { from } = payload || {};
+  if (!from || from === me || from !== callPeer) return;
+  clearMicDiagnoseTimeout();
+  if (!payload || payload.error) {
+    callMicDiagnoseStatusEl.textContent =
+      payload && payload.error === "fix-failed"
+        ? "hindi na-apply ang ayos — baka ginagamit na ng iba ang mikropono niya ♡"
+        : "walang aktibong mikropono sa kanya ngayon ♡";
+    callMicDiagnoseStatusEl.hidden = false;
+    callMicDiagnoseResultEl.hidden = true;
+    return;
+  }
+  lastMicDiagnostics = payload;
+  renderMicDiagnostics(payload);
+}
+
+function renderMicDiagnostics(d) {
+  callMicDiagnoseStatusEl.hidden = true;
+  callMicDiagnoseResultEl.hidden = false;
+  callMicDiagnoseDeviceEl.textContent = d.label || "hindi kilalang mikropono";
+
+  const flags = [
+    ["echoCancellation", "Echo cancellation"],
+    ["noiseSuppression", "Noise suppression"],
+    ["autoGainControl", "Auto gain control"],
+  ];
+  callMicDiagnoseFlagsEl.innerHTML = "";
+  flags.forEach(([key, label]) => {
+    const on = d[key] === true;
+    const li = document.createElement("li");
+    li.className = "call-mic-diagnose-flag" + (on ? " on" : "");
+    li.textContent = `${label}: ${d[key] === null || d[key] === undefined ? "hindi alam" : on ? "naka-on" : "naka-off"}`;
+    callMicDiagnoseFlagsEl.appendChild(li);
+  });
+
+  const virtual = isLikelyVirtualMic(d.label);
+  const processed = d.echoCancellation || d.noiseSuppression || d.autoGainControl;
+
+  if (processed && virtual) {
+    callMicDiagnoseVerdictEl.textContent =
+      "malamang ito ang dahilan ng mapurol na tunog — parang virtual/redirected na mikropono ito (AWS WorkSpaces?) pero pinoproseso pa rin ni Chrome gamit ang echo cancellation. i-off natin ♡";
+    callMicDiagnoseFixBtn.hidden = false;
+  } else if (processed) {
+    callMicDiagnoseVerdictEl.textContent =
+      "naka-on ang audio processing niya — puwede pa ring subukang i-off kung mapurol ang tunog ♡";
+    callMicDiagnoseFixBtn.hidden = false;
+  } else {
+    callMicDiagnoseVerdictEl.textContent =
+      "naka-off na lahat ng audio processing niya — malamang network o codec na ang dahilan, subukan ang 🛠 Call Check ♡";
+    callMicDiagnoseFixBtn.hidden = true;
+  }
+}
+
+function requestMicDiagnostics() {
+  callMicDiagnoseStatusEl.textContent = "kinukuha ang detalye…";
+  callMicDiagnoseStatusEl.hidden = false;
+  callMicDiagnoseResultEl.hidden = true;
+  callMicDiagnoseFixBtn.hidden = true;
+  sendSignal("request-mic-diagnostics", {});
+  clearMicDiagnoseTimeout();
+  micDiagnoseTimeoutId = setTimeout(() => {
+    callMicDiagnoseStatusEl.textContent = `hindi sumagot si ${names[callPeer] || "siya"} — tingnan kung stable ang tawag ♡`;
+  }, 5000);
+}
+
+function openMicDiagnosePanel() {
+  if (micDiagnosePanelOpen) return;
+  micDiagnosePanelOpen = true;
+  if (callMicDiagnoseNameEl) callMicDiagnoseNameEl.textContent = names[callPeer] || "siya";
+  callMicDiagnosePanel.hidden = false;
+  requestAnimationFrame(() => callMicDiagnosePanel.classList.add("open"));
+  requestMicDiagnostics();
+}
+
+function closeMicDiagnosePanel() {
+  if (!micDiagnosePanelOpen) return;
+  micDiagnosePanelOpen = false;
+  clearMicDiagnoseTimeout();
+  callMicDiagnosePanel.classList.remove("open");
+  setTimeout(() => { if (!micDiagnosePanelOpen) callMicDiagnosePanel.hidden = true; }, 240);
+}
+
+callMicDiagnoseBtn.addEventListener("click", () => {
+  if (micDiagnosePanelOpen) closeMicDiagnosePanel();
+  else openMicDiagnosePanel();
+});
+
+callMicDiagnoseFixBtn.addEventListener("click", () => {
+  if (!lastMicDiagnostics) return;
+  callMicDiagnoseFixBtn.hidden = true;
+  callMicDiagnoseVerdictEl.textContent = "inaayos…";
+  sendSignal("apply-mic-fix", { deviceId: lastMicDiagnostics.deviceId || null });
+  clearMicDiagnoseTimeout();
+  micDiagnoseTimeoutId = setTimeout(() => {
+    callMicDiagnoseVerdictEl.textContent = "hindi na-confirm kung na-apply ang ayos — subukan ulit ♡";
+  }, 6000);
+});
+
+// the peer asked us to turn off our own mic's audio processing (most
+// likely because our mic looked "virtual" and muffled from their end) —
+// re-acquire the same physical device with echo cancellation/noise
+// suppression/AGC explicitly disabled and hot-swap the outgoing track,
+// same mechanics as handleSwitchPeerMic() above
+async function handleApplyMicFix({ from, deviceId }) {
+  if (!from || from === me || from !== callPeer) return;
+  if (!pc || !localStream || callState !== "active") return;
+
+  let newStream;
+  try {
+    newStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+      video: false,
+    });
+  } catch {
+    sendSignal("mic-diagnostics", { error: "fix-failed" });
+    return;
+  }
+
+  const newTrack = newStream.getAudioTracks()[0];
+  if (!newTrack) return;
+
+  const oldTrack = localStream.getAudioTracks()[0];
+  newTrack.enabled = oldTrack ? oldTrack.enabled : true;
+
+  const sender = pc.getSenders().find((s) => s.track && s.track.kind === "audio");
+  if (sender) await sender.replaceTrack(newTrack).catch(() => {});
+
+  if (oldTrack) { oldTrack.stop(); localStream.removeTrack(oldTrack); }
+  localStream.addTrack(newTrack);
+
+  broadcastPeerMics();
+  // report back what actually got applied — Chrome doesn't always honor
+  // every constraint, so this is a real read-back, not an assumption
+  sendSignal("mic-diagnostics", collectMicDiagnostics() || { error: "no-track" });
+}
 
 function setupCallChannel() {
   callChannel = sb.channel("usap-tayo-call", { config: { broadcast: { self: false } } });
@@ -1089,7 +1360,11 @@ function setupCallChannel() {
     .on("broadcast", { event: "hangup" }, ({ payload }) => handleHangup(payload))
     .on("broadcast", { event: "busy" }, ({ payload }) => handleBusy(payload))
     .on("broadcast", { event: "peer-mics" }, ({ payload }) => handlePeerMics(payload))
+    .on("broadcast", { event: "request-peer-mics" }, ({ payload }) => handleRequestPeerMics(payload))
     .on("broadcast", { event: "switch-peer-mic" }, ({ payload }) => handleSwitchPeerMic(payload))
+    .on("broadcast", { event: "request-mic-diagnostics" }, ({ payload }) => handleRequestMicDiagnostics(payload))
+    .on("broadcast", { event: "mic-diagnostics" }, ({ payload }) => handleMicDiagnostics(payload))
+    .on("broadcast", { event: "apply-mic-fix" }, ({ payload }) => handleApplyMicFix(payload))
     .subscribe();
 }
 
@@ -1385,12 +1660,24 @@ function showCallUI() {
 function hideCallUI() {
   callOverlay.hidden = true;
   callAvatar.classList.remove("ringing");
-  [callAcceptBtn, callDeclineBtn, callMuteBtn, callCamBtn, callMicBtn, callPeerMicBtn, callMinimizeBtn, callChatToggleBtn, callHangupBtn].forEach(
-    (b) => (b.hidden = true)
-  );
+  [
+    callAcceptBtn,
+    callDeclineBtn,
+    callMuteBtn,
+    callCamBtn,
+    callMicBtn,
+    callPeerMicBtn,
+    callMicDiagnoseBtn,
+    callMinimizeBtn,
+    callChatToggleBtn,
+    callHangupBtn,
+  ].forEach((b) => (b.hidden = true));
   closePeerMicPanel();
   peerMics = [];
   activePeerMicId = null;
+  callPeerMicStatusEl.hidden = true;
+  closeMicDiagnosePanel();
+  lastMicDiagnostics = null;
   closeCallChat();
   restoreCall();
 }
@@ -1421,6 +1708,8 @@ function showActiveControls() {
   callMuteBtn.hidden = false;
   callCamBtn.hidden = !isVideoCall;
   callMicBtn.hidden = false;
+  callPeerMicBtn.hidden = false;
+  callMicDiagnoseBtn.hidden = false;
   callMinimizeBtn.hidden = false;
   callChatToggleBtn.hidden = false;
   callHangupBtn.hidden = false;
@@ -1428,7 +1717,24 @@ function showActiveControls() {
   callAvatar.classList.remove("ringing");
   setCallStatus("");
   openCallChat();
+
+  // if the vdi disguise is already on, a full-screen call is the one
+  // thing it can't hide behind the "just chatting" skin — default
+  // straight to the small bubble instead, same as manually tapping the
+  // minimize button, so the disguised chat stays visible/usable underneath
+  if (document.body.classList.contains("vdi-skin-call")) minimizeCall();
 }
+
+// covers the other order: the call was already active and full-screen
+// when the disguise got turned on (vdi-disguise.js just added
+// vdi-skin-call to the body) — shrink it the moment that happens instead
+// of leaving a full-screen call sitting there under a "boss key" meant to
+// hide the screen
+new MutationObserver(() => {
+  if (callState === "active" && !callMinimized && document.body.classList.contains("vdi-skin-call")) {
+    minimizeCall();
+  }
+}).observe(document.body, { attributes: true, attributeFilter: ["class"] });
 
 // --- minimize: shrinks the overlay's real box to a small draggable bubble,
 // so everything outside it is genuinely the chat underneath again, not just
@@ -1479,9 +1785,21 @@ function updateMiniPreview(animate) {
   }
 }
 
+// whichever header is actually rendered right now — the romantic
+// .chat-head normally, or #vdi-chat-header once the vdi disguise's chat
+// skin takes over (including for a call minimized specifically because
+// of that disguise, per refreshMode() in vdi-disguise.js)
+function visibleChatHeaderBottom() {
+  for (const el of [document.querySelector(".chat-head"), document.getElementById("vdi-chat-header")]) {
+    if (el && el.offsetParent !== null) return el.getBoundingClientRect().bottom;
+  }
+  return null;
+}
+
 function minimizeCall() {
   if (callState !== "active" || callMinimized) return;
   closePeerMicPanel();
+  closeMicDiagnosePanel();
   callMinimized = true;
   callOverlay.classList.add("minimized");
   callMiniBar.hidden = false;
@@ -1491,8 +1809,8 @@ function minimizeCall() {
   // predict than remembering a previous drag, and it reliably clears the
   // composer at the bottom regardless of how tall the textarea has grown
   const rect = callOverlay.getBoundingClientRect();
-  const header = document.querySelector(".chat-head");
-  const topClear = header ? header.getBoundingClientRect().bottom + 12 : 76;
+  const headerBottom = visibleChatHeaderBottom();
+  const topClear = headerBottom !== null ? headerBottom + 12 : 76;
   const pos = clampMiniPosition(window.innerWidth - rect.width - 16, topClear);
   setMiniPosition(pos.x, pos.y);
 }

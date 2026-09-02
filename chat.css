@@ -1127,11 +1127,35 @@ body {
   margin: 0 0 0.65rem;
 }
 
+.call-peer-mic-status {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--cream-dim);
+  text-align: center;
+  margin: 0 0 0.6rem;
+}
+
 .call-peer-mic-list {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
+
+.call-peer-mic-refresh {
+  width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.8rem;
+  background: transparent;
+  border: 1px solid rgba(212, 160, 164, 0.3);
+  border-radius: 10px;
+  color: var(--rose);
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.call-peer-mic-refresh:hover { background: rgba(212, 160, 164, 0.1); border-color: rgba(212, 160, 164, 0.5); }
+.call-peer-mic-refresh:active { transform: scale(0.98); }
 
 .call-peer-mic-item {
   width: 100%;
@@ -1153,6 +1177,98 @@ body {
 
 /* hide peer mic panel when minimized */
 .call-overlay.minimized .call-peer-mic-panel { display: none; }
+
+/* ─── mic diagnostics panel (in-call) ───
+   same shape/motion as the peer mic panel above, plus a flag list and a
+   verdict line for the muffled/virtual-mic report */
+
+.call-mic-diagnose-panel {
+  width: min(320px, 88%);
+  margin-bottom: 0.6rem;
+  background: rgba(27, 18, 28, 0.94);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 160, 164, 0.25);
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.call-mic-diagnose-panel.open { opacity: 1; transform: none; }
+
+.call-mic-diagnose-title {
+  font-family: "La Belle Aurore", cursive;
+  color: var(--rose);
+  font-size: 0.82rem;
+  text-align: center;
+  margin: 0 0 0.65rem;
+}
+
+.call-mic-diagnose-status {
+  font-size: 0.82rem;
+  color: var(--cream-dim);
+  text-align: center;
+  margin: 0;
+}
+
+.call-mic-diagnose-device {
+  font-size: 0.85rem;
+  color: var(--cream);
+  text-align: center;
+  margin: 0 0 0.5rem;
+  word-break: break-word;
+}
+
+.call-mic-diagnose-flags {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0 0 0.6rem;
+  padding: 0;
+}
+
+.call-mic-diagnose-flag {
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  background: rgba(111, 207, 151, 0.1);
+  border: 1px solid rgba(111, 207, 151, 0.25);
+  color: var(--cream);
+}
+
+/* "on" = this processing stage is active on their track — the usual
+   suspect when the device also looks virtual/redirected, so it reads as
+   a warning tone rather than the neutral/good "off" state above */
+.call-mic-diagnose-flag.on {
+  background: rgba(212, 160, 164, 0.16);
+  border-color: rgba(212, 160, 164, 0.45);
+}
+
+.call-mic-diagnose-verdict {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--cream-dim);
+  margin: 0 0 0.6rem;
+}
+
+.call-mic-diagnose-fix {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  background: var(--rose);
+  border: 1px solid var(--rose);
+  border-radius: 10px;
+  color: var(--bg);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.call-mic-diagnose-fix:hover { background: #dfaeb2; }
+.call-mic-diagnose-fix:active { transform: scale(0.97); }
+
+.call-overlay.minimized .call-mic-diagnose-panel { display: none; }
 
 /* ─── lightbox ─── */
 
@@ -2432,8 +2548,17 @@ body {
 .vdi-chat-header {
   background: #fff;
   border-bottom: 1px solid #e0e0e0;
-  padding: 0.55rem 0.9rem;
+  padding: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.vdi-zoom-header-top {
+  display: flex;
+  align-items: center;
   gap: 0.6rem;
+  padding: 0.6rem 0.9rem;
 }
 
 .vdi-chat-header-back {
@@ -2461,7 +2586,7 @@ body {
   place-items: center;
   font-size: 12px;
   color: #fff;
-  background: linear-gradient(135deg, #4285f4, #34a853 55%, #fbbc04 78%, #ea4335);
+  background: var(--zc-accent, #841930);
 }
 
 .vdi-chat-header-titles {
@@ -2481,9 +2606,46 @@ body {
   white-space: nowrap;
 }
 
-.vdi-chat-header-sub { font-size: 11px; color: #5f6368; }
+.vdi-zoom-header-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 14px;
+  color: #5f6368;
+  opacity: 0.9;
+}
 
-.vdi-chat-header-video { flex: none; font-size: 15px; color: #5f6368; opacity: 0.85; }
+.vdi-zoom-header-tabs {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 0 0.9rem;
+  height: 34px;
+  border-top: 1px solid #eee;
+  font-size: 12.5px;
+  color: #5f6368;
+}
+
+.vdi-zoom-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 100%;
+  white-space: nowrap;
+}
+
+.vdi-zoom-tab.active {
+  color: var(--zc-accent, #841930);
+  font-weight: 600;
+  box-shadow: inset 0 -2px var(--zc-accent, #841930);
+}
+
+.vdi-zoom-tab-plus { margin-left: auto; font-size: 15px; opacity: 0.7; }
+
+@media (max-width: 859px) {
+  .vdi-zoom-header-tabs { display: none; }
+}
 
 /* ─── functional chat skin — reskins the real #chat in place as an
    everyday team-channel app instead of a meeting client, so it reads as
@@ -2493,18 +2655,222 @@ body {
 body.vdi-skin-chat {
   --zc-bg: #ffffff;
   --zc-panel: #ffffff;
-  --zc-border: #e0e0e0;
+  --zc-border: #e2e2e2;
   --zc-text: #202124;
   --zc-text-dim: #5f6368;
-  --zc-accent: #1a73e8;
-  --zc-avatar-mine: #1a73e8;
-  --zc-avatar-other: #d93025;
+  --zc-accent: #841930;
+  --zc-accent-dark: #6e1527;
+  --zc-mine-bubble: #e7f1fd;
+  --zc-received-bubble: #f1f4f6;
+  --zc-avatar-mine: #841930;
+  --zc-avatar-other: #3c6e9e;
+  /* clears the body's own candlelit background so nothing dark shows
+     around the edges once .chat stops being a centered 720px card below */
+  background: #f4f4f5;
 }
 
 body.vdi-skin-chat .chat {
   padding-top: 28px; /* clears the fixed .vdi-chrome strip */
+  max-width: none;
+  margin: 0;
   background: var(--zc-bg);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ─── desktop: full Zoom Workplace shell ───
+   brand top bar + app rail + chat list flank the real conversation pane.
+   all three are decorative-only (see chat.html) and collapse away below
+   this width so phones keep the simpler single-pane skin instead of a
+   cramped fake sidebar. */
+
+.vdi-zoom-topbar,
+.vdi-zoom-rail,
+.vdi-zoom-list { display: none; }
+
+@media (min-width: 860px) {
+  body.vdi-skin-chat .vdi-zoom-topbar,
+  body.vdi-skin-chat .vdi-zoom-rail,
+  body.vdi-skin-chat .vdi-zoom-list {
+    display: flex;
+  }
+
+  body.vdi-skin-chat .chat {
+    left: 364px; /* 64px rail + 300px list */
+    top: 74px;   /* 28px vdi-chrome + 46px zoom topbar */
+  }
+}
+
+.vdi-zoom-topbar {
+  position: fixed;
+  top: 28px;
+  left: 0;
+  right: 0;
+  z-index: 998;
+  align-items: center;
+  gap: 1rem;
+  height: 46px;
+  padding: 0 1rem;
+  background: var(--zc-accent, #841930);
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+}
+
+.vdi-zoom-logo { display: flex; align-items: center; gap: 0.4rem; font-weight: 500; letter-spacing: 0.01em; }
+.vdi-zoom-logo b { font-weight: 700; }
+.vdi-zoom-logo-dot { width: 8px; height: 8px; border-radius: 50%; background: #6fcf97; }
+.vdi-zoom-nav { opacity: 0.75; letter-spacing: 0.05em; }
+
+.vdi-zoom-search {
+  flex: 1;
+  max-width: 420px;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12.5px;
+}
+
+.vdi-zoom-topbar-spacer { flex: 1; }
+.vdi-zoom-room {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 14px;
+  font-size: 12px;
+}
+.vdi-zoom-topbar-icons { display: flex; gap: 0.6rem; opacity: 0.9; }
+.vdi-zoom-avatar-chip {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.vdi-zoom-rail {
+  position: fixed;
+  top: 74px;
+  bottom: 0;
+  left: 0;
+  z-index: 997;
+  flex-direction: column;
+  align-items: stretch;
+  width: 64px;
+  padding: 0.6rem 0;
+  background: var(--zc-accent, #841930);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.vdi-zoom-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.5rem 0.2rem;
+  margin: 0.1rem 0.45rem;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 10px;
+}
+
+.vdi-zoom-rail-item i { font-size: 16px; font-style: normal; }
+
+.vdi-zoom-rail-item.active {
+  background: #fff;
+  color: var(--zc-accent, #841930);
+}
+
+.vdi-zoom-rail-fill { flex: 1; margin: 0; padding: 0; }
+
+.vdi-zoom-list {
+  position: fixed;
+  top: 74px;
+  bottom: 0;
+  left: 64px;
+  z-index: 997;
+  flex-direction: column;
+  width: 300px;
+  background: #fff;
+  border-right: 1px solid var(--zc-border, #e2e2e2);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+.vdi-zoom-list-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.9rem 1rem 0.6rem;
+  font-size: 15px;
+  font-weight: 700;
+  color: #202124;
+}
+
+.vdi-zoom-list-head-spacer { flex: 1; }
+.vdi-zoom-list-head i { font-style: normal; font-size: 13px; color: #5f6368; }
+.vdi-zoom-list-compose {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--zc-accent, #841930);
+  color: #fff !important;
+}
+
+.vdi-zoom-list-filters {
+  display: flex;
+  gap: 1rem;
+  padding: 0 1rem 0.7rem;
+  font-size: 12.5px;
+  color: #5f6368;
+}
+
+.vdi-zoom-list-filters .active {
+  color: var(--zc-accent, #841930);
+  font-weight: 700;
+}
+
+.vdi-zoom-list-section {
+  padding: 0.4rem 1rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9aa0a6;
+}
+
+.vdi-zoom-list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 1rem;
+  font-size: 13px;
+  color: #202124;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vdi-zoom-list-row.active {
+  background: var(--zc-accent, #841930);
+  color: #fff;
+}
+
+.vdi-zoom-avatar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
 }
 
 body.vdi-skin-chat .grain,
@@ -2584,10 +2950,12 @@ body.vdi-skin-chat .bubble {
   grid-column: 2 / -1;
   grid-row: 2;
   display: block;
-  max-width: 100%;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
+  justify-self: start;
+  width: fit-content;
+  max-width: min(72%, 480px);
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 6px !important;
+  background: var(--zc-received-bubble) !important;
   border: none !important;
   color: var(--zc-text) !important;
   font-size: 14px;
@@ -2595,6 +2963,8 @@ body.vdi-skin-chat .bubble {
   font-family: inherit;
   line-height: 1.45;
 }
+
+body.vdi-skin-chat .msg.mine .bubble { background: var(--zc-mine-bubble) !important; }
 
 body.vdi-skin-chat .msg-img { border-radius: 4px; max-width: min(60vw, 260px); }
 body.vdi-skin-chat .msg-caption { padding: 0.35rem 0 0; font-size: 14px; }
@@ -2627,9 +2997,9 @@ body.vdi-skin-chat .composer {
 }
 
 body.vdi-skin-chat .composer textarea {
-  background: #f1f3f4;
-  border: 1px solid transparent;
-  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--zc-border);
+  border-radius: 8px;
   color: var(--zc-text);
   font-family: inherit;
   font-size: 14px;
@@ -2646,7 +3016,7 @@ body.vdi-skin-chat .attach-btn {
   height: 32px;
   border: none;
   border-radius: 50%;
-  background: #f1f3f4;
+  background: transparent;
   color: transparent;
   font-size: 0;
 }
@@ -2661,7 +3031,7 @@ body.vdi-skin-chat .attach-btn::after {
   color: var(--zc-text-dim);
 }
 
-body.vdi-skin-chat .attach-btn:hover { background: #e8eaed; }
+body.vdi-skin-chat .attach-btn:hover { background: #f1f3f4; }
 
 body.vdi-skin-chat .send-btn {
   width: 36px;
@@ -2673,7 +3043,7 @@ body.vdi-skin-chat .send-btn {
   font-size: 15px;
 }
 
-body.vdi-skin-chat .send-btn:hover { background: #1765cc; transform: none; }
+body.vdi-skin-chat .send-btn:hover { background: var(--zc-accent-dark); transform: none; }
 
 body.vdi-skin-chat .yt-bar { background: #f1f3f4; border-color: var(--zc-border); }
 
@@ -2783,6 +3153,29 @@ body.vdi-skin-call .call-avatar::before {
   font-size: clamp(1.4rem, 8vmin, 2.4rem);
 }
 
+/* a minimized call gets the disguise's CHAT skin, not the call skin (see
+   refreshMode() in vdi-disguise.js) — but the small floating bubble still
+   uses the same .call-avatar markup either way, so without this override
+   it would revert to the romantic rose ring + ♡ the instant it shrinks,
+   undoing the point of hiding it in the first place */
+body.vdi-skin-chat .call-overlay.minimized .call-avatar {
+  background: #3d4148;
+  border-color: transparent;
+  box-shadow: none;
+  animation: none;
+}
+
+body.vdi-skin-chat .call-overlay.minimized .call-avatar::before {
+  content: "👤";
+  color: #9aa0a6;
+  font-size: 1.1rem;
+}
+
+body.vdi-skin-chat .call-overlay.minimized .call-tile-remote {
+  box-shadow: none;
+  animation: none;
+}
+
 body.vdi-skin-call .call-overlay:not(.minimized) .call-controls {
   position: static;
   margin: 0;
@@ -2852,6 +3245,26 @@ body.vdi-skin-call .call-action.decline:hover { background: #ea5f63; }
 }
 
 .vdi-toggle:active { transform: translateY(-50%) scale(0.93); }
+
+/* the rose pulsing circle is the romantic theme's own color — leaving it
+   as-is on top of either disguise skin would be the one obvious tell, so
+   it goes neutral/office-toned (still the same exit hatch, just quieter)
+   whenever a skin is actually up */
+body.vdi-skin-chat .vdi-toggle,
+body.vdi-skin-call .vdi-toggle {
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.92);
+  color: #5f6368;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  animation: none;
+}
+
+body.vdi-skin-chat .vdi-toggle:hover,
+body.vdi-skin-call .vdi-toggle:hover {
+  color: var(--zc-accent, #841930);
+  border-color: var(--zc-accent, #841930);
+  background: #fff;
+}
 
 @keyframes vdi-toggle-pulse {
   0%, 100% { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(212, 160, 164, 0.5); }

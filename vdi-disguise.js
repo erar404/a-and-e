@@ -7,13 +7,23 @@
    state changes underneath:
    - functional chat skin (body.vdi-skin-chat): logged into the chat,
      no call running — the REAL messages and composer stay live, just
-     reskinned as a flat Zoom chat transcript. Typing still works.
-   - functional call skin (body.vdi-skin-call): a call is active — the
-     REAL local/remote video, mute/cam/hangup all stay live, reskinned
-     as a Zoom gallery view (two equal tiles) instead of the romantic
-     big-feed-plus-heart layout.
+     reskinned as the full Zoom Workplace chat shell. Typing still works.
+   - functional call skin (body.vdi-skin-call): a full-screen call is
+     active — the REAL local/remote video, mute/cam/hangup all stay
+     live, reskinned as a Zoom gallery view (two equal tiles) instead of
+     the romantic big-feed-plus-heart layout.
    - full block (#vdi-overlay): only when there's nothing safe to leave
      live at all — still on the login gate.
+
+   A minimized call (chat.js shrinks it to a small draggable bubble) is
+   deliberately treated as the CHAT skin, not the call skin: the whole
+   point of minimizing is that the real chat underneath is fully
+   visible/usable again, so it should read as ordinary disguised chat,
+   not a meeting room, with the small bubble (mute/hangup + a live
+   avatar ring) floating on top regardless of which skin is under it.
+   chat.js auto-minimizes as soon as this file's call skin would
+   otherwise come on for an active call — see the MutationObserver on
+   document.body's class list over there.
    ════════════════════════════════════════════ */
 
 (() => {
@@ -39,7 +49,7 @@
   // moment the composer is empty — swap it for the fake channel's while
   // the chat skin is up, stash the real one the first time so it can
   // come back exactly as it was
-  const DISGUISE_PLACEHOLDER = "Message Meeting Chat";
+  const DISGUISE_PLACEHOLDER = "Write a message or type / for more";
   let realPlaceholder = null;
   function setChatSkinPlaceholder(on) {
     if (!composerInput) return;
@@ -107,6 +117,11 @@
   function refreshMode({ flicker = false } = {}) {
     if (!disguiseOn) return;
     const callActive = !!(callOverlayEl && !callOverlayEl.hidden);
+    // a minimized call already shrinks to a small bubble that leaves the
+    // real page fully visible underneath (see chat.js) — so for skin
+    // purposes it counts as "not on a call" the same as chatVisible below,
+    // rather than pulling in the full-screen meeting-room skin
+    const callFullScreen = callActive && !callOverlayEl.classList.contains("minimized");
     const chatVisible = !!(chatEl && !chatEl.hidden);
 
     document.body.classList.remove("vdi-skin-chat", "vdi-skin-call");
@@ -115,7 +130,7 @@
     watchCallLabel(false);
     setChatSkinPlaceholder(false);
 
-    if (callActive) {
+    if (callFullScreen) {
       overlay.hidden = true;
       setCovered(false);
       document.body.classList.add("vdi-skin-call");
@@ -146,7 +161,9 @@
     if (!modeObserver) {
       modeObserver = new MutationObserver(() => refreshMode({ flicker: true }));
       if (chatEl) modeObserver.observe(chatEl, { attributes: true, attributeFilter: ["hidden"] });
-      if (callOverlayEl) modeObserver.observe(callOverlayEl, { attributes: true, attributeFilter: ["hidden"] });
+      // "class" too, not just "hidden" — that's how minimizeCall()/restoreCall()
+      // signal the minimized state this now reacts to above
+      if (callOverlayEl) modeObserver.observe(callOverlayEl, { attributes: true, attributeFilter: ["hidden", "class"] });
     }
     if (persist) sessionStorage.setItem(STORAGE_KEY, "1");
   }
