@@ -2407,6 +2407,27 @@ body {
   .msg-img { max-width: 68vw; }
 }
 
+/* hand-drawn line icons standing in for the handful of glyphs (🖥 🔍 🔔 🗓
+   💬 ☎ ✉ 📅 ⚡ 📄) that render as full-color emoji in at least one spot
+   on the disguise — and inconsistently at that, flat at some font-sizes
+   and colored at others on the same machine, which reads as sloppier
+   than either would alone. Sized off the parent's own font-size (1em) and
+   colored via currentColor, so they drop into the existing rail/topbar/
+   header rules exactly like the text-glyph icons (⌂ ☺ ◔ ▤ ⚙ ⋯ ☆ ⧉ ⛶)
+   they sit next to, which already render flat everywhere and stay as
+   plain characters. */
+.ic {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* ─── vdi disguise ───
    deliberately the coldest, most generic thing this app can render —
    system sans, office grays, a blue that isn't quite any real product's
