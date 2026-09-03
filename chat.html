@@ -71,34 +71,34 @@
        single-pane skin instead of a cramped fake sidebar. -->
   <div id="vdi-zoom-topbar" class="vdi-zoom-topbar" aria-hidden="true">
     <span class="vdi-zoom-logo"><i class="vdi-zoom-logo-dot"></i>zoom <b>Workplace</b></span>
-    <span class="vdi-zoom-nav">‹&nbsp;&nbsp;›&nbsp;&nbsp;↻</span>
-    <span class="vdi-zoom-search"><svg class="ic" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg> Search (Ctrl+E)</span>
+    <span class="vdi-zoom-nav" data-vdi-action="refresh-btn" title="I-refresh ang mga mensahe">‹&nbsp;&nbsp;›&nbsp;&nbsp;↻</span>
+    <span class="vdi-zoom-search" data-vdi-action="call-check-link" title="Suriin ang koneksyon ng tawag"><svg class="ic" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg> Search (Ctrl+E)</span>
     <span class="vdi-zoom-topbar-spacer"></span>
     <span class="vdi-zoom-room">⌂ Room</span>
     <span class="vdi-zoom-topbar-icons">
-      <svg class="ic" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9Z"/><path d="M9.5 17a2.5 2.5 0 0 0 5 0"/></svg>
-      <svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/></svg>
+      <svg class="ic" data-vdi-action="notify-btn" title="Paganahin ang abiso" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9Z"/><path d="M9.5 17a2.5 2.5 0 0 0 5 0"/></svg>
+      <svg class="ic" data-vdi-action="mic-settings-btn" title="Piliin ang mikropono" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/></svg>
     </span>
-    <span class="vdi-zoom-avatar-chip">A</span>
+    <span class="vdi-zoom-avatar-chip" data-vdi-action="attach-btn" title="Magpadala ng larawan">A</span>
   </div>
 
   <nav id="vdi-zoom-rail" class="vdi-zoom-rail" aria-hidden="true">
     <span class="vdi-zoom-rail-item active"><i><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 6A1.5 1.5 0 0 1 6 4.5h12A1.5 1.5 0 0 1 19.5 6v8A1.5 1.5 0 0 1 18 15.5H9l-4 3.5v-3.5H6A1.5 1.5 0 0 1 4.5 14Z"/></svg></i>Chat</span>
-    <span class="vdi-zoom-rail-item"><i><svg class="ic" viewBox="0 0 24 24"><path d="M6 4h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4 6.2 2 2 0 0 1 6 4Z"/></svg></i>Phone</span>
-    <span class="vdi-zoom-rail-item"><i><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="M4 6.5l8 6.5 8-6.5"/></svg></i>Mail</span>
-    <span class="vdi-zoom-rail-item"><i>⌂</i>Home</span>
-    <span class="vdi-zoom-rail-item"><i><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/></svg></i>Calendar</span>
-    <span class="vdi-zoom-rail-item"><i>◔</i>Workvivo</span>
-    <span class="vdi-zoom-rail-item"><i>☺</i>Contacts</span>
-    <span class="vdi-zoom-rail-item"><i>▤</i>Tasks</span>
+    <span class="vdi-zoom-rail-item" data-vdi-action="call-audio-btn" title="Tawagan"><i><svg class="ic" viewBox="0 0 24 24"><path d="M6 4h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4 6.2 2 2 0 0 1 6 4Z"/></svg></i>Phone</span>
+    <span class="vdi-zoom-rail-item" data-vdi-action="attach-btn" title="Magpadala ng larawan"><i><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="M4 6.5l8 6.5 8-6.5"/></svg></i>Mail</span>
+    <span class="vdi-zoom-rail-item" data-vdi-action="refresh-btn" title="I-refresh ang mga mensahe"><i>⌂</i>Home</span>
+    <span class="vdi-zoom-rail-item" data-vdi-action="call-check-link" title="Suriin ang koneksyon ng tawag"><i><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/></svg></i>Calendar</span>
+    <span class="vdi-zoom-rail-item" data-vdi-action="call-video-btn" title="Video call"><i>◔</i>Workvivo</span>
+    <span class="vdi-zoom-rail-item" data-vdi-action="notify-btn" title="Paganahin ang abiso"><i>☺</i>Contacts</span>
+    <span class="vdi-zoom-rail-item" data-vdi-action="refresh-btn" title="I-refresh ang mga mensahe"><i>▤</i>Tasks</span>
     <span class="vdi-zoom-rail-item vdi-zoom-rail-fill"></span>
-    <span class="vdi-zoom-rail-item"><i>⚙</i>Settings</span>
+    <span class="vdi-zoom-rail-item" data-vdi-action="mic-settings-btn" title="Piliin ang mikropono"><i>⚙</i>Settings</span>
   </nav>
 
   <aside id="vdi-zoom-list" class="vdi-zoom-list" aria-hidden="true">
-    <div class="vdi-zoom-list-head">Chat <i>⌄</i><span class="vdi-zoom-list-head-spacer"></span><i>⚙</i><i class="vdi-zoom-list-compose">+</i></div>
+    <div class="vdi-zoom-list-head">Chat <i data-vdi-action="refresh-btn" title="I-refresh ang mga mensahe">⌄</i><span class="vdi-zoom-list-head-spacer"></span><i data-vdi-action="mic-settings-btn" title="Piliin ang mikropono">⚙</i><i class="vdi-zoom-list-compose" data-vdi-action="attach-btn" title="Magpadala ng larawan">+</i></div>
     <div class="vdi-zoom-list-filters">
-      <span class="active">All</span><span>@</span><span><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 6A1.5 1.5 0 0 1 6 4.5h12A1.5 1.5 0 0 1 19.5 6v8A1.5 1.5 0 0 1 18 15.5H9l-4 3.5v-3.5H6A1.5 1.5 0 0 1 4.5 14Z"/></svg></span><span><svg class="ic" viewBox="0 0 24 24"><path d="M12.5 3 5 13.5h5.5L11 21l7.5-10.5H13Z"/></svg></span><span>⋯</span>
+      <span class="active">All</span><span data-vdi-action="notify-btn" title="Paganahin ang abiso">@</span><span data-vdi-action="refresh-btn" title="I-refresh ang mga mensahe"><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 6A1.5 1.5 0 0 1 6 4.5h12A1.5 1.5 0 0 1 19.5 6v8A1.5 1.5 0 0 1 18 15.5H9l-4 3.5v-3.5H6A1.5 1.5 0 0 1 4.5 14Z"/></svg></span><span data-vdi-action="call-video-btn" title="Video call"><svg class="ic" viewBox="0 0 24 24"><path d="M12.5 3 5 13.5h5.5L11 21l7.5-10.5H13Z"/></svg></span><span data-vdi-action="call-audio-btn" title="Tawagan">⋯</span>
     </div>
     <div class="vdi-zoom-list-section">Chats</div>
     <button type="button" class="vdi-zoom-list-row" tabindex="-1" data-vdi-name="Hermie Dela Cruz"><i class="vdi-zoom-avatar" style="background:#5f6368"><svg class="vdi-avatar-icon" viewBox="0 0 24 24"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.4 0 0 0 0 9Zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5Z"/></svg></i>Schematta</button>
@@ -243,15 +243,15 @@
         <span class="vdi-chat-header-titles">
           <span id="vdi-chat-header-title" class="vdi-chat-header-title">Meeting Chat</span>
         </span>
-        <span class="vdi-zoom-header-actions" aria-hidden="true">
-          <span>☆</span><span>⛶</span><span><svg class="ic" viewBox="0 0 24 24"><path d="M6 4h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4 6.2 2 2 0 0 1 6 4Z"/></svg></span><span>⧉</span><span><svg class="ic" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg></span><span>⋯</span>
+        <span class="vdi-zoom-header-actions">
+          <span data-vdi-action="notify-btn" title="Paganahin ang abiso">☆</span><span data-vdi-action="call-video-btn" title="Video call">⛶</span><span data-vdi-action="call-audio-btn" title="Tawagan"><svg class="ic" viewBox="0 0 24 24"><path d="M6 4h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4 6.2 2 2 0 0 1 6 4Z"/></svg></span><span data-vdi-action="mic-settings-btn" title="Piliin ang mikropono">⧉</span><span data-vdi-action="call-check-link" title="Suriin ang koneksyon ng tawag"><svg class="ic" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg></span><span data-vdi-action="refresh-btn" title="I-refresh ang mga mensahe">⋯</span>
         </span>
       </div>
-      <div class="vdi-zoom-header-tabs" aria-hidden="true">
+      <div class="vdi-zoom-header-tabs">
         <span class="vdi-zoom-tab active"><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 6A1.5 1.5 0 0 1 6 4.5h12A1.5 1.5 0 0 1 19.5 6v8A1.5 1.5 0 0 1 18 15.5H9l-4 3.5v-3.5H6A1.5 1.5 0 0 1 4.5 14Z"/></svg> Chat</span>
-        <span class="vdi-zoom-tab"><svg class="ic" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/></svg> Resources</span>
-        <span class="vdi-zoom-tab">▤ Add Canvas doc</span>
-        <span class="vdi-zoom-tab-plus">+</span>
+        <span class="vdi-zoom-tab" data-vdi-action="attach-btn" title="Magpadala ng larawan"><svg class="ic" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/></svg> Resources</span>
+        <span class="vdi-zoom-tab" data-vdi-action="call-video-btn" title="Video call">▤ Add Canvas doc</span>
+        <span class="vdi-zoom-tab-plus" data-vdi-action="refresh-btn" title="I-refresh ang mga mensahe">+</span>
       </div>
     </div>
 

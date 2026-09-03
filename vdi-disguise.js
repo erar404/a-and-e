@@ -89,6 +89,23 @@
     if (row) selectZoomListRow(row);
   });
 
+  // every other decorative bit of the Zoom shell (topbar icons, rail
+  // items, list-head controls, filters, header action icons, tabs) is
+  // wired to one of the app's real, already-implemented features rather
+  // than left as inert chrome — [data-vdi-action="<id>"] in chat.html
+  // names which real button to proxy a click through to, and each one
+  // carries a `title` so hovering reveals what it actually does, the
+  // same "you have to go looking for it" spirit as the "play"/"jipiti"
+  // composer commands. Only ever reachable while the functional chat
+  // skin is on (these elements are display:none otherwise), so the real
+  // chat is always genuinely live/logged-in underneath by the time one
+  // of these can be clicked.
+  document.addEventListener("click", (e) => {
+    const trigger = e.target.closest("[data-vdi-action]");
+    if (!trigger) return;
+    document.getElementById(trigger.dataset.vdiAction)?.click();
+  });
+
   // everything the full-block state is meant to hide should also be
   // unreachable by keyboard/screen-reader while it's up — but only in
   // that state; both functional skins need the real thing underneath

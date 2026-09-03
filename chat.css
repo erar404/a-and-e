@@ -2859,6 +2859,27 @@ body.vdi-skin-chat .chat {
   color: var(--zc-accent, #841930);
 }
 
+/* ─── every decorative element wired up to a real, already-implemented
+   feature (see the data-vdi-action delegated click handler in
+   vdi-disguise.js) gets a pointer + a subtle hover so it reads as
+   clickable, same as the chat-list rows above; the browser's native
+   title tooltip on hover is the only hint of what it actually does ─── */
+
+[data-vdi-action] { cursor: pointer; }
+
+.vdi-zoom-rail-item[data-vdi-action]:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.vdi-zoom-topbar [data-vdi-action]:hover,
+.vdi-zoom-header-actions [data-vdi-action]:hover,
+.vdi-zoom-list-head [data-vdi-action]:hover,
+.vdi-zoom-list-filters [data-vdi-action]:hover,
+.vdi-zoom-header-tabs [data-vdi-action]:hover {
+  opacity: 0.6;
+}
+
 .vdi-zoom-rail-fill { flex: 1; margin: 0; padding: 0; }
 
 .vdi-zoom-list {
