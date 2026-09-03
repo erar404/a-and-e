@@ -837,6 +837,8 @@ const callCamBtn = document.getElementById("call-cam");
 const callMinimizeBtn = document.getElementById("call-minimize");
 const callMicBtn = document.getElementById("call-mic-btn");
 const callHangupBtn = document.getElementById("call-hangup");
+const callMoreBtn = document.getElementById("call-more-btn");
+const callMoreMenu = document.getElementById("call-more-menu");
 const callMiniExpandBtn = document.getElementById("call-mini-expand");
 const callMiniControls = document.querySelector(".call-mini-controls");
 const callMiniMuteBtn = document.getElementById("call-mini-mute");
@@ -972,6 +974,38 @@ function reportCallError(kind, detail) {
     })
     .catch((e) => console.error("[call] failed to report error email:", e));
 }
+
+/* ─── "more" submenu (mic picker / peer-mic swap / diagnostics / minimize
+   / chat toggle) — everything besides mute/camera/hangup lives behind
+   this trigger; each item keeps its own click handler defined further
+   down, this just opens/closes the popup around them ─── */
+
+let callMoreMenuOpen = false;
+
+function openCallMoreMenu() {
+  if (callMoreMenuOpen) return;
+  callMoreMenuOpen = true;
+  callMoreMenu.classList.add("open");
+  callMoreBtn.setAttribute("aria-expanded", "true");
+}
+
+function closeCallMoreMenu() {
+  if (!callMoreMenuOpen) return;
+  callMoreMenuOpen = false;
+  callMoreMenu.classList.remove("open");
+  callMoreBtn.setAttribute("aria-expanded", "false");
+}
+
+callMoreBtn.addEventListener("click", () => {
+  if (callMoreMenuOpen) closeCallMoreMenu();
+  else openCallMoreMenu();
+});
+
+// picking anything inside closes the popup — each item's own handler
+// (below) already ran by the time this bubbles up
+callMoreMenu.addEventListener("click", (e) => {
+  if (e.target.closest(".call-more-item")) closeCallMoreMenu();
+});
 
 /* ─── peer mic control (remote mic switching during an active call) ─── */
 
@@ -1671,7 +1705,9 @@ function hideCallUI() {
     callMinimizeBtn,
     callChatToggleBtn,
     callHangupBtn,
+    callMoreBtn,
   ].forEach((b) => (b.hidden = true));
+  closeCallMoreMenu();
   closePeerMicPanel();
   peerMics = [];
   activePeerMicId = null;
@@ -1690,6 +1726,8 @@ function showOutgoingControls() {
   callMicBtn.hidden = true;
   callMinimizeBtn.hidden = true;
   callHangupBtn.hidden = true;
+  callMoreBtn.hidden = true;
+  closeCallMoreMenu();
 }
 
 function showIncomingControls() {
@@ -1700,6 +1738,8 @@ function showIncomingControls() {
   callMicBtn.hidden = true;
   callMinimizeBtn.hidden = true;
   callHangupBtn.hidden = true;
+  callMoreBtn.hidden = true;
+  closeCallMoreMenu();
 }
 
 function showActiveControls() {
@@ -1713,6 +1753,7 @@ function showActiveControls() {
   callMinimizeBtn.hidden = false;
   callChatToggleBtn.hidden = false;
   callHangupBtn.hidden = false;
+  callMoreBtn.hidden = false;
   callAvatar.hidden = isVideoCall;
   callAvatar.classList.remove("ringing");
   setCallStatus("");
@@ -1798,6 +1839,7 @@ function visibleChatHeaderBottom() {
 
 function minimizeCall() {
   if (callState !== "active" || callMinimized) return;
+  closeCallMoreMenu();
   closePeerMicPanel();
   closeMicDiagnosePanel();
   callMinimized = true;

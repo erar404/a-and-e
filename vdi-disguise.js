@@ -40,6 +40,9 @@
   const callNameEl = document.getElementById("call-name");
   const callLabelRemoteEl = document.getElementById("vdi-call-label-remote");
   const composerInput = document.getElementById("composer-input");
+  const zoomList = document.getElementById("vdi-zoom-list");
+  const chatHeaderTitleEl = document.getElementById("vdi-chat-header-title");
+  const chatHeaderIconEl = document.getElementById("vdi-chat-header-icon");
   if (!chrome || !overlay || !toggleBtn || !chatHeaderEl) return;
 
   const STORAGE_KEY = "vdiDisguiseOn";
@@ -60,6 +63,31 @@
       composerInput.placeholder = realPlaceholder;
     }
   }
+
+  // the fake chat list (desktop only, see vdi-zoom-list in chat.css) is
+  // clickable purely for cover: picking a different name there just
+  // relabels the disguised header, no real chat data changes — the real
+  // messages/composer underneath stay pointed at the real conversation
+  const DEFAULT_ROW_NAME = chatHeaderTitleEl ? chatHeaderTitleEl.textContent.trim() : "Meeting Chat";
+  function selectZoomListRow(row) {
+    if (!zoomList || !row) return;
+    zoomList.querySelectorAll(".vdi-zoom-list-row.active").forEach((r) => r.classList.remove("active"));
+    row.classList.add("active");
+    if (chatHeaderTitleEl) chatHeaderTitleEl.textContent = row.dataset.vdiName || row.textContent.trim();
+    if (chatHeaderIconEl) {
+      const avatarBg = row.querySelector(".vdi-zoom-avatar")?.style.background;
+      chatHeaderIconEl.style.background = avatarBg || "";
+    }
+  }
+  function resetZoomList() {
+    if (!zoomList) return;
+    const defaultRow = zoomList.querySelector(`.vdi-zoom-list-row[data-vdi-name="${DEFAULT_ROW_NAME}"]`);
+    selectZoomListRow(defaultRow || zoomList.querySelector(".vdi-zoom-list-row"));
+  }
+  zoomList?.addEventListener("click", (e) => {
+    const row = e.target.closest(".vdi-zoom-list-row");
+    if (row) selectZoomListRow(row);
+  });
 
   // everything the full-block state is meant to hide should also be
   // unreachable by keyboard/screen-reader while it's up — but only in
@@ -176,6 +204,7 @@
     }
     watchCallLabel(false);
     setChatSkinPlaceholder(false);
+    resetZoomList();
     chrome.hidden = true;
     overlay.hidden = true;
     chatHeaderEl.hidden = true;
