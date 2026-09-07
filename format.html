@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arrange &amp; Express — AI Tone Formatter</title>
+  <meta name="description" content="Rewrite any statement in the tone you need — professional, respectful, remorseful, prudent, or your own." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%234f46e5'/%3E%3Ctext x='12' y='16.5' font-family='Arial,Helvetica,sans-serif' font-size='11' font-weight='700' fill='%23fff' text-anchor='middle'%3EAe%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="format.css" />
+</head>
+<body>
+
+  <header class="af-topbar">
+    <div class="af-brand">
+      <span class="af-brand-mark" aria-hidden="true">Ae</span>
+      <span class="af-brand-name">Arrange &amp; Express</span>
+    </div>
+    <button type="button" id="signin-open" class="af-signin-btn">Sign In</button>
+  </header>
+
+  <main class="af-main">
+    <section class="af-hero">
+      <p class="af-kicker">AI TONE FORMATTER</p>
+      <h1 class="af-title">Say it the right way, <em>every time.</em></h1>
+      <p class="af-sub">Paste a statement, choose a tone (or a few), and let Arrange &amp; Express rewrite it for you.</p>
+    </section>
+
+    <section class="af-card" aria-label="Tone formatter">
+      <div class="af-field">
+        <div class="af-field-head">
+          <label for="statement-input">Your statement</label>
+          <span id="statement-count" class="af-count">0 words</span>
+        </div>
+        <textarea id="statement-input" class="af-autogrow" rows="3" placeholder="Type or paste the statement you want reformatted…"></textarea>
+      </div>
+
+      <div class="af-row">
+        <div class="af-field af-field-tone">
+          <label id="tone-field-label">Tone(s)</label>
+          <div class="tone-dropdown">
+            <button type="button" id="tone-toggle" class="tone-toggle" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="tone-field-label tone-label">
+              <span id="tone-label">Select tone(s)</span>
+              <span class="tone-caret" aria-hidden="true">▾</span>
+            </button>
+            <div id="tone-panel" class="tone-panel" role="listbox" aria-multiselectable="true" hidden>
+              <label class="tone-option"><input type="checkbox" value="Professional" /><span>Professional</span></label>
+              <label class="tone-option"><input type="checkbox" value="Respectful" /><span>Respectful</span></label>
+              <label class="tone-option"><input type="checkbox" value="Remorseful" /><span>Remorseful</span></label>
+              <label class="tone-option"><input type="checkbox" value="Prudent" /><span>Prudent</span></label>
+              <label class="tone-option"><input type="checkbox" id="tone-other-check" /><span>Other…</span></label>
+              <input type="text" id="tone-other-input" class="tone-other-input" placeholder="Describe the tone" hidden aria-label="Custom tone" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="af-field">
+        <label for="extra-input">Additional instructions <span class="af-optional">(optional)</span></label>
+        <textarea id="extra-input" class="af-autogrow" rows="1" placeholder="Any extra instructions for the rewrite — length, audience, formality…"></textarea>
+      </div>
+
+      <div class="af-submit-row">
+        <button type="button" id="format-btn" class="af-format-btn">
+          <span id="format-btn-label">Format Text</span>
+        </button>
+        <span id="kbd-hint" class="af-kbd-hint"></span>
+      </div>
+
+      <div id="result-box" class="af-result" hidden>
+        <div class="af-result-head">
+          <p class="af-result-label"><span id="result-status-dot" class="af-status-dot" hidden aria-hidden="true"></span>Result</p>
+          <div id="result-actions" class="af-result-actions" hidden>
+            <button type="button" id="result-copy" class="af-result-action">
+              <span id="result-copy-label">Copy</span>
+            </button>
+            <button type="button" id="result-regenerate" class="af-result-action">Regenerate</button>
+          </div>
+        </div>
+
+        <div id="result-skeleton" class="af-skeleton" hidden aria-hidden="true">
+          <span class="af-skeleton-line" style="width: 92%"></span>
+          <span class="af-skeleton-line" style="width: 78%"></span>
+          <span class="af-skeleton-line" style="width: 55%"></span>
+        </div>
+
+        <p id="result-text" class="af-result-text" hidden><span id="result-text-content"></span><span id="result-caret" class="result-caret" hidden aria-hidden="true"></span></p>
+
+        <button type="button" id="result-stop" class="af-result-stop" hidden>Stop generating</button>
+      </div>
+    </section>
+
+    <footer class="af-footer">
+      <p>© <span id="af-year"></span> Arrange &amp; Express</p>
+    </footer>
+  </main>
+
+  <!-- ═══════════ sign in ═══════════ -->
+  <div id="signin-backdrop" class="signin-backdrop" hidden></div>
+  <div id="signin-modal" class="signin-modal" role="dialog" aria-modal="true" aria-labelledby="signin-title" hidden>
+    <button type="button" id="signin-close" class="signin-close" aria-label="Close">✕</button>
+    <h2 id="signin-title" class="signin-title">Sign In</h2>
+    <form id="signin-form" class="signin-form">
+      <label for="signin-username">Username</label>
+      <select id="signin-username" required>
+        <option value="Erwin">Erwin</option>
+        <option value="Alliah">Alliah</option>
+      </select>
+
+      <label for="signin-password">Password</label>
+      <input
+        id="signin-password"
+        type="password"
+        inputmode="numeric"
+        autocomplete="current-password"
+        placeholder="MMDDYYYY"
+        maxlength="8"
+        required
+      />
+
+      <p id="signin-error" class="signin-error" hidden>Incorrect username or password.</p>
+      <button type="submit" class="signin-submit">Sign In</button>
+    </form>
+  </div>
+
+  <script src="supabase.min.js"></script>
+  <script src="format.js"></script>
+</body>
+</html>

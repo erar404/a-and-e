@@ -28,9 +28,9 @@ COPY jipiti/main.py /opt/jipiti/main.py
 COPY docker/30-start-jipiti.sh /docker-entrypoint.d/30-start-jipiti.sh
 RUN chmod +x /docker-entrypoint.d/30-start-jipiti.sh
 
-COPY index.html chat.html call-check.html \
-     styles.css chat.css call-check.css \
-     script.js monthsary.js monthsary-timer.js letters-archive.js drive-show.js chat.js photos.js supabase.min.js call-check.js vdi-disguise.js yt-player.js jipiti.js sound-check.js chat-counter.js sw.js \
+COPY index.html chat.html call-check.html format.html \
+     styles.css chat.css call-check.css format.css \
+     script.js monthsary.js monthsary-timer.js letters-archive.js drive-show.js chat.js photos.js supabase.min.js call-check.js vdi-disguise.js yt-player.js jipiti.js sound-check.js chat-counter.js sw.js format.js \
      /usr/share/nginx/html/
 COPY static/ /usr/share/nginx/html/static/
 

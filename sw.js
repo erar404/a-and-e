@@ -19,7 +19,7 @@ self.addEventListener("push", (event) => {
     body: data.body || "",
     icon: HEART_ICON,
     badge: HEART_ICON,
-    tag: "usap-tayo-message",
+    tag: "chat-message",
     renotify: true,
     data: { url: data.url || "/chat.html" },
   };

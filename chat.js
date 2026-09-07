@@ -226,7 +226,7 @@ async function enterChat() {
 
   // re-login shouldn't stack a second subscription
   await sb.removeAllChannels();
-  sb.channel("usap-tayo")
+  sb.channel("chat")
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "chat_messages" },
@@ -280,7 +280,7 @@ function trackPresence(partial) {
 }
 
 function setupPresence() {
-  presenceChannel = sb.channel("usap-tayo-presence", {
+  presenceChannel = sb.channel("chat-presence", {
     config: { presence: { key: me } },
   });
   presenceChannel
@@ -1386,7 +1386,7 @@ async function handleApplyMicFix({ from, deviceId }) {
 }
 
 function setupCallChannel() {
-  callChannel = sb.channel("usap-tayo-call", { config: { broadcast: { self: false } } });
+  callChannel = sb.channel("chat-call", { config: { broadcast: { self: false } } });
   callChannel
     .on("broadcast", { event: "offer" }, ({ payload }) => handleOffer(payload))
     .on("broadcast", { event: "answer" }, ({ payload }) => handleAnswer(payload))
