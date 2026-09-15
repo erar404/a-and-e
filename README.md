@@ -79,6 +79,18 @@ Every 11th of the month at midnight (PH time), the site rewrites its titles, ent
 | `static/data/monthsary.json` | Tagalog month-count names, default text templates (`{name}` `{english}` `{ordinalEn}` placeholders), and per-month overrides — including switching the whole site's `theme` (e.g. month 12 flips to a golden "anniversary" dawn) |
 | `static/data/poems.json` | Every poem plus the `month` it unseals on — cards appear on their own at midnight |
 
+### 🎞️ Anniversareels
+
+The first chapter after "buksan mo" is a phone-shaped, Instagram-Reels-style vertical feed (`reels.js`) of short clips **streamed live from a shared Google Drive folder**. `drive.usercontent.google.com/download` honours HTTP byte-range requests with a real `video/mp4` body, so a plain `<video>` element plays progressively instead of downloading whole files — but Google refuses to be hotlinked by a video tag (any request carrying the browser's `Sec-Fetch-Dest: video` headers gets a 403), so `nginx.conf.template` proxies `/reels/<fileId>` to Drive with cookies and those headers stripped and `Range` passed through, unbuffered. Only the active reel and its two neighbours hold a `src` (the next one buffers ahead while the current one plays); everything else is a Drive thumbnail poster. Swipe or scroll to snap between reels; the reels play **with sound** — the song fades to silence and any other clip pauses while the feed is on screen, and comes back as she scrolls on (tap to mute, double-tap for a shower of hearts). There's no counter and no end: another round of the clips is appended whenever she nears the last one, so the feed just keeps going. A clip that still refuses to stream falls back to Drive's embedded player. The list lives in `static/data/reels.json`, and because `python -m http.server` can't proxy, local previews of the reels use `node tools/dev-server.mjs` instead (same static files, plus that one route):
+
+```powershell
+node tools/sync-drive-media.mjs 1TSEkjp4MHdmBnO7vV8wYpG2dJdu3CBCk static/data/reels.json
+```
+
+### 🌅 Isang Taon — the anniversary surprise
+
+When the monthsary engine reaches month 12 (Oct 11, 2026, PH midnight) the whole site turns from a wine-dark night into a bright blush-and-gold morning: a new palette, four pastel aurora blobs, shimmering gradient headlines, a rainbow scroll ribbon and a floating "isang taon ♡" stamp on the entry. `anniversary.js` adds what CSS can't: if the page is open at the stroke of midnight the flip arrives as a **sunrise** (a warm veil climbs the screen, the palette swaps behind it, then it thins away), hearts float up all day instead of petals falling, a constellation twinkles behind everything, and confetti bursts on the flip, on "buksan mo", with the greeting and on a double-tapped reel. Preview with `?month=12`; everything respects `prefers-reduced-motion`.
+
 ### 🖼️ Photo Deck & Cloud Slideshow
 
 An 87-photo draggable polaroid deck (`photos.js`) supports drag, swipe, arrow keys, and keyboard nav with a deal-in animation. Alongside it, the "mula sa ating ulap" section streams **448 photos/videos live from a public Google Drive folder** — nothing is copied into the repo or Docker image. The order is reshuffled every visit, and slides show when they were taken and which monthsary month that fell in (computed with the same whole-month rule the monthsary engine itself uses) — for videos that's read straight from Android's own `VID_YYYYMMDD_...` filename convention (no API needed); for photos it's the file's real EXIF `DateTimeOriginal`, fetched via the Drive API when re-syncing. An earlier version guessed photo dates from a 13-digit number some filenames carried — that turned out to be an export timestamp, not the capture date, so it showed the wrong day; photos without a fetched EXIF date now simply show no date rather than a guessed one.
@@ -93,6 +105,10 @@ An 87-photo draggable polaroid deck (`photos.js`) supports drag, swipe, arrow ke
 ### 📜 Poems, the Letter & the Letters Archive
 
 Eight roman-numeral poem cards with a 3D wax-seal flip, unsealed progressively by the monthsary engine, plus a closing handwritten letter section with scroll-driven lens-focus. "basahin muli ang mga naunang sulat ♡" opens a modal (`letters-archive.js`) listing every past monthsary letter as tabs, reusing the same `static/data/monthsary.json` the live envelope surprise (`monthsary-timer.js`) draws from — so a written month stays readable anytime, not just the one day it first arrived.
+
+### ⚡ Loading budget
+
+Nothing below the fold costs bandwidth until it's needed: the first video (4.8 MB) only buffers and plays while its polaroid is on screen, the cloud slideshow doesn't even fetch its list until the section is within a screen of view (and asks Drive for the stage's real width instead of 1600px), and the Anniversareels feed sets posters for the active reel ±2 only. Deck photos ship as 720px copies (`static/opt/sm/`, made by `node tools/make-small-photos.mjs`) chosen via `srcset` — the frames never render wider than 340 CSS px — with the 1200px originals as fallback. The rAF cinema loop writes its beat-reactive custom properties onto the aurora and the polaroid sections (not `<html>`, which forced a whole-tree style pass every frame) and only when a value changes; the letter's lens-focus blur steps in ½px and drops its filter entirely at 0.
 
 ### 🎧 Cinematic Atmosphere
 
@@ -134,6 +150,8 @@ e-and-a/
 ├── monthsary-timer.js           # the live monthsary-day envelope surprise (current month only)
 ├── letters-archive.js           # "basahin muli..." modal — every past monthsary letter, on demand
 ├── drive-show.js                # cloud slideshow — fetches & renders static/data/drive-media.json (shuffled, dated)
+├── reels.js                     # Anniversareels — vertical snap feed, byte-range streamed from Drive (static/data/reels.json)
+├── anniversary.js               # isang taon — sunrise transition, floating hearts, sparkles, confetti (theme-anniversary)
 ├── photos.js                   # generated array of 87 static/opt/*.jpg paths
 ├── chat-counter.js              # "the chat count" section — total Usap Tayo messages, via a count-only RPC
 │
@@ -154,16 +172,20 @@ e-and-a/
 │   ├── data/
 │   │   ├── monthsary.json      # month names, text templates, per-month overrides
 │   │   ├── poems.json          # poem text + unlock month
-│   │   └── drive-media.json    # generated Google Drive file list (id/name/type)
+│   │   ├── drive-media.json    # generated Google Drive file list (id/name/type)
+│   │   └── reels.json          # generated Anniversareels clip list (same tool, second folder)
 │   ├── opt/                    # web-optimized photos + first_vid.mp4 (served to visitors)
+│   │   └── sm/                 # 720px copies of the photos for srcset (tools/make-small-photos.mjs)
 │   ├── music.mp3
 │   └── *.jpg / *.mp4           # original full-res assets (excluded from the Docker image)
 │
 ├── tools/
-│   └── sync-drive-media.mjs    # regenerates static/data/drive-media.json; GOOGLE_DRIVE_API_KEY backfills real photo EXIF dates
+│   ├── make-small-photos.mjs   # ffmpeg: 720px copies of static/opt/*.jpg → static/opt/sm/
+│   ├── sync-drive-media.mjs    # regenerates static/data/drive-media.json (or any [folderId] [outFile], e.g. reels.json); GOOGLE_DRIVE_API_KEY backfills real photo EXIF dates
+│   └── dev-server.mjs          # local preview server: static files + the /reels/<id> Drive proxy nginx does in production
 │
 ├── Dockerfile                  # nginx:alpine + python3, custom entrypoint, envsubst PORT templating
-├── nginx.conf.template         # cache rules, /api/jipiti proxy to the local python process
+├── nginx.conf.template         # cache rules, /api/jipiti proxy, /reels/<id> range-streaming proxy to Google Drive
 ├── .dockerignore                # keeps ~528 MB of originals out of the image
 │
 ├── CHAT_PLAN.md                 # Usap Tayo build & decision log

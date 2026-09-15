@@ -14,6 +14,13 @@
   const totalEl = document.getElementById("cine-total");
 
   const imgUrl = (id, w) => `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`;
+
+  // ask Drive for what the stage can actually show (rounded up to 200px
+  // steps so the URLs, and the browser cache, repeat) instead of 1600 always
+  function bigWidth() {
+    const need = (stage.clientWidth || 720) * Math.min(devicePixelRatio || 1, 2);
+    return Math.min(1600, Math.max(800, Math.ceil(need / 200) * 200));
+  }
   const videoUrl = (id) => `https://drive.google.com/file/d/${id}/preview`;
 
   // date-taken caption + "which month were we" tag — takenAt comes from
@@ -60,21 +67,36 @@
     return arr;
   }
 
-  fetch("static/data/drive-media.json")
-    .then((r) => r.json())
-    .then((data) => {
-      items = shuffle((data.items || []).filter((i) => i.id && (i.type === "image" || i.type === "video")));
-      if (!items.length) {
+  // nothing is fetched (not even the list) until the section is within a
+  // screen or so of view — it used to pull two Drive images plus the next
+  // one at 1600px the moment the page loaded, behind the entry screen
+  function init() {
+    fetch("static/data/drive-media.json")
+      .then((r) => r.json())
+      .then((data) => {
+        items = shuffle((data.items || []).filter((i) => i.id && (i.type === "image" || i.type === "video")));
+        if (!items.length) {
+          section.style.display = "none";
+          return;
+        }
+        totalEl.textContent = items.length;
+        show(0, true);
+        startAuto();
+      })
+      .catch(() => {
         section.style.display = "none";
-        return;
+      });
+  }
+
+  new IntersectionObserver(
+    (entries, io) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        io.disconnect();
+        init();
       }
-      totalEl.textContent = items.length;
-      show(0, true);
-      startAuto();
-    })
-    .catch(() => {
-      section.style.display = "none";
-    });
+    },
+    { rootMargin: "100% 0px" }
+  ).observe(section);
 
   function buildSlide(item) {
     const slide = document.createElement("div");
@@ -88,8 +110,9 @@
 
     const img = document.createElement("img");
     img.className = "cine-img";
-    img.src = imgUrl(item.id, 1600);
+    img.src = imgUrl(item.id, bigWidth());
     img.alt = "";
+    img.decoding = "async";
     img.draggable = false;
     slide.appendChild(img);
 
@@ -173,12 +196,12 @@
 
     // warm the next image so the fade never stutters
     const upcoming = items[(current + 1) % items.length];
-    new Image().src = imgUrl(upcoming.id, 1600);
+    new Image().src = imgUrl(upcoming.id, bigWidth());
   }
 
   function tick() {
-    // hold still while a video is open or the show is offscreen
-    if (videoOpen) return;
+    // hold still while a video is open, the tab is hidden, or the show is offscreen
+    if (videoOpen || document.hidden) return;
     const r = stage.getBoundingClientRect();
     if (r.top > innerHeight || r.bottom < 0) return;
     show(current + 1);

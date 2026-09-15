@@ -5,8 +5,11 @@
    Drive folder and writes static/data/drive-media.json
    for the cloud slideshow.
 
-   Usage:  node tools/sync-drive-media.mjs [folderId]
+   Usage:  node tools/sync-drive-media.mjs [folderId] [outFile]
    Rerun it anytime new photos/videos land in the folder.
+
+   The same script also feeds the Anniversareels section (reels.js):
+     node tools/sync-drive-media.mjs 1TSEkjp4MHdmBnO7vV8wYpG2dJdu3CBCk static/data/reels.json
 
    Optional: set GOOGLE_DRIVE_API_KEY to also fetch each photo's real
    EXIF capture date (Drive API v3's imageMediaMetadata.time — the same
@@ -20,12 +23,14 @@
    ════════════════════════════════════════════ */
 
 import { writeFileSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DEFAULT_FOLDER = "14kA3EyvaUASX175rQICR_lDgoe9m0KWa";
 const folder = process.argv[2] || DEFAULT_FOLDER;
-const outFile = join(dirname(fileURLToPath(import.meta.url)), "..", "static", "data", "drive-media.json");
+const outFile = process.argv[3]
+  ? resolve(process.cwd(), process.argv[3])
+  : join(dirname(fileURLToPath(import.meta.url)), "..", "static", "data", "drive-media.json");
 const apiKey = process.env.GOOGLE_DRIVE_API_KEY || "";
 
 const IMAGE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp"]);
@@ -34,12 +39,23 @@ const VIDEO_EXT = new Set(["mp4", "mov", "webm", "m4v", "3gp", "mkv", "avi"]);
 // Android's own camera convention (VID_/IMG_YYYYMMDD_HHMMSS...) embeds the
 // real capture date right in the filename — no API needed, and it's what
 // the OS itself wrote, so it's trustworthy.
+// Lemon8/CapCut-style exports (lv_<id>_YYYYMMDDHHMMSS.mp4) carry the full
+// export timestamp the same way — those are the Anniversareels clips.
 function dateFromCameraFilename(name) {
-  const cam = name.match(/(?:VID|IMG)_(\d{4})(\d{2})(\d{2})_/);
-  if (!cam) return null;
-  const [, y, m, d] = cam;
-  const date = new Date(`${y}-${m}-${d}T12:00:00+08:00`);
-  return isNaN(date) ? null : date.toISOString();
+  const base = name.split("/").pop();
+  const cam = base.match(/(?:VID|IMG)_(\d{4})(\d{2})(\d{2})_/);
+  if (cam) {
+    const [, y, m, d] = cam;
+    const date = new Date(`${y}-${m}-${d}T12:00:00+08:00`);
+    return isNaN(date) ? null : date.toISOString();
+  }
+  const lv = base.match(/^lv_\d+_(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\.\w+$/);
+  if (lv) {
+    const [, y, m, d, h, mi, sec] = lv;
+    const date = new Date(`${y}-${m}-${d}T${h}:${mi}:${sec}+08:00`);
+    return isNaN(date) ? null : date.toISOString();
+  }
+  return null;
 }
 
 // Drive API's imageMediaMetadata.time mirrors the file's own EXIF
@@ -103,8 +119,11 @@ async function walk(folderId, album) {
 
   for (const chunk of chunks) {
     const id = chunk.match(/id="entry-([-\w]+)"/)?.[1];
-    const name = chunk.match(/flip-entry-title">([^<]+)</)?.[1]?.trim();
-    if (!id || !name) continue;
+    const rawName = chunk.match(/flip-entry-title">([^<]+)</)?.[1]?.trim();
+    if (!id || !rawName) continue;
+    // one Drive upload kept its full Android path as its name — only the
+    // basename matters here
+    const name = rawName.split("/").pop();
 
     // subfolders become albums; their name rides along as the caption
     const href = chunk.match(/href="([^"]+)"/)?.[1] || "";
@@ -157,4 +176,4 @@ writeFileSync(
 
 const nImg = items.filter((i) => i.type === "image").length;
 const nVid = items.filter((i) => i.type === "video").length;
-console.log(`✔ ${items.length} files (${nImg} larawan, ${nVid} video) → static/data/drive-media.json`);
+console.log(`✔ ${items.length} files (${nImg} larawan, ${nVid} video) → ${outFile}`);

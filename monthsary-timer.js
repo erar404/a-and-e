@@ -40,6 +40,7 @@
   const letterSign = document.getElementById("monthsary-letter-sign");
   const letterClose = document.getElementById("monthsary-letter-close");
   const letterSound = new Audio("static/kabisado.mp3");
+  letterSound.preload = "none"; // 5 MB that only matters on the 11th — fetched when the envelope appears, not on every visit
 
   if (!envelope || !letterCard) return; // markup not present on this page
 
@@ -167,6 +168,10 @@
   // state for the whole monthsary day, until it's tapped
   function startFlying(n) {
     if (!renderLetter(n)) return;
+    if (letterSound.preload === "none") {
+      letterSound.preload = "auto"; // now it is worth having ready for the tap
+      letterSound.load();
+    }
     if (banner) banner.hidden = true;
     if (callTimer) callTimer.hidden = true;
     letterCard.hidden = true;

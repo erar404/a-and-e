@@ -157,6 +157,9 @@ window.MONTHSARY = (() => {
     el.className = "monthsary-greeting";
     el.textContent = msg;
     document.body.appendChild(el);
+    if (themeFor(state.count) === "anniversary" && typeof window.burstConfetti === "function") {
+      window.burstConfetti(innerWidth / 2, innerHeight - 90, 44);
+    }
     const leave = () => {
       el.classList.add("leaving");
       setTimeout(() => el.remove(), 900);
@@ -177,13 +180,23 @@ window.MONTHSARY = (() => {
     if (preview) return;
     const next = computeCount((state.data && state.data.start) || FALLBACK_START);
     if (next === state.count) return;
+    const themeBefore = themeFor(state.count);
     state.count = next;
     greeted = false;
-    applyTheme();
-    applyTexts();
-    document.dispatchEvent(new CustomEvent("monthsary:change", { detail: { count: next } }));
-    celebrate();
-    if (!document.getElementById("entry")) showGreeting();
+    const swap = () => {
+      applyTheme();
+      applyTexts();
+      document.dispatchEvent(new CustomEvent("monthsary:change", { detail: { count: next } }));
+      celebrate();
+      if (!document.getElementById("entry")) showGreeting();
+    };
+    // the anniversary dawns — anniversary.js washes the screen in light and
+    // swaps the palette behind it; every other month flips in place
+    if (themeBefore !== themeFor(next) && typeof window.dawnTransition === "function") {
+      window.dawnTransition(swap);
+    } else {
+      swap();
+    }
   }
 
   /* ─── boot ─── */

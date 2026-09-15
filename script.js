@@ -9,6 +9,29 @@ const musicToggle = document.getElementById("music-toggle");
 const entry = document.getElementById("entry");
 const story = document.getElementById("story");
 
+/* ─── photos: 720px copies for the small frames they actually fill ─── */
+
+// static/opt/sm/ holds 720px-wide copies of every photo (tools/make-small-photos.mjs).
+// the deck and the first-picture polaroid never render wider than ~340 CSS px,
+// so the 1200px originals were only ever 2× overkill on desktop; srcset lets the
+// browser pick, and a missing small copy quietly falls back to the original.
+const smallPhoto = (src) => src.replace("static/opt/", "static/opt/sm/");
+const PHOTO_SIZES = "(max-width: 640px) 74vw, 340px";
+const photoSrcset = (src) => `${smallPhoto(src)} 720w, ${src} 1200w`;
+
+function photoImg(src) {
+  const img = new Image();
+  img.decoding = "async";
+  img.sizes = PHOTO_SIZES;
+  img.srcset = photoSrcset(src);
+  img.src = src;
+  img.onerror = () => {
+    img.onerror = null;
+    img.removeAttribute("srcset"); // no small copy yet — the original still loads
+  };
+  return img;
+}
+
 /* ─── preloader (warm the critical assets before the curtains open) ─── */
 
 const openBtn = document.getElementById("open-btn");
@@ -18,9 +41,9 @@ const loaderNum = document.getElementById("loader-num");
 
 const loadImg = (src) =>
   new Promise((res) => {
-    const im = new Image();
-    im.onload = im.onerror = () => res();
-    im.src = src;
+    const im = photoImg(src);
+    im.addEventListener("load", () => res(), { once: true });
+    im.addEventListener("error", () => res(), { once: true });
   });
 
 const waitMedia = (el) =>
@@ -42,9 +65,8 @@ const waitMedia = (el) =>
     document.fonts.ready,
     loadImg("static/opt/first_pic.jpg"),
     // iOS may refuse to buffer media before a tap; don't hold the door for it
-    grace(waitMedia(document.getElementById("first-video")), 8000),
     grace(waitMedia(music), 4000),
-    ...PHOTOS.slice(0, 6).map(loadImg),
+    ...PHOTOS.slice(0, 4).map(loadImg),
   ];
 
   let loaded = 0;
@@ -242,7 +264,16 @@ function dealIn() {
    parallax depth, the interlude swell, the
    letter's lens focus, and the live spectrum  */
 
-const rootStyle = document.documentElement.style;
+// the song's numbers used to land on <html> every frame — a custom property
+// changing on the root makes the browser re-resolve style for the whole tree.
+// they now go straight onto the few elements that read them, and only when
+// the (rounded) value actually moved
+const auroraEl = document.querySelector(".aurora");
+const swayEls = [document.getElementById("first"), document.getElementById("clips")].filter(Boolean);
+let lastBass = "";
+let lastEnergy = "";
+let lastSway = "";
+let lastBlur = "";
 const parEls = [...document.querySelectorAll("[data-par]")];
 const interludeEl = document.querySelector(".interlude");
 const interludeBig = document.querySelector(".interlude-line.big");
@@ -287,9 +318,15 @@ function cinemaLoop(now) {
     smEnergy *= 0.96;
   }
 
-  rootStyle.setProperty("--bass", smBass.toFixed(3));
-  rootStyle.setProperty("--energy", smEnergy.toFixed(3));
-  rootStyle.setProperty("--sway", (Math.sin(now / 950) * (0.25 + smBass * 1.1)).toFixed(3) + "deg");
+  const bassStr = smBass.toFixed(2);
+  const energyStr = smEnergy.toFixed(2);
+  const swayStr = (Math.sin(now / 950) * (0.25 + smBass * 1.1)).toFixed(2) + "deg";
+  if (auroraEl && bassStr !== lastBass) auroraEl.style.setProperty("--bass", (lastBass = bassStr));
+  if (auroraEl && energyStr !== lastEnergy) auroraEl.style.setProperty("--energy", (lastEnergy = energyStr));
+  if (swayStr !== lastSway) {
+    lastSway = swayStr;
+    for (const el of swayEls) el.style.setProperty("--sway", swayStr);
+  }
 
   /* parallax depth */
   for (const el of parEls) {
@@ -315,7 +352,9 @@ function cinemaLoop(now) {
     const r = letterEl.getBoundingClientRect();
     if (r.top < vh + 100 && r.bottom > 0) {
       const p = Math.min(1, Math.max(0, (vh * 0.88 - r.top) / (vh * 0.5)));
-      letterEl.style.setProperty("--focus-blur", ((1 - p) * 9).toFixed(2) + "px");
+      const blur = Math.round((1 - p) * 18) / 2; // ½px steps: ~18 re-rasters, not one per frame
+      const blurStr = blur === 0 ? "none" : `blur(${blur}px)`;
+      if (blurStr !== lastBlur) letterEl.style.filter = lastBlur = blurStr;
     }
   }
 
@@ -383,6 +422,24 @@ musicToggle.addEventListener("click", () => {
 
 const firstVideo = document.getElementById("first-video");
 const vidSound = document.getElementById("vid-sound");
+
+// it used to autoplay from the very first byte (4.8 MB, before the curtains
+// even opened). now it starts buffering and playing when its polaroid nears
+// the screen and pauses again when it leaves — no contest with the reels
+// or the song for bandwidth
+new IntersectionObserver(
+  (entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        if (firstVideo.preload !== "auto") firstVideo.preload = "auto";
+        firstVideo.play().catch(() => {});
+      } else if (!firstVideo.paused) {
+        firstVideo.pause();
+      }
+    });
+  },
+  { rootMargin: "40% 0px", threshold: 0.01 }
+).observe(firstVideo);
 
 vidSound.addEventListener("click", () => {
   firstVideo.muted = !firstVideo.muted;
@@ -479,9 +536,8 @@ function renderDeck() {
     card.style.transform = stackTransform(pos, i);
     card.style.zIndex = VISIBLE - pos;
 
-    const img = document.createElement("img");
+    const img = photoImg(PHOTOS[i]);
     img.className = "ph";
-    img.src = PHOTOS[i];
     img.alt = `Memory ${i + 1}`;
     img.draggable = false;
 
@@ -501,7 +557,7 @@ function renderDeck() {
 
 function preload(from, n) {
   for (let k = 0; k < n; k++) {
-    new Image().src = PHOTOS[(from + k) % PHOTOS.length];
+    photoImg(PHOTOS[(from + k) % PHOTOS.length]); // same srcset → same candidate the card will use
   }
 }
 

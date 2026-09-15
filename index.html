@@ -20,7 +20,7 @@
   <div class="vignette" aria-hidden="true"></div>
 
   <!-- ambient aurora glow -->
-  <div class="aurora" aria-hidden="true"><i></i><i></i></div>
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 
   <!-- falling rose petals -->
   <div class="petals" id="petals" aria-hidden="true"></div>
@@ -69,6 +69,7 @@
     <div class="curtain curtain-r" aria-hidden="true"></div>
     <a class="entry-chat" href="chat.html">usap tayo, mahal&nbsp;♡</a>
     <div class="entry-inner">
+      <span class="entry-badge" aria-hidden="true"><i>isang taon<br />♡</i></span>
       <p class="kicker">para sa'yo</p>
       <h1 class="entry-title">Iyong iyo,<br /><em>Mahal ko</em></h1>
       <p class="entry-sub">nine months of us — and counting</p>
@@ -89,6 +90,26 @@
 
   <main id="story" hidden>
 
+    <!-- ═══════════ anniversareels — our little films, streamed from
+         the shared Drive folder (reels.js · static/data/reels.json) ═══════════ -->
+    <section class="reels" id="reels">
+      <p class="kicker reveal">isang taon, sa maliliit na pelikula</p>
+      <h2 class="display reveal">Anniversa<em>reels.</em></h2>
+      <p class="lede reveal">
+        swipe up, mahal — bawat isa'y isang maliit na pelikula natin,
+        at hindi ito nauubos. tap kung gusto mong patahimikin; double-tap kung gusto mo.
+      </p>
+
+      <div class="reels-wrap reveal">
+        <button class="reels-nav prev" id="reels-prev" aria-label="Previous reel"><span>‹</span></button>
+        <div class="reels-phone">
+          <div class="reels-feed" id="reels-feed" aria-label="Anniversareels"></div>
+        </div>
+        <button class="reels-nav next" id="reels-next" aria-label="Next reel"><span>›</span></button>
+      </div>
+      <p class="reels-hint">✦ swipe up or down · tap to mute · double-tap for hearts ✦</p>
+    </section>
+
     <!-- ═══════════ chapter one: the first ═══════════ -->
     <section class="first" id="first">
       <p class="kicker reveal">where it all began</p>
@@ -102,14 +123,14 @@
       <div class="firsts reveal">
         <figure class="polaroid tilt-l" data-par="-0.05">
           <div class="media">
-            <video id="first-video" src="static/opt/first_vid.mp4" preload="auto" loop muted autoplay playsinline></video>
+            <video id="first-video" src="static/opt/first_vid.mp4" preload="metadata" loop muted playsinline></video>
             <button id="vid-sound" class="vid-sound" aria-label="Toggle video sound">unmute</button>
           </div>
           <figcaption>the very first video</figcaption>
         </figure>
         <figure class="polaroid tilt-r" data-par="0.045">
           <div class="media">
-            <img src="static/opt/first_pic.jpg" alt="Our first picture together" loading="lazy" />
+            <img src="static/opt/first_pic.jpg" srcset="static/opt/sm/first_pic.jpg 720w, static/opt/first_pic.jpg 1200w" sizes="(max-width: 640px) 74vw, 330px" alt="Our first picture together" loading="lazy" decoding="async" />
           </div>
           <figcaption>…and the very first picture</figcaption>
         </figure>
@@ -296,7 +317,9 @@
   <script src="monthsary.js"></script>
   <script src="script.js"></script>
   <script src="drive-show.js"></script>
+  <script src="reels.js"></script>
   <script src="monthsary-timer.js"></script>
+  <script src="anniversary.js"></script>
   <script src="letters-archive.js"></script>
   <script src="chat-counter.js"></script>
 </body>
