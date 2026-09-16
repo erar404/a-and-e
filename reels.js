@@ -1,6 +1,8 @@
 /* ════════════════════════════════════════════
    Anniversareels — an Instagram-Reels-style vertical feed of our little
-   films, streamed straight from the shared Google Drive folder.
+   films, streamed straight from the shared Google Drive folder, opened
+   from a "Reels Ka Muna, Mahal" invitation rather than sitting inline in
+   the page's own scroll.
    Listahan: static/data/reels.json
    (i-refresh: node tools/sync-drive-media.mjs <folderId> static/data/reels.json)
 
@@ -19,10 +21,10 @@
    stream (quota, permission, a >100 MB virus-scan page) falls back to
    Drive's own embedded player.
 
-   Sound: the reels play *with* sound — while the feed is on screen the
-   song fades to silence and any other clip pauses, and the reel's own
-   audio takes over. Tap to mute/unmute; it comes back the moment she
-   scrolls away. If the browser refuses unmuted autoplay (iOS, no fresh
+   Sound: the reels play *with* sound — while the modal is open the song
+   fades to silence and any other clip pauses, and the reel's own audio
+   takes over. Tap to mute/unmute; it comes back the moment she closes
+   the modal. If the browser refuses unmuted autoplay (iOS, no fresh
    gesture) the reel plays silent and one tap turns it on.
 
    The feed never ends: when she nears the last reel another round of
@@ -42,26 +44,27 @@
    deprioritize. The one after that gets the lighter preload="auto" hint
    too, so even a fast swipe has a head start.
 
-   Fullscreen on a phone: below 640px the frame fills the whole screen,
-   edge to edge, the way Reels/TikTok actually read on a phone, which
-   means the endless feed can't be swiped past to reach the rest of the
-   page anymore, so .reels-page-nav (index.html, wired below) gives her
-   an explicit way up to the top or down to the next chapter.
+   Lazy: nothing about the feed (its elements, posters, or streams) is
+   built until she actually opens the invitation — reels.json itself is
+   tiny and still fetched up front just to know whether there's anything
+   to show, but the heavy part waits for a real click.
 
    Gestures: swipe or scroll for the next reel · tap to mute · double-tap
-   to shower it with hearts.
+   to shower it with hearts · Escape or the ✕ closes the modal.
    ════════════════════════════════════════════ */
 
 (() => {
   const section = document.getElementById("reels");
   if (!section) return;
 
+  const openBtn = document.getElementById("reels-open");
+  const backdrop = document.getElementById("reels-modal-backdrop");
+  const modal = document.getElementById("reels-modal");
+  const closeBtn = document.getElementById("reels-modal-close");
   const feed = document.getElementById("reels-feed");
   const prevBtn = document.getElementById("reels-prev");
   const nextBtn = document.getElementById("reels-next");
-  const exitUpBtn = document.getElementById("reels-exit-up");
-  const exitDownBtn = document.getElementById("reels-exit-down");
-  const phone = section.querySelector(".reels-phone");
+  if (!openBtn || !backdrop || !modal || !closeBtn || !feed) return;
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -105,11 +108,26 @@
   let reels = [];
   let active = -1;
   let soundOn = true; // reels play with sound; her tap carries over from reel to reel
-  let sectionVisible = false;
+  let modalOpen = false;
   let musicHushed = false;
-  let opened = !document.getElementById("entry"); // curtains already gone?
+  let ready = false; // reels.json has resolved with at least one clip
+  let built = false; // the reel elements exist yet (only ever built once, on first open)
   const MAX_REELS = 600; // ~40 rounds of 15 — "endless" without an unbounded DOM
 
+  // ?reel=N previews a particular clip straight away (0-based) by opening
+  // the modal itself the moment the data's ready — handy for testing or
+  // sharing a link to one clip, without needing the invitation click.
+  // Number(null) is 0, not NaN, so the param's absence has to be checked
+  // explicitly — otherwise every ordinary visit would "deep-link" to 0
+  // and the modal would auto-open on its own, every single time
+  const reelParam = new URLSearchParams(location.search).get("reel");
+  let startAt = reelParam === null ? -1 : Number(reelParam);
+  if (!Number.isInteger(startAt) || startAt < 0) startAt = -1;
+
+  // reels.json itself is tiny — worth fetching up front just to know
+  // whether there's anything to show (and to hide the invitation
+  // entirely if not). the heavy part, building 15+ video elements and
+  // streaming, waits for openModal()
   fetch("static/data/reels.json")
     .then((r) => r.json())
     .then((data) => {
@@ -122,13 +140,8 @@
         section.style.display = "none";
         return;
       }
-      appendRound();
-      observeSection();
-      // warm the opening reel's poster and headers so the first swipe-in is instant
-      ensurePoster(reels[0]);
-      ensurePoster(reels[1]);
-      ensureSrc(reels[0], opened ? "auto" : "metadata");
-      if (opened && reels[1]) ensureSrc(reels[1], "metadata");
+      ready = true;
+      if (startAt >= 0) openModal();
     })
     .catch(() => {
       section.style.display = "none";
@@ -147,8 +160,7 @@
     back.className = "reel-back";
     el.appendChild(back);
 
-    // no poster yet: 15 posters (and 15 backdrops) used to load the moment
-    // the page did. ensurePoster() sets them for the active reel ±2 only
+    // no poster yet: ensurePoster() sets it for the active reel ±2 only
     const video = document.createElement("video");
     video.className = "reel-video";
     video.playsInline = true;
@@ -197,7 +209,7 @@
     video.addEventListener("waiting", () => el.classList.add("buffering"));
     video.addEventListener("playing", () => el.classList.remove("buffering", "paused"));
     video.addEventListener("pause", () => {
-      if (index === active && sectionVisible && !video.ended) el.classList.add("paused");
+      if (index === active && modalOpen && !video.ended) el.classList.add("paused");
     });
     video.addEventListener("timeupdate", () => {
       if (video.duration) bar.style.transform = `scaleX(${(video.currentTime / video.duration).toFixed(4)})`;
@@ -270,11 +282,6 @@
       feed.appendChild(reel.el);
       reelObserver.observe(reel.el);
     });
-  }
-
-  function updateExitNav() {
-    if (exitUpBtn) exitUpBtn.hidden = !sectionVisible;
-    if (exitDownBtn) exitDownBtn.hidden = !sectionVisible;
   }
 
   /* ─── streaming window: active + 2 forward hold a src, +/-2 hold a poster ─── */
@@ -412,7 +419,7 @@
       const ad = Math.abs(d);
       if (ad <= 2) ensurePoster(r);
       if (d === 0) {
-        if (sectionVisible && (!reduced || soundOn)) play(r);
+        if (modalOpen && (!reduced || soundOn)) play(r);
         else ensureSrc(r, "auto");
       } else if (d === 1) {
         // the very next reel: a real (invisible) play+pause forces actual
@@ -437,9 +444,9 @@
 
   /* ─── sound: the reels have the floor ─── */
 
-  // the song goes fully silent while the feed is on screen (not just
-  // ducked), and comes back when she scrolls on. it never touches the
-  // song's play/pause state, so her own music toggle still means what it says
+  // the song goes fully silent while the modal is open (not just ducked),
+  // and comes back when it closes. it never touches the song's own
+  // play/pause state, so her own music toggle still means what it says
   function hushMusic(on) {
     if (typeof fadeMusic !== "function" || typeof music === "undefined") return;
     if (on && !musicHushed) {
@@ -473,7 +480,7 @@
     });
     paintSound();
     const cur = reels[active];
-    if (on && cur && cur.video.paused && sectionVisible) play(cur, opts);
+    if (on && cur && cur.video.paused && modalOpen) play(cur, opts);
   }
 
   function flashGlyph(el) {
@@ -520,42 +527,50 @@
     { root: feed, threshold: 0.6 }
   );
 
-  // ?reel=N#open+reels lands the feed on reel N straight away (0-based) —
-  // for previewing a particular clip, or deep-linking one
-  let startAt = Number(new URLSearchParams(location.search).get("reel"));
-  if (!Number.isInteger(startAt) || startAt < 0) startAt = -1;
+  /* ─── the modal itself ─── */
 
-  function observeSection() {
-    new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          sectionVisible = e.isIntersecting;
-          updateExitNav();
-          if (sectionVisible) {
-            if (startAt >= 0) {
-              const target = startAt;
-              startAt = -1;
-              while (reels.length <= target + 2 && reels.length < MAX_REELS) appendRound();
-              feed.scrollTo({ top: target * feed.clientHeight, behavior: "auto" });
-              return; // the reel observer takes it from here
-            }
-            if (active < 0) setActive(0);
-            else if (!reduced || soundOn) play(reels[active]);
-          } else {
-            reels.forEach(pause);
-            hushMusic(false); // the song returns as she scrolls on
-          }
-        });
-      },
-      { threshold: 0.35 }
-    ).observe(phone);
+  function openModal() {
+    if (!ready) return; // reels.json hasn't resolved yet — vanishingly rare given its size
+    if (!built) {
+      built = true;
+      appendRound();
+    }
+    modalOpen = true;
+    backdrop.hidden = false;
+    modal.hidden = false;
+    requestAnimationFrame(() => {
+      backdrop.classList.add("visible");
+      modal.classList.add("visible");
+    });
+    if (active < 0) {
+      const target = startAt >= 0 ? startAt : 0;
+      startAt = -1;
+      while (reels.length <= target + 2 && reels.length < MAX_REELS) appendRound();
+      if (target > 0) feed.scrollTo({ top: target * feed.clientHeight, behavior: "auto" }); // reelObserver's setActive takes it from here
+      else setActive(0);
+    } else if (!reduced || soundOn) {
+      play(reels[active]); // reopening — resume right where she left off
+    }
+  }
+
+  function closeModal() {
+    if (modal.hidden) return;
+    modalOpen = false;
+    backdrop.classList.remove("visible");
+    modal.classList.remove("visible");
+    reels.forEach(pause);
+    hushMusic(false);
+    setTimeout(() => {
+      backdrop.hidden = true;
+      modal.hidden = true;
+    }, 400);
   }
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       reels.forEach(pause);
       hushMusic(false);
-    } else if (sectionVisible && active >= 0 && (!reduced || soundOn)) {
+    } else if (modalOpen && active >= 0 && (!reduced || soundOn)) {
       play(reels[active]);
     }
   });
@@ -567,26 +582,20 @@
     feed.scrollTo({ top: i * feed.clientHeight, behavior: reduced ? "auto" : "smooth" });
   }
 
+  openBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  backdrop.addEventListener("click", closeModal);
+
   prevBtn.addEventListener("click", () => scrollToReel(active - 1));
   nextBtn.addEventListener("click", () => scrollToReel(active + 1));
 
-  // the endless feed's only exits on a fullscreen phone (index.html gates
-  // these to narrow viewports via CSS, updateExitNav() further gates them
-  // to only while the reels are actually the section in view)
-  if (exitUpBtn) {
-    exitUpBtn.addEventListener("click", () => {
-      window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
-    });
-  }
-  if (exitDownBtn) {
-    exitDownBtn.addEventListener("click", () => {
-      const next = document.getElementById("first");
-      if (next) next.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
-    });
-  }
-
   document.addEventListener("keydown", (e) => {
-    if (!sectionVisible || active < 0) return;
+    if (modal.hidden) return;
+    if (e.key === "Escape") {
+      closeModal();
+      return;
+    }
+    if (active < 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       scrollToReel(active + 1);
@@ -597,18 +606,4 @@
       setSound(!soundOn, { fromGesture: true });
     }
   });
-
-  // once the curtains part, let the first two reels buffer quietly so
-  // the feed is already playing by the time she scrolls down to it
-  const openBtn = document.getElementById("open-btn");
-  if (openBtn) {
-    openBtn.addEventListener("click", () => {
-      opened = true;
-      setTimeout(() => {
-        if (active >= 0) return; // she's already in the feed — the window logic owns the streams now
-        ensureSrc(reels[0], "auto");
-        if (reels[1]) ensureSrc(reels[1], "metadata");
-      }, 1200);
-    });
-  }
 })();

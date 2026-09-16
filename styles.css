@@ -1867,12 +1867,13 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
 }
 
 /* ════════════════════════════════════════════
-   Anniversareels — a vertical, snap-scrolling feed of our little films,
-   streamed straight from Google Drive (reels.js). A phone inside the
-   page on desktop; below 640px the frame becomes the whole screen, edge
-   to edge (Reels/TikTok-style), with .reels-page-nav as the only way out
-   of the otherwise-endless feed. Swipe up for the next one, tap for
-   sound, double-tap for hearts.
+   Anniversareels — opened from a "Reels Ka Muna, Mahal" invitation
+   (.reels-opener) into a modal (.reels-modal) holding a vertical,
+   snap-scrolling feed of our little films, streamed straight from
+   Google Drive (reels.js). A centered lightbox on desktop; below 640px
+   the modal and its phone frame both become the whole screen, edge to
+   edge (Reels/TikTok-style) — the ✕ (or Escape) is the way out. Swipe up
+   for the next one, tap for sound, double-tap for hearts.
    ════════════════════════════════════════════ */
 
 .reels-wrap {
@@ -1880,7 +1881,6 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
   align-items: center;
   justify-content: center;
   gap: clamp(0.8rem, 3vw, 2rem);
-  margin-top: 3.5rem;
 }
 
 .reels-phone {
@@ -2153,7 +2153,6 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
 .reels-nav:disabled:hover { border-color: rgba(240, 228, 212, 0.25); background: transparent; }
 
 .reels-hint {
-  margin-top: 1.6rem;
   font-family: "La Belle Aurore", cursive;
   font-size: 1.05rem;
   color: var(--cream-dim);
@@ -2165,70 +2164,166 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
 }
 
 @media (max-width: 640px) {
-  .reels-wrap { gap: 0.6rem; margin-top: 1.4rem; }
+  .reels-wrap { gap: 0.6rem; }
   .reels-nav { display: none; } /* swipe is the control on a small screen, whatever the pointer */
-
-  /* fullscreen: the frame fills the whole screen, edge to edge, the way
-     Reels/TikTok read on the device this site is built for first. that
-     means a swipe can no longer reach past it to the rest of the page,
-     .reels-page-nav below is the way out */
-  #reels { padding-left: 0; padding-right: 0; padding-top: clamp(2.2rem, 6vh, 3.2rem); padding-bottom: 1.5rem; }
-  #reels .kicker { margin-bottom: 0.6rem; }
-  #reels .display { font-size: clamp(1.7rem, 7vw, 2.2rem); }
-  #reels .lede,
-  .reels-hint { display: none; } /* the on-screen arrows explain themselves now */
-  /* 100dvh here would push the frame's own bottom edge (where the caption
-     lives) past the viewport by however tall the heading above it is —
-     on every device, since a 100dvh box below other content can never
-     fit in one screen. subtract that heading's height instead */
-  .reels-phone { width: 100%; height: calc(100dvh - 148px); max-width: none; border-radius: 0; box-shadow: none; }
-  .reels-phone::after { box-shadow: none; } /* no glass bezel once it is the whole screen */
 }
 
-/* ─── the endless feed's escape hatches, up to the top, down to the next
-   chapter. only shown on a narrow screen (where the feed goes fullscreen
-   and traps a swipe), and only while the reels are actually in view
-   (reels.js toggles [hidden] via its own visibility observer) ─── */
-.reels-page-nav {
-  display: none;
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 91;
-  width: 2.6rem;
-  height: 2.6rem;
+/* ─── the sweet invitation that opens the modal — no phone frame in the
+   page's own scroll anymore, just an inviting card. "layout that looks
+   sweet": soft rose glow, a small heartbeat, a cursive line ─── */
+
+.reels-opener {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  background: rgba(12, 6, 10, 0.42);
-  color: #f6ecdf;
-  font-size: 1.15rem;
-  line-height: 1;
-  padding: 0;
-  backdrop-filter: blur(6px);
+  gap: 0.5rem;
+  margin-top: 3rem;
+  padding: clamp(2rem, 5vw, 2.8rem) clamp(2.4rem, 8vw, 4.2rem);
+  border: 1px solid rgba(212, 160, 164, 0.35);
+  border-radius: 22px;
+  background: linear-gradient(155deg, rgba(212, 160, 164, 0.1), rgba(23, 16, 21, 0.4));
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s ease, box-shadow 0.35s ease;
+  box-shadow: 0 20px 50px -25px rgba(212, 160, 164, 0.35);
 }
 
-.reels-page-nav-up { top: max(0.9rem, env(safe-area-inset-top)); }
-
-.reels-page-nav-down {
-  bottom: max(1rem, env(safe-area-inset-bottom));
-  animation: reels-page-nav-nudge 1.8s ease-in-out infinite;
+.reels-opener:hover,
+.reels-opener:focus-visible {
+  transform: translateY(-4px) scale(1.015);
+  border-color: rgba(212, 160, 164, 0.65);
+  box-shadow: 0 26px 60px -22px rgba(212, 160, 164, 0.5);
 }
 
-@keyframes reels-page-nav-nudge {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50%      { transform: translateX(-50%) translateY(6px); }
+.reels-opener-glow {
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: radial-gradient(circle at 50% 30%, rgba(212, 160, 164, 0.35), transparent 60%);
+  animation: opener-glow-pulse 4.5s ease-in-out infinite;
 }
 
-@media (max-width: 640px) {
-  .reels-page-nav:not([hidden]) { display: flex; }
+@keyframes opener-glow-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 0.9; transform: scale(1.08); }
+}
+
+.reels-opener-heart {
+  font-size: 1.8rem;
+  color: var(--rose);
+  animation: opener-heartbeat 2.6s ease-in-out infinite;
+}
+
+@keyframes opener-heartbeat {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.18); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.12); }
+  60% { transform: scale(1); }
+}
+
+.reels-opener-text {
+  font-family: "La Belle Aurore", cursive;
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  color: var(--cream);
+  line-height: 1.25;
+}
+
+.reels-opener-text em { font-style: normal; color: var(--rose); }
+
+.reels-opener-hint {
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.85;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reels-page-nav-down { animation: none; }
+  .reels-opener-glow,
+  .reels-opener-heart { animation: none; }
+  .reels-opener { transition: none; }
+}
+
+/* ─── the modal itself ─── */
+
+.reels-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 97;
+  background: rgba(6, 3, 5, 0.94);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.reels-modal-backdrop.visible { opacity: 1; }
+
+.reels-modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 98;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem;
+  transform: translate(-50%, -50%) scale(0.94);
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reels-modal.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+.reels-modal-close {
+  position: fixed;
+  top: max(0.9rem, env(safe-area-inset-top));
+  left: max(0.9rem, env(safe-area-inset-left));
+  z-index: 99;
+  width: 2.6rem;
+  height: 2.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(12, 6, 10, 0.5);
+  color: #f6ecdf;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.reels-modal-close:hover { border-color: rgba(255, 255, 255, 0.55); background: rgba(212, 160, 164, 0.35); }
+
+@media (max-width: 640px) {
+  /* fullscreen: the modal (and the phone frame inside it) fills the
+     whole screen, edge to edge, the way Reels/TikTok read on a phone —
+     the ✕ close button (fixed, top-left, clear of the reel's own sound
+     toggle at top-right) is the only way out of the endless feed */
+  .reels-modal,
+  .reels-modal.visible {
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100dvh;
+    transform: none;
+    gap: 0;
+    justify-content: center;
+  }
+  .reels-hint { display: none; } /* the icons explain themselves in the fullscreen view */
+  /* .reels-modal's align-items:center (from the base rule) shrinks its flex
+     children to fit-content instead of stretching them — without this,
+     .reels-phone's own width:100% has no definite width to resolve
+     against and collapses, so the video renders into a broken 0-size box */
+  .reels-wrap { width: 100%; }
+  .reels-phone { width: 100%; height: 100dvh; max-width: none; border-radius: 0; box-shadow: none; }
+  .reels-phone::after { box-shadow: none; } /* no glass bezel once it is the whole screen */
 }
 
 body.theme-anniversary .reels-phone {
@@ -2241,7 +2336,7 @@ body.theme-anniversary .reels-phone {
 
 body.theme-anniversary .reels-nav { border-color: rgba(90, 42, 60, 0.28); color: var(--ink); }
 body.theme-anniversary .reels-nav:hover { background: rgba(232, 84, 111, 0.1); }
-body.theme-anniversary .reels-page-nav { border-color: rgba(90, 42, 60, 0.28); background: rgba(255, 250, 247, 0.55); color: var(--ink); }
+body.theme-anniversary .reels-modal-close { border-color: rgba(90, 42, 60, 0.28); background: rgba(255, 250, 247, 0.55); color: var(--ink); }
 body.theme-anniversary .reel-sound.on { background: rgba(232, 84, 111, 0.62); }
 
 /* ════════════════════════════════════════════

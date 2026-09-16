@@ -90,30 +90,21 @@
 
   <main id="story" hidden>
 
-    <!-- ═══════════ anniversareels — our little films, streamed from
-         the shared Drive folder (reels.js · static/data/reels.json) ═══════════ -->
+    <!-- ═══════════ anniversareels — our little films, streamed from the
+         shared Drive folder. opens in a modal (below, after </main>) from
+         this invitation, so nothing streams until she actually taps it
+         (reels.js · static/data/reels.json) ═══════════ -->
     <section class="reels" id="reels">
       <p class="kicker reveal">isang taon, sa maliliit na pelikula</p>
       <h2 class="display reveal">Anniversa<em>reels.</em></h2>
-      <p class="lede reveal">
-        swipe up, mahal — bawat isa'y isang maliit na pelikula natin,
-        at hindi ito nauubos. tap kung gusto mong patahimikin; double-tap kung gusto mo.
-      </p>
+      <p class="lede reveal">isang maliit na sulok ng alaala, para sa'yo lang.</p>
 
-      <div class="reels-wrap reveal">
-        <button class="reels-nav prev" id="reels-prev" aria-label="Previous reel"><span>‹</span></button>
-        <div class="reels-phone">
-          <div class="reels-feed" id="reels-feed" aria-label="Anniversareels"></div>
-        </div>
-        <button class="reels-nav next" id="reels-next" aria-label="Next reel"><span>›</span></button>
-      </div>
-      <button type="button" id="reels-exit-up" class="reels-page-nav reels-page-nav-up" aria-label="Bumalik sa umpisa" hidden>
-        <span aria-hidden="true">↑</span>
+      <button type="button" id="reels-open" class="reels-opener reveal">
+        <span class="reels-opener-glow" aria-hidden="true"></span>
+        <span class="reels-opener-heart" aria-hidden="true">♡</span>
+        <span class="reels-opener-text">Reels Ka Muna, <em>Mahal</em></span>
+        <span class="reels-opener-hint">✦ i-tap para panoorin ✦</span>
       </button>
-      <button type="button" id="reels-exit-down" class="reels-page-nav reels-page-nav-down" aria-label="Magpatuloy sa kwento" hidden>
-        <span aria-hidden="true">↓</span>
-      </button>
-      <p class="reels-hint">✦ swipe up or down · tap to mute · double-tap for hearts ✦</p>
     </section>
 
     <!-- ═══════════ chapter one: the first ═══════════ -->
@@ -300,6 +291,22 @@
     </section>
 
   </main>
+
+  <!-- ═══════════ anniversareels modal — opened by the "Reels Ka Muna,
+       Mahal" invitation above; nothing inside streams until she taps it ═══════════ -->
+  <div id="reels-modal-backdrop" class="reels-modal-backdrop" hidden></div>
+
+  <div id="reels-modal" class="reels-modal" hidden aria-label="Anniversareels">
+    <button type="button" id="reels-modal-close" class="reels-modal-close" aria-label="Isara">✕</button>
+    <div class="reels-wrap">
+      <button class="reels-nav prev" id="reels-prev" aria-label="Previous reel"><span>‹</span></button>
+      <div class="reels-phone">
+        <div class="reels-feed" id="reels-feed" aria-label="Anniversareels"></div>
+      </div>
+      <button class="reels-nav next" id="reels-next" aria-label="Next reel"><span>›</span></button>
+    </div>
+    <p class="reels-hint">✦ swipe up or down · tap to mute · double-tap for hearts ✦</p>
+  </div>
 
   <!-- ═══════════ mga naunang sulat — an on-demand archive of every past
        monthsary letter, separate from the one live "surprise" envelope
