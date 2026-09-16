@@ -1869,7 +1869,10 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
 /* ════════════════════════════════════════════
    Anniversareels — a vertical, snap-scrolling feed of our little films,
    streamed straight from Google Drive (reels.js). A phone inside the
-   page: swipe up for the next one, tap for sound, double-tap for hearts.
+   page on desktop; below 640px the frame becomes the whole screen, edge
+   to edge (Reels/TikTok-style), with .reels-page-nav as the only way out
+   of the otherwise-endless feed. Swipe up for the next one, tap for
+   sound, double-tap for hearts.
    ════════════════════════════════════════════ */
 
 .reels-wrap {
@@ -1991,19 +1994,13 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
   pointer-events: none;
 }
 
-.reel-caption {
-  font-family: "La Belle Aurore", cursive;
-  font-size: 1.3rem;
-  line-height: 1.2;
+.reel-tags {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
   color: #f6ecdf;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
-}
-
-.reel-month {
-  font-size: 0.66rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: #e9cc92;
 }
 
 .reel-sound {
@@ -2168,9 +2165,70 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
 }
 
 @media (max-width: 640px) {
-  .reels-wrap { gap: 0.6rem; margin-top: 2.6rem; }
+  .reels-wrap { gap: 0.6rem; margin-top: 1.4rem; }
   .reels-nav { display: none; } /* swipe is the control on a small screen, whatever the pointer */
-  .reels-phone { border-radius: 24px; }
+
+  /* fullscreen: the frame fills the whole screen, edge to edge, the way
+     Reels/TikTok read on the device this site is built for first. that
+     means a swipe can no longer reach past it to the rest of the page,
+     .reels-page-nav below is the way out */
+  #reels { padding-left: 0; padding-right: 0; padding-top: clamp(2.2rem, 6vh, 3.2rem); padding-bottom: 1.5rem; }
+  #reels .kicker { margin-bottom: 0.6rem; }
+  #reels .display { font-size: clamp(1.7rem, 7vw, 2.2rem); }
+  #reels .lede,
+  .reels-hint { display: none; } /* the on-screen arrows explain themselves now */
+  /* 100dvh here would push the frame's own bottom edge (where the caption
+     lives) past the viewport by however tall the heading above it is —
+     on every device, since a 100dvh box below other content can never
+     fit in one screen. subtract that heading's height instead */
+  .reels-phone { width: 100%; height: calc(100dvh - 148px); max-width: none; border-radius: 0; box-shadow: none; }
+  .reels-phone::after { box-shadow: none; } /* no glass bezel once it is the whole screen */
+}
+
+/* ─── the endless feed's escape hatches, up to the top, down to the next
+   chapter. only shown on a narrow screen (where the feed goes fullscreen
+   and traps a swipe), and only while the reels are actually in view
+   (reels.js toggles [hidden] via its own visibility observer) ─── */
+.reels-page-nav {
+  display: none;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 91;
+  width: 2.6rem;
+  height: 2.6rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(12, 6, 10, 0.42);
+  color: #f6ecdf;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reels-page-nav-up { top: max(0.9rem, env(safe-area-inset-top)); }
+
+.reels-page-nav-down {
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  animation: reels-page-nav-nudge 1.8s ease-in-out infinite;
+}
+
+@keyframes reels-page-nav-nudge {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(6px); }
+}
+
+@media (max-width: 640px) {
+  .reels-page-nav:not([hidden]) { display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reels-page-nav-down { animation: none; }
 }
 
 body.theme-anniversary .reels-phone {
@@ -2183,6 +2241,7 @@ body.theme-anniversary .reels-phone {
 
 body.theme-anniversary .reels-nav { border-color: rgba(90, 42, 60, 0.28); color: var(--ink); }
 body.theme-anniversary .reels-nav:hover { background: rgba(232, 84, 111, 0.1); }
+body.theme-anniversary .reels-page-nav { border-color: rgba(90, 42, 60, 0.28); background: rgba(255, 250, 247, 0.55); color: var(--ink); }
 body.theme-anniversary .reel-sound.on { background: rgba(232, 84, 111, 0.62); }
 
 /* ════════════════════════════════════════════

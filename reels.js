@@ -28,6 +28,26 @@
    The feed never ends: when she nears the last reel another round of
    the same clips is appended, so it just keeps going, like the real thing.
 
+   Autoplay: every reel starts moving the moment it's on screen, always
+   muted first (the one autoplay guarantee every browser honors), then
+   sound layers on top automatically if she's left it on, quietly falling
+   back to muted (never showing a play icon) if a browser's autoplay-with-
+   sound policy says no this time, mainly iOS Safari on a clip she hasn't
+   tapped directly. A direct tap always gets sound immediately, since
+   that's a real gesture the policy always allows.
+
+   Preloading: the next reel isn't just hinted at with preload="auto" —
+   it's actually played (muted, invisible) for a frame and rested back at
+   0, forcing real buffering instead of a hint the browser might
+   deprioritize. The one after that gets the lighter preload="auto" hint
+   too, so even a fast swipe has a head start.
+
+   Fullscreen on a phone: below 640px the frame fills the whole screen,
+   edge to edge, the way Reels/TikTok actually read on a phone, which
+   means the endless feed can't be swiped past to reach the rest of the
+   page anymore, so .reels-page-nav (index.html, wired below) gives her
+   an explicit way up to the top or down to the next chapter.
+
    Gestures: swipe or scroll for the next reel · tap to mute · double-tap
    to shower it with hearts.
    ════════════════════════════════════════════ */
@@ -39,6 +59,8 @@
   const feed = document.getElementById("reels-feed");
   const prevBtn = document.getElementById("reels-prev");
   const nextBtn = document.getElementById("reels-next");
+  const exitUpBtn = document.getElementById("reels-exit-up");
+  const exitDownBtn = document.getElementById("reels-exit-down");
   const phone = section.querySelector(".reels-phone");
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -56,30 +78,25 @@
     '<path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/>' +
     '<path d="M17 9.5l4 5M21 9.5l-4 5"/></svg>';
 
-  /* ─── date captions — same rules drive-show.js uses ─── */
+  /* ─── sweet nothings — a random pair of hashtags per reel, standing in
+     for the date/month caption this used to show ─── */
 
-  const TZ = "Asia/Manila";
-  const LOVE_START_ISO = "2025-10-11"; // keep in sync with static/data/monthsary.json's "start"
-  const [LOVE_Y, LOVE_M, LOVE_D] = LOVE_START_ISO.split("-").map(Number);
-  const dateFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
-  const MONTHS_TL = [
-    "Enero", "Pebrero", "Marso", "Abril", "Mayo", "Hunyo",
-    "Hulyo", "Agosto", "Setyembre", "Oktubre", "Nobyembre", "Disyembre",
+  const SWEET_TAGS = [
+    "#tayongdalawa", "#mahalkita", "#mahalnamahal", "#atin", "#kilig",
+    "#kiligtothebones", "#forever", "#foreverandever", "#soulmateko",
+    "#ikawna", "#mineforever", "#ourstory", "#lovebirds",
+    "#cutenessoverload", "#bestfriendforever", "#alwaysyou", "#onlyyou",
+    "#thisisus", "#partnersforlife", "#homeisyou", "#latenightkwento",
+    "#myperson", "#happysaiyo", "#hanggangdulo",
   ];
 
-  function phParts(date) {
-    const [y, m, d] = dateFmt.format(date).split("-").map(Number);
-    return { y, m, d };
-  }
-
-  function monthsAt(date) {
-    const { y, m, d } = phParts(date);
-    return Math.max(1, (y - LOVE_Y) * 12 + (m - LOVE_M) + (d >= LOVE_D ? 0 : -1));
-  }
-
-  function dateLabel(date) {
-    const { y, m, d } = phParts(date);
-    return `${MONTHS_TL[m - 1]} ${d}, ${y}`;
+  function pickTags(n) {
+    const pool = [...SWEET_TAGS];
+    const picked = [];
+    for (let i = 0; i < n && pool.length; i++) {
+      picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    }
+    return picked;
   }
 
   /* ─── state ─── */
@@ -138,6 +155,7 @@
     video.setAttribute("playsinline", "");
     video.muted = true;
     video.setAttribute("muted", "");
+    video.autoplay = true; // belt-and-suspenders in case a play() call ever gets missed
     video.loop = true;
     video.preload = "none";
     video.disableRemotePlayback = true;
@@ -154,20 +172,10 @@
 
     const veil = document.createElement("div");
     veil.className = "reel-veil";
-    const cap = document.createElement("p");
-    cap.className = "reel-caption";
-    if (item.takenAt) {
-      const taken = new Date(item.takenAt);
-      cap.textContent = dateLabel(taken);
-      veil.appendChild(cap);
-      const month = document.createElement("span");
-      month.className = "reel-month";
-      month.textContent = `ika-${monthsAt(taken)} buwan natin`;
-      veil.appendChild(month);
-    } else {
-      cap.textContent = "isang maliit na pelikula natin";
-      veil.appendChild(cap);
-    }
+    const tags = document.createElement("p");
+    tags.className = "reel-tags";
+    tags.textContent = pickTags(2).join(" ");
+    veil.appendChild(tags);
     el.appendChild(veil);
 
     const snd = document.createElement("button");
@@ -202,10 +210,17 @@
     video.addEventListener("error", () => {
       if (video.getAttribute("src")) useFallback(reel);
     });
+    video.addEventListener("ended", () => {
+      // loop=true should make this unreachable, but if some engine ever
+      // lets a reel run dry, this restarts it right where a native loop
+      // would have, so nothing ever stops moving until she swipes
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    });
 
     snd.addEventListener("click", (e) => {
       e.stopPropagation();
-      setSound(!soundOn);
+      setSound(!soundOn, { fromGesture: true });
       flashGlyph(el);
     });
 
@@ -233,9 +248,9 @@
       tapTimer = setTimeout(() => {
         if (index !== active) return;
         if (video.paused && !reel.fallback) {
-          play(reel);
+          play(reel, { fromGesture: true }); // her tap - sound can start right away
         } else {
-          setSound(!soundOn);
+          setSound(!soundOn, { fromGesture: true });
           flashGlyph(el);
         }
       }, 330);
@@ -257,7 +272,12 @@
     });
   }
 
-  /* ─── streaming window: active ± 1 hold a src, active ± 2 hold a poster ─── */
+  function updateExitNav() {
+    if (exitUpBtn) exitUpBtn.hidden = !sectionVisible;
+    if (exitDownBtn) exitDownBtn.hidden = !sectionVisible;
+  }
+
+  /* ─── streaming window: active + 2 forward hold a src, +/-2 hold a poster ─── */
 
   function ensurePoster(reel) {
     if (!reel || reel.posterSet) return;
@@ -270,6 +290,24 @@
     const v = reel.video;
     if (!v.getAttribute("src")) v.src = streamUrl(reel.item.id);
     if (v.preload !== "auto") v.preload = preload; // never downgrade a reel that's already buffering
+  }
+
+  function prewarm(reel) {
+    if (!reel || reel.fallback) return;
+    ensureSrc(reel, "auto");
+    const v = reel.video;
+    if (v.readyState >= 3 || !v.paused) return; // already buffered, or already running
+    v.muted = true;
+    v.play()
+      .then(() => {
+        requestAnimationFrame(() => {
+          if (!v.paused) {
+            v.pause();
+            v.currentTime = 0; // rested at the start, ready to resume instantly
+          }
+        });
+      })
+      .catch(() => {}); // harmless if refused, the preload hint above still applies
   }
 
   function releaseSrc(reel) {
@@ -302,27 +340,61 @@
     reel.el.appendChild(frame);
   }
 
-  function play(reel) {
+  function play(reel, { fromGesture = false } = {}) {
     if (!reel || reel.fallback) return;
     ensureSrc(reel, "auto");
     const v = reel.video;
-    v.muted = !soundOn;
+
+    if (fromGesture && soundOn) {
+      // a real tap, the browser always allows sound synchronously here
+      v.muted = false;
+      v.play()
+        .then(() => {
+          hushMusic(true);
+          silenceOtherClips();
+        })
+        .catch(() => {
+          // even a direct tap couldn't get sound (unusual), at least keep it moving
+          v.muted = true;
+          v.play()
+            .then(() => {
+              hushMusic(true);
+              silenceOtherClips();
+            })
+            .catch(() => reel.el.classList.add("paused"));
+        });
+      return;
+    }
+
+    // muted playback is the one autoplay guarantee every browser honors,
+    // so it always starts this way first, sound (when she's left it on)
+    // is layered on top as a second, best-effort step, so a policy
+    // rejection never leaves the play icon showing or the picture frozen
+    v.muted = true;
     v.play()
       .then(() => {
         hushMusic(true); // the reels have the floor, sound or not
         silenceOtherClips();
+        if (soundOn) unmuteReel(reel);
       })
       .catch(() => {
-        // sound was refused without a fresh gesture — play silent, let her tap
-        if (!v.muted) {
-          v.muted = true;
-          soundOn = false;
-          paintSound();
-          v.play().catch(() => reel.el.classList.add("paused"));
-        } else {
-          reel.el.classList.add("paused");
-        }
+        reel.el.classList.add("paused"); // truly nothing could play, rare
       });
+  }
+
+  function unmuteReel(reel) {
+    if (reel.index !== active) return; // she may have already swiped past it
+    const v = reel.video;
+    v.muted = false;
+    // some engines quietly re-pause an autoplaying clip the instant it's
+    // unmuted without a fresh tap on it specifically, if that happens, it
+    // just goes back to muted and keeps playing, not back to a play icon
+    requestAnimationFrame(() => {
+      if (v.paused && reel.index === active) {
+        v.muted = true;
+        v.play().catch(() => {});
+      }
+    });
   }
 
   function pause(reel) {
@@ -336,15 +408,25 @@
     active = i;
     if (i >= reels.length - 2) appendRound(); // keep the bottom out of reach
     reels.forEach((r, k) => {
-      const d = Math.abs(k - i);
-      if (d <= 2) ensurePoster(r);
+      const d = k - i; // signed: positive = ahead, negative = behind
+      const ad = Math.abs(d);
+      if (ad <= 2) ensurePoster(r);
       if (d === 0) {
         if (sectionVisible && (!reduced || soundOn)) play(r);
         else ensureSrc(r, "auto");
       } else if (d === 1) {
+        // the very next reel: a real (invisible) play+pause forces actual
+        // buffering, not just a preload hint, a swipe should never wait
         pause(r);
         r.video.muted = true;
-        ensureSrc(r, k === i + 1 ? "auto" : "metadata"); // the next one buffers ahead
+        prewarm(r);
+      } else if (d === 2) {
+        // one further ahead: lighter touch, just gets the connection warm
+        ensureSrc(r, "auto");
+      } else if (d === -1) {
+        pause(r);
+        r.video.muted = true;
+        ensureSrc(r, "metadata");
       } else {
         releaseSrc(r);
       }
@@ -384,14 +466,14 @@
     });
   }
 
-  function setSound(on) {
+  function setSound(on, opts) {
     soundOn = on;
     reels.forEach((r) => {
       r.video.muted = !on || r.index !== active;
     });
     paintSound();
     const cur = reels[active];
-    if (on && cur && cur.video.paused && sectionVisible) play(cur);
+    if (on && cur && cur.video.paused && sectionVisible) play(cur, opts);
   }
 
   function flashGlyph(el) {
@@ -448,6 +530,7 @@
       (entries) => {
         entries.forEach((e) => {
           sectionVisible = e.isIntersecting;
+          updateExitNav();
           if (sectionVisible) {
             if (startAt >= 0) {
               const target = startAt;
@@ -487,6 +570,21 @@
   prevBtn.addEventListener("click", () => scrollToReel(active - 1));
   nextBtn.addEventListener("click", () => scrollToReel(active + 1));
 
+  // the endless feed's only exits on a fullscreen phone (index.html gates
+  // these to narrow viewports via CSS, updateExitNav() further gates them
+  // to only while the reels are actually the section in view)
+  if (exitUpBtn) {
+    exitUpBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+    });
+  }
+  if (exitDownBtn) {
+    exitDownBtn.addEventListener("click", () => {
+      const next = document.getElementById("first");
+      if (next) next.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    });
+  }
+
   document.addEventListener("keydown", (e) => {
     if (!sectionVisible || active < 0) return;
     if (e.key === "ArrowDown") {
@@ -496,7 +594,7 @@
       e.preventDefault();
       scrollToReel(active - 1);
     } else if (e.key === "m" || e.key === "M") {
-      setSound(!soundOn);
+      setSound(!soundOn, { fromGesture: true });
     }
   });
 
