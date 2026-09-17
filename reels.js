@@ -44,10 +44,13 @@
    deprioritize. The one after that gets the lighter preload="auto" hint
    too, so even a fast swipe has a head start.
 
-   Lazy: nothing about the feed (its elements, posters, or streams) is
-   built until she actually opens the invitation — reels.json itself is
-   tiny and still fetched up front just to know whether there's anything
-   to show, but the heavy part waits for a real click.
+   Preloaded on entry: the moment she opens the curtains ("buksan mo"),
+   the first five clips start buffering in the background — same
+   real-play-and-pause trick as the single "next" reel used to get, just
+   applied to five at once — so the first stretch of the story is
+   usually already sitting in the browser's buffer by the time she taps
+   the invitation, with nothing left to wait on. Everything past that
+   fifth clip stays fully lazy, built only once she actually opens it.
 
    Gestures: swipe or scroll for the next reel · tap to mute · double-tap
    to shower it with hearts · Escape or the ✕ closes the modal.
@@ -111,8 +114,11 @@
   let modalOpen = false;
   let musicHushed = false;
   let ready = false; // reels.json has resolved with at least one clip
-  let built = false; // the reel elements exist yet (only ever built once, on first open)
+  let built = false; // the reel elements exist yet (only ever built once)
+  let entered = !document.getElementById("entry"); // curtains already open?
+  let wantsOpen = false; // she tapped before reels.json was ready — open the instant it is
   const MAX_REELS = 600; // ~40 rounds of 15 — "endless" without an unbounded DOM
+  const PRELOAD_COUNT = 5; // how many clips get buffered the moment she enters the site
 
   // ?reel=N previews a particular clip straight away (0-based) by opening
   // the modal itself the moment the data's ready — handy for testing or
@@ -141,11 +147,37 @@
         return;
       }
       ready = true;
-      if (startAt >= 0) openModal();
+      maybePreload();
+      if (startAt >= 0) requestOpen(false);
+      else if (wantsOpen) requestOpen(true);
     })
     .catch(() => {
       section.style.display = "none";
     });
+
+  // once she's actually entered the site ("buksan mo") and reels.json has
+  // resolved, whichever happens last, build the feed and start buffering
+  // the first few clips — nothing is visible yet (the modal stays
+  // hidden), but a hidden <video> still buffers over the network just
+  // fine, so by the time she taps the invitation it's already loaded
+  function maybePreload() {
+    if (!ready || !entered || built) return;
+    built = true;
+    appendRound();
+    const count = Math.min(PRELOAD_COUNT, reels.length);
+    for (let k = 0; k < count; k++) {
+      ensurePoster(reels[k]);
+      prewarm(reels[k]);
+    }
+  }
+
+  const curtainBtn = document.getElementById("open-btn");
+  if (curtainBtn) {
+    curtainBtn.addEventListener("click", () => {
+      entered = true;
+      maybePreload();
+    });
+  }
 
   /* ─── one reel ─── */
 
@@ -165,12 +197,15 @@
     video.className = "reel-video";
     video.playsInline = true;
     video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", ""); // older iOS Safari wanted this exact name
     video.muted = true;
     video.setAttribute("muted", "");
     video.autoplay = true; // belt-and-suspenders in case a play() call ever gets missed
     video.loop = true;
     video.preload = "none";
-    video.disableRemotePlayback = true;
+    video.disableRemotePlayback = true; // no cast/AirPlay affordance
+    video.disablePictureInPicture = true; // no floating PiP icon
+    video.setAttribute("controlsList", "nodownload nofullscreen noremoteplayback noplaybackrate");
     el.appendChild(video);
 
     const spinner = document.createElement("span");
@@ -410,7 +445,7 @@
     reel.el.classList.remove("paused");
   }
 
-  function setActive(i) {
+  function setActive(i, fromGesture) {
     if (i === active || !reels[i]) return;
     active = i;
     if (i >= reels.length - 2) appendRound(); // keep the bottom out of reach
@@ -419,7 +454,7 @@
       const ad = Math.abs(d);
       if (ad <= 2) ensurePoster(r);
       if (d === 0) {
-        if (modalOpen && (!reduced || soundOn)) play(r);
+        if (modalOpen && (!reduced || soundOn)) play(r, { fromGesture: !!fromGesture });
         else ensureSrc(r, "auto");
       } else if (d === 1) {
         // the very next reel: a real (invisible) play+pause forces actual
@@ -521,7 +556,14 @@
   const reelObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((e) => {
-        if (e.isIntersecting) setActive(Number(e.target.dataset.index));
+        const idx = Number(e.target.dataset.index);
+        if (e.isIntersecting) {
+          setActive(idx);
+        } else if (idx === active) {
+          // she's swiped away — stop this one immediately rather than
+          // waiting on the next reel to officially become active
+          pause(reels[idx]);
+        }
       });
     },
     { root: feed, threshold: 0.6 }
@@ -529,8 +571,19 @@
 
   /* ─── the modal itself ─── */
 
-  function openModal() {
-    if (!ready) return; // reels.json hasn't resolved yet — vanishingly rare given its size
+  // she may tap the invitation before reels.json has resolved (a slow
+  // connection, or she's simply fast) — that tap must not just vanish;
+  // it's remembered and fulfilled the instant the data is ready
+  function requestOpen(fromGesture) {
+    if (!ready) {
+      wantsOpen = true;
+      return;
+    }
+    wantsOpen = false;
+    openModal(fromGesture);
+  }
+
+  function openModal(fromGesture) {
     if (!built) {
       built = true;
       appendRound();
@@ -547,9 +600,9 @@
       startAt = -1;
       while (reels.length <= target + 2 && reels.length < MAX_REELS) appendRound();
       if (target > 0) feed.scrollTo({ top: target * feed.clientHeight, behavior: "auto" }); // reelObserver's setActive takes it from here
-      else setActive(0);
+      else setActive(0, fromGesture);
     } else if (!reduced || soundOn) {
-      play(reels[active]); // reopening — resume right where she left off
+      play(reels[active], { fromGesture: !!fromGesture }); // reopening — resume right where she left off
     }
   }
 
@@ -582,7 +635,7 @@
     feed.scrollTo({ top: i * feed.clientHeight, behavior: reduced ? "auto" : "smooth" });
   }
 
-  openBtn.addEventListener("click", openModal);
+  openBtn.addEventListener("click", () => requestOpen(true)); // a real tap — sound can start right away
   closeBtn.addEventListener("click", closeModal);
   backdrop.addEventListener("click", closeModal);
 

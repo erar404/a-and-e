@@ -1957,9 +1957,24 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
   height: 100%;
   object-fit: cover;
   background: transparent;
+  /* no native controls ever, and no native long-press/double-tap gesture
+     stealing a tap meant for our own sound/hearts handling — every
+     interaction goes through the .reel article's own listeners instead */
+  pointer-events: none;
 }
 
 .reel.landscape .reel-video { object-fit: contain; }
+
+/* belt-and-suspenders: WebKit will sometimes paint its own controls
+   chrome the instant a native gesture (long-press, AirPlay) reaches the
+   element even without the controls attribute set */
+.reel-video::-webkit-media-controls,
+.reel-video::-webkit-media-controls-enclosure,
+.reel-video::-webkit-media-controls-panel,
+.reel-video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
 
 /* Drive's own player, only for a clip that refused to stream */
 .reel-frame {
