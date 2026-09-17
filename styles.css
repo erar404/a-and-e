@@ -2504,6 +2504,100 @@ body.theme-anniversary .entry-badge i {
   50%      { transform: translateY(-9px) rotate(5deg); }
 }
 
+/* a year in, the photos stop sitting politely in a row and spill out
+   like they were just tossed on the table — same polaroids, same
+   captions, only how they're laid down changes. Absolute + percentage
+   anchors so the spread scales with the viewport instead of breaking on
+   a phone; --par-y/--sway (script.js's live scroll-parallax and
+   song-sway) still ride along in each transform so the scatter keeps
+   the same idle life the tidy row always had. */
+
+body.theme-anniversary .firsts {
+  position: relative;
+  display: block;
+  height: clamp(460px, 118vw, 620px);
+  max-width: 640px;
+  margin: 3rem auto 0;
+}
+
+body.theme-anniversary .firsts .polaroid {
+  position: absolute;
+  margin: 0;
+}
+
+body.theme-anniversary .firsts .polaroid .media { width: min(46vw, 220px); }
+
+body.theme-anniversary .firsts .tilt-l {
+  left: 4%;
+  top: 2%;
+  z-index: 2;
+  transform: translateY(var(--par-y, 0px)) rotate(calc(-9deg + var(--sway, 0deg)));
+}
+
+body.theme-anniversary .firsts .tilt-r {
+  left: 22%;
+  top: 40%;
+  z-index: 1;
+  transform: translateY(calc(10px + var(--par-y, 0px))) rotate(calc(6deg + var(--sway, 0deg) * -1));
+}
+
+body.theme-anniversary .clip-row {
+  position: relative;
+  display: block;
+  height: clamp(560px, 168vw, 720px);
+  max-width: 620px;
+  margin: 3rem auto 0;
+}
+
+body.theme-anniversary .clip-row .polaroid.clip {
+  position: absolute;
+  padding-bottom: 50px;
+  margin: 0;
+}
+
+body.theme-anniversary .clip-row .polaroid.clip .media { width: min(36vw, 156px); }
+
+body.theme-anniversary .clip-row .polaroid.clip:nth-child(1) {
+  left: 2%;
+  top: 0;
+  z-index: 4;
+  transform: translateY(calc(-6px + var(--par-y, 0px))) rotate(calc(-10deg + var(--sway, 0deg)));
+}
+
+body.theme-anniversary .clip-row .polaroid.clip:nth-child(2) {
+  left: 46%;
+  top: 8%;
+  z-index: 3;
+  transform: translateY(calc(14px + var(--par-y, 0px))) rotate(calc(7deg + var(--sway, 0deg) * -1));
+}
+
+body.theme-anniversary .clip-row .polaroid.clip:nth-child(3) {
+  left: 10%;
+  top: 48%;
+  z-index: 2;
+  transform: translateY(var(--par-y, 0px)) rotate(calc(6deg + var(--sway, 0deg)));
+}
+
+body.theme-anniversary .clip-row .polaroid.clip:nth-child(4) {
+  left: 44%;
+  top: 58%;
+  z-index: 1;
+  transform: translateY(calc(-8px + var(--par-y, 0px))) rotate(calc(-8deg + var(--sway, 0deg) * -1));
+}
+
+@media (min-width: 720px) {
+  body.theme-anniversary .firsts .tilt-r { left: 30%; }
+  body.theme-anniversary .clip-row .polaroid.clip:nth-child(2) { left: 50%; }
+  body.theme-anniversary .clip-row .polaroid.clip:nth-child(4) { left: 48%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.theme-anniversary .firsts .polaroid,
+  body.theme-anniversary .clip-row .polaroid.clip {
+    transition: none;
+  }
+}
+
 /* the two extra aurora blobs only bloom on the anniversary */
 .aurora i:nth-child(n + 3) { display: none; }
 
@@ -2747,6 +2841,49 @@ body.theme-anniversary .sparkles { display: block; }
   100% { transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 110px)) scale(0.7); opacity: 0; }
 }
 
+/* the held breath right before the sunrise — a hushed beat so the flip
+   reads as a moment she noticed, not a silent switch (anniversary.js) */
+.anniv-teaser {
+  position: fixed;
+  inset: 0;
+  z-index: 103;
+  display: grid;
+  place-items: center;
+  padding: 0 1.5rem;
+  background: radial-gradient(ellipse 90% 70% at 50% 50%, rgba(23, 14, 19, 0.94), rgba(5, 2, 4, 0.99));
+  opacity: 0;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.anniv-teaser.visible { opacity: 1; }
+.anniv-teaser.leaving { opacity: 0; transition: opacity 0.75s ease; }
+
+.anniv-teaser span {
+  display: block;
+  font-family: "La Belle Aurore", cursive;
+  font-size: clamp(1.9rem, 6vw, 3rem);
+  color: var(--cream);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+  animation: teaser-breathe 1.8s ease-in-out infinite;
+}
+
+.anniv-teaser em {
+  display: block;
+  margin-top: 0.7rem;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  color: var(--cream-dim);
+}
+
+@keyframes teaser-breathe {
+  0%, 100% { opacity: 0.78; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.035); }
+}
+
 /* the sunrise itself — warm light fills the screen, the palette swaps
    behind it, then it thins away onto the new morning */
 .dawn-veil {
@@ -2776,7 +2913,7 @@ body.theme-anniversary .sparkles { display: block; }
 @keyframes sun-rise { to { transform: translateY(-115vmax); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .hearts, .sparkles, .confetti, .dawn-veil { display: none !important; }
+  .hearts, .sparkles, .confetti, .dawn-veil, .anniv-teaser { display: none !important; }
   body.theme-anniversary .entry-badge { animation: none; }
   body.theme-anniversary .display em,
   body.theme-anniversary .entry-title em,

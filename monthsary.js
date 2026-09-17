@@ -5,6 +5,14 @@
    mga bagong bubuksang tula.
    Lahat ng salita: static/data/monthsary.json
    Preview ng kahit anong buwan: ?month=N
+
+   The 12th monthsary's theme flip is staged, not clock-driven: almost
+   nobody has the tab open at literal hatinggabi to see it happen live,
+   so boot holds state.count one month short (pendingSurprise) once the
+   date's arrived, and her first "buksan mo" after that plays the real
+   reveal instead — anniversary.js's "wait, something's happening" beat,
+   then the sunrise. Tracked in localStorage so it plays exactly once,
+   whichever visit actually catches it.
    ════════════════════════════════════════════ */
 
 window.MONTHSARY = (() => {
@@ -174,42 +182,104 @@ window.MONTHSARY = (() => {
     for (let i = 0; i < 24; i++) window.spawnPetal(i * 0.12);
   }
 
+  /* ─── the anniversary reveal itself ───
+     almost nobody has the tab open at literal hatinggabi, so the "sudden
+     change" she actually gets to see is staged for whichever visit is
+     her first since the flip: boot holds state.count one short of the
+     anniversary (pendingSurprise) so the page still looks like the month
+     before, and the entry click below plays the real reveal — the "wait,
+     something's happening" beat, then the sunrise — once, ever, tracked
+     in localStorage so a later reload doesn't replay it. */
+
+  const SURPRISE_KEY = "wb-anniv-surprise-seen";
+  let pendingSurprise = false;
+
+  function surpriseSeen() {
+    try {
+      return localStorage.getItem(SURPRISE_KEY) === "1";
+    } catch {
+      return true; // storage blocked — better to skip the reveal once than loop it forever
+    }
+  }
+
+  function markSurpriseSeen() {
+    try {
+      localStorage.setItem(SURPRISE_KEY, "1");
+    } catch {}
+  }
+
+  // resolves state.count from today's date, holding it one month short
+  // when the anniversary has arrived but nobody's actually seen it flip yet
+  function syncCount() {
+    const raw = preview || computeCount((state.data && state.data.start) || FALLBACK_START);
+    if (preview) {
+      pendingSurprise = false;
+      state.count = raw;
+      return;
+    }
+    if (pendingSurprise) return; // already holding — the reveal itself advances state.count when it fires
+    if (themeFor(raw) === "anniversary" && !surpriseSeen()) {
+      pendingSurprise = true;
+      state.count = raw - 1;
+    } else {
+      state.count = raw;
+    }
+  }
+
+  function applyFlip(next) {
+    state.count = next;
+    greeted = false;
+    applyTheme();
+    applyTexts();
+    document.dispatchEvent(new CustomEvent("monthsary:change", { detail: { count: next } }));
+    celebrate();
+    if (!document.getElementById("entry")) showGreeting();
+  }
+
   /* if the page is open when the clock strikes twelve, everything flips live */
   function refresh() {
     state.day = phToday().d;
-    if (preview) return;
+    if (preview || pendingSurprise) return; // the entry click's own reveal drives this one, not the poller
     const next = computeCount((state.data && state.data.start) || FALLBACK_START);
     if (next === state.count) return;
     const themeBefore = themeFor(state.count);
-    state.count = next;
-    greeted = false;
-    const swap = () => {
-      applyTheme();
-      applyTexts();
-      document.dispatchEvent(new CustomEvent("monthsary:change", { detail: { count: next } }));
-      celebrate();
-      if (!document.getElementById("entry")) showGreeting();
-    };
+    const themeNext = themeFor(next);
     // the anniversary dawns — anniversary.js washes the screen in light and
     // swaps the palette behind it; every other month flips in place
-    if (themeBefore !== themeFor(next) && typeof window.dawnTransition === "function") {
-      window.dawnTransition(swap);
+    if (themeBefore !== themeNext && typeof window.dawnTransition === "function") {
+      if (themeNext === "anniversary") markSurpriseSeen(); // caught live — no need to stage it for next time
+      window.dawnTransition(() => applyFlip(next));
     } else {
-      swap();
+      applyFlip(next);
     }
+  }
+
+  // the entry click's own staged reveal — "wait, something's happening",
+  // then the sunrise, then the real flip, once, ever
+  function revealPendingSurprise() {
+    if (!pendingSurprise) return;
+    const next = computeCount((state.data && state.data.start) || FALLBACK_START);
+    const finish = () => {
+      applyFlip(next);
+      pendingSurprise = false;
+      markSurpriseSeen();
+    };
+    if (typeof window.dawnSurprise === "function") window.dawnSurprise(finish);
+    else if (typeof window.dawnTransition === "function") window.dawnTransition(finish);
+    else finish();
   }
 
   /* ─── boot ─── */
 
   state.day = phToday().d;
-  state.count = preview || computeCount(FALLBACK_START);
-  applyTheme(); // instant, so the anniversary dawn never flashes dark
+  syncCount();
+  applyTheme(); // instant, so an already-seen anniversary (or an ordinary month) never flashes wrong
 
   const ready = fetch("static/data/monthsary.json")
     .then((r) => r.json())
     .then((data) => {
       state.data = data;
-      if (!preview) state.count = computeCount(data.start || FALLBACK_START);
+      syncCount();
       applyTheme();
       applyTexts();
     })
@@ -220,9 +290,19 @@ window.MONTHSARY = (() => {
     if (!document.hidden) refresh();
   });
 
-  // the greeting waits for the curtains to open
+  // the greeting (and the staged reveal, if one's pending) wait for the
+  // curtains to open; the plain greeting timer stands down when a reveal
+  // is pending so it can't fire early with last month's words — the
+  // reveal calls showGreeting itself once the real flip lands
   const openBtn = document.getElementById("open-btn");
-  if (openBtn) openBtn.addEventListener("click", () => setTimeout(showGreeting, 2800));
+  if (openBtn) {
+    openBtn.addEventListener("click", () => {
+      setTimeout(() => {
+        if (!pendingSurprise) showGreeting();
+      }, 2800);
+      setTimeout(revealPendingSurprise, 2400);
+    });
+  }
 
   return {
     ready,

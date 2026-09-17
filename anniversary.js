@@ -1,9 +1,14 @@
 /* ════════════════════════════════════════════
    Isang Taon — the anniversary surprise layer.
-   monthsary.js flips body.theme-anniversary at hatinggabi of the 12th
-   monthsary (Oktubre 11, 2026). A colour swap alone isn't a surprise,
+   monthsary.js flips body.theme-anniversary the moment she first opens
+   the site on (or after) the 12th monthsary (Oktubre 11, 2026) — almost
+   never literal hatinggabi, since that requires the tab already open
+   when the clock strikes twelve. A colour swap alone isn't a surprise,
    so this adds what CSS can't do on its own:
-     · a sunrise that washes the night away when the flip happens live
+     · "wait... something's happening" — a hushed beat right before the
+       flip (window.dawnSurprise — monthsary.js reaches for this first;
+       window.dawnTransition alone still runs for the rare live-tick case)
+     · a sunrise that washes the night away when the flip actually happens
        (window.dawnTransition — monthsary.js hands it the actual swap)
      · hearts that float up all day instead of petals falling
      · a constellation of sparkles behind everything
@@ -11,7 +16,8 @@
        "buksan mo", the greeting, a double-tapped reel
      · a small heart wherever she taps
    Everything is transform/opacity only and sits out entirely under
-   prefers-reduced-motion. Preview any time with ?month=12.
+   prefers-reduced-motion. Preview any time with ?month=12 (instant, no
+   reveal) or ?dawn=1#open (the full "wait..." + sunrise sequence).
    ════════════════════════════════════════════ */
 
 (() => {
@@ -127,6 +133,37 @@
     }, 1700);
   }
 
+  /* ─── "wait... something's happening" — a held-breath beat before the
+     dawn breaks, for whichever visit actually catches the flip (almost
+     never literal midnight — see monthsary.js's pendingSurprise) ─── */
+
+  function teaseSurprise(onDone) {
+    if (reduced) {
+      onDone();
+      return;
+    }
+    const el = document.createElement("div");
+    el.className = "anniv-teaser";
+    el.innerHTML =
+      `<span>wait&hellip; something&rsquo;s happening</span>` +
+      `<em>teka lang, mahal&hellip;</em>`;
+    body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("visible"));
+    setTimeout(() => {
+      el.classList.remove("visible");
+      el.classList.add("leaving");
+      setTimeout(() => el.remove(), 800);
+      onDone();
+    }, 2200);
+  }
+
+  // the one-time reveal for whoever's actual first visit lands on (or
+  // after) the flip — monthsary.js calls this instead of dawnTransition
+  // directly when nobody had the tab open at literal midnight to see it
+  function dawnSurprise(apply) {
+    teaseSurprise(() => dawnTransition(apply));
+  }
+
   /* ─── ambient loop while the theme is on ─── */
 
   let ambient = null;
@@ -171,15 +208,17 @@
     });
   }
 
-  // ?dawn=1#open previews the sunrise itself: the site opens in whatever
-  // month it really is, then ~2.5s later the anniversary breaks over it
+  // ?dawn=1#open previews the whole reveal (the "wait..." beat, then the
+  // sunrise): the site opens in whatever month it really is, then ~2.5s
+  // later the anniversary breaks over it
   if (new URLSearchParams(location.search).has("dawn") && openBtn) {
     openBtn.addEventListener("click", () => {
-      setTimeout(() => dawnTransition(() => body.classList.add("theme-anniversary")), 2500);
+      setTimeout(() => dawnSurprise(() => body.classList.add("theme-anniversary")), 2500);
     });
   }
 
   window.spawnHeart = spawnHeart;
   window.burstConfetti = burstConfetti;
   window.dawnTransition = dawnTransition;
+  window.dawnSurprise = dawnSurprise;
 })();
