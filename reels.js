@@ -54,6 +54,11 @@
 
    Gestures: swipe or scroll for the next reel · tap to mute · double-tap
    to shower it with hearts · Escape or the ✕ closes the modal.
+
+   Opening: the dark scrim doesn't just fade in, it irises open from the
+   invitation card's own spot on screen (a CSS clip-path circle, its
+   origin set here right before the click) — like the room dimming
+   around her hand a beat before a projector bulb catches (styles.css).
    ════════════════════════════════════════════ */
 
 (() => {
@@ -343,7 +348,11 @@
     v.play()
       .then(() => {
         requestAnimationFrame(() => {
-          if (!v.paused) {
+          // a fast swipe can make this reel active while this promise was
+          // still settling — if that happened, play() already has it
+          // moving for real, so resting it back to 0 here would freeze
+          // the very reel that's supposed to be autoplaying
+          if (!v.paused && reel.index !== active) {
             v.pause();
             v.currentTime = 0; // rested at the start, ready to resume instantly
           }
@@ -392,6 +401,13 @@
       v.muted = false;
       v.play()
         .then(() => {
+          // she may have already swiped past it while this was settling —
+          // don't hush the music or claim the floor on a reel that isn't
+          // even the one on screen anymore, and don't leave it playing out loud
+          if (reel.index !== active) {
+            v.muted = true;
+            return;
+          }
           hushMusic(true);
           silenceOtherClips();
         })
@@ -400,6 +416,7 @@
           v.muted = true;
           v.play()
             .then(() => {
+              if (reel.index !== active) return;
               hushMusic(true);
               silenceOtherClips();
             })
@@ -415,6 +432,7 @@
     v.muted = true;
     v.play()
       .then(() => {
+        if (reel.index !== active) return; // stale — she's already on to the next one
         hushMusic(true); // the reels have the floor, sound or not
         silenceOtherClips();
         if (soundOn) unmuteReel(reel);
@@ -493,11 +511,17 @@
     }
   }
 
-  // any other clip on the page that's playing out loud steps aside too
+  // any other clip on the page that's playing out loud steps aside too —
+  // including a sibling reel that slipped through unmuted (a slow play()
+  // promise racing a fast swipe), which used to be waved through here
+  // just for living inside .reel
   function silenceOtherClips() {
     document.querySelectorAll("video").forEach((v) => {
-      if (v.closest(".reel") || v.paused || v.muted) return;
+      if (v.paused || v.muted) return;
+      const r = v.closest(".reel");
+      if (r && Number(r.dataset.index) === active) return; // the active reel keeps the floor
       v.pause();
+      if (r) v.muted = true; // don't leave a stray reel silently paused-but-unmuted
     });
   }
 
@@ -613,10 +637,12 @@
     modal.classList.remove("visible");
     reels.forEach(pause);
     hushMusic(false);
+    // the CSS exit (--reels-exit) is 0.42s — give it a little headroom so
+    // [hidden] never snaps the closing iris off mid-transition
     setTimeout(() => {
       backdrop.hidden = true;
       modal.hidden = true;
-    }, 400);
+    }, 460);
   }
 
   document.addEventListener("visibilitychange", () => {
@@ -635,7 +661,21 @@
     feed.scrollTo({ top: i * feed.clientHeight, behavior: reduced ? "auto" : "smooth" });
   }
 
-  openBtn.addEventListener("click", () => requestOpen(true)); // a real tap — sound can start right away
+  // the backdrop's iris blooms open from wherever this card actually sits
+  // on screen, so the reel feels like it's spilling out of the invitation
+  // itself rather than materializing from the middle of the viewport
+  function setIrisOrigin(el) {
+    const r = el.getBoundingClientRect();
+    const x = ((r.left + r.width / 2) / innerWidth) * 100;
+    const y = ((r.top + r.height / 2) / innerHeight) * 100;
+    document.documentElement.style.setProperty("--reels-iris-x", `${x.toFixed(1)}%`);
+    document.documentElement.style.setProperty("--reels-iris-y", `${y.toFixed(1)}%`);
+  }
+
+  openBtn.addEventListener("click", () => {
+    setIrisOrigin(openBtn);
+    requestOpen(true); // a real tap — sound can start right away
+  });
   closeBtn.addEventListener("click", closeModal);
   backdrop.addEventListener("click", closeModal);
 

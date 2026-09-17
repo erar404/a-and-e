@@ -1,0 +1,13 @@
+<!doctype html>
+<html><body style="margin:0;background:#333">
+<iframe id="f" src="/index.html#open" style="width:390px;height:844px;border:0;display:block"></iframe>
+<script>
+const f = document.getElementById('f');
+f.addEventListener('load', () => {
+  setTimeout(() => {
+    const doc = f.contentDocument;
+    doc.getElementById('reels-open').click();
+  }, 2800);
+});
+</script>
+</body></html>

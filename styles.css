@@ -14,6 +14,14 @@
   --ink: #463832;
   --ink-soft: #7a685c;
   --shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.65);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* where the reel modal blooms open from — the "Reels Ka Muna" card's own
+     spot on screen, set by reels.js right before it opens so the iris
+     below reads as light spilling out of the invitation itself */
+  --reels-iris-x: 50%;
+  --reels-iris-y: 62%;
+  --reels-enter: 0.68s;
+  --reels-exit: 0.42s;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1904,6 +1912,34 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
   .reels-phone { --reel-h: min(78svh, 680px, calc(84vw * 16 / 9)); }
 }
 
+/* one projector-bulb flicker over the frame the instant it opens, using
+   the same turbulence noise as the page's own .grain — a one-shot, not
+   the infinite site-wide shift, and bound to the phone's own box so it
+   never costs more than this one small element for under half a second */
+.reels-phone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.reels-modal.visible .reels-phone::before {
+  animation: reels-flicker 0.42s steps(5) 1 both;
+  animation-delay: 0.08s;
+}
+
+@keyframes reels-flicker {
+  0%, 100% { opacity: 0; }
+  20%  { opacity: 0.4; }
+  40%  { opacity: 0.06; }
+  60%  { opacity: 0.3; }
+  80%  { opacity: 0.03; }
+}
+
 /* a hairline bezel over everything, so the frame reads as glass */
 .reels-phone::after {
   content: "";
@@ -2264,6 +2300,11 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
 
 /* ─── the modal itself ─── */
 
+/* the room doesn't just fade dark, it dims outward from wherever she
+   tapped, like the lights lowering around your hand right before the
+   projector starts — clip-path's percentage radius is measured against
+   the box's own diagonal, so 150% comfortably covers a fixed, full-
+   viewport element from any corner */
 .reels-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -2271,10 +2312,38 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
   background: rgba(6, 3, 5, 0.94);
   backdrop-filter: blur(14px);
   opacity: 0;
-  transition: opacity 0.4s ease;
+  clip-path: circle(0% at var(--reels-iris-x) var(--reels-iris-y));
+  transition: opacity var(--reels-exit) ease, clip-path var(--reels-exit) var(--ease-out-expo);
 }
 
-.reels-modal-backdrop.visible { opacity: 1; }
+.reels-modal-backdrop.visible {
+  opacity: 1;
+  clip-path: circle(150% at var(--reels-iris-x) var(--reels-iris-y));
+  transition: opacity var(--reels-enter) ease, clip-path var(--reels-enter) var(--ease-out-expo);
+}
+
+/* a warm lamp-strike, right where the iris opens from — one shot, never
+   reversed on close, the way a projector bulb flares but doesn't flare
+   again switching off */
+.reels-modal-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--reels-iris-x) var(--reels-iris-y), rgba(212, 160, 164, 0.55), rgba(201, 168, 117, 0.22) 34%, transparent 62%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.reels-modal-backdrop.visible::before {
+  animation: reels-lamp-flare 0.9s var(--ease-out-expo) 1 both;
+}
+
+@keyframes reels-lamp-flare {
+  0%   { opacity: 0; transform: scale(0.55); }
+  40%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1.7); }
+}
 
 .reels-modal {
   position: fixed;
@@ -2285,12 +2354,18 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
   flex-direction: column;
   align-items: center;
   gap: 1.4rem;
-  transform: translate(-50%, -50%) scale(0.94);
+  transform: translate(-50%, -50%) scale(0.92) rotate(-1.4deg);
   opacity: 0;
-  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity var(--reels-exit) ease, transform var(--reels-exit) var(--ease-out-expo);
 }
 
-.reels-modal.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.reels-modal.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  /* a beat behind the iris — she sees the room dim first, then the film
+     itself settles into place, not both landing in the same instant */
+  transition: opacity var(--reels-enter) ease 0.08s, transform var(--reels-enter) var(--ease-out-expo) 0.08s;
+}
 
 .reels-modal-close {
   position: fixed;
@@ -2327,10 +2402,15 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
     bottom: 0;
     width: 100vw;
     height: 100dvh;
-    transform: none;
     gap: 0;
     justify-content: center;
   }
+  /* she's most likely watching on her phone, so the entrance itself
+     shouldn't disappear here — same settle as desktop (scale + a hair of
+     rotation), just without the translate(-50%,-50%) since inset:0 above
+     already pins the fullscreen position */
+  .reels-modal { transform: scale(0.96) rotate(-0.8deg); }
+  .reels-modal.visible { transform: scale(1) rotate(0deg); }
   .reels-hint { display: none; } /* the icons explain themselves in the fullscreen view */
   /* .reels-modal's align-items:center (from the base rule) shrinks its flex
      children to fit-content instead of stretching them — without this,
@@ -2339,6 +2419,29 @@ body.theme-anniversary .tap-bloom { border-color: rgba(169, 75, 89, 0.6); }
   .reels-wrap { width: 100%; }
   .reels-phone { width: 100%; height: 100dvh; max-width: none; border-radius: 0; box-shadow: none; }
   .reels-phone::after { box-shadow: none; } /* no glass bezel once it is the whole screen */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* placed after the fullscreen block above so it wins on phones too —
+     an instant show/hide, no iris, no flare, no flicker */
+  .reels-modal-backdrop,
+  .reels-modal-backdrop::before,
+  .reels-modal,
+  .reels-modal.visible,
+  .reels-phone::before {
+    transition: none;
+    animation: none;
+  }
+  .reels-modal-backdrop::before { opacity: 0; }
+  .reels-modal-backdrop,
+  .reels-modal-backdrop.visible { clip-path: none; }
+  .reels-modal,
+  .reels-modal.visible { transform: translate(-50%, -50%); }
+}
+
+@media (prefers-reduced-motion: reduce) and (max-width: 640px) {
+  .reels-modal,
+  .reels-modal.visible { transform: none; }
 }
 
 body.theme-anniversary .reels-phone {
@@ -2353,6 +2456,9 @@ body.theme-anniversary .reels-nav { border-color: rgba(90, 42, 60, 0.28); color:
 body.theme-anniversary .reels-nav:hover { background: rgba(232, 84, 111, 0.1); }
 body.theme-anniversary .reels-modal-close { border-color: rgba(90, 42, 60, 0.28); background: rgba(255, 250, 247, 0.55); color: var(--ink); }
 body.theme-anniversary .reel-sound.on { background: rgba(232, 84, 111, 0.62); }
+body.theme-anniversary .reels-modal-backdrop::before {
+  background: radial-gradient(circle at var(--reels-iris-x) var(--reels-iris-y), rgba(232, 84, 111, 0.5), rgba(201, 168, 117, 0.25) 34%, transparent 62%);
+}
 
 /* ════════════════════════════════════════════
    isang taon — the anniversary, brighter
