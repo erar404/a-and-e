@@ -73,6 +73,13 @@ server {
         proxy_set_header User-Agent "walong-buwan-reels/1.0";
 
         proxy_buffering off;
+        # Google's response carries a huge Access-Control-Allow-Headers list
+        # (its generic CORS allowlist, ~5.7KB of headers total for this
+        # endpoint) — comfortably past nginx's default 4k/8k header buffer,
+        # which fails the whole request with "upstream sent too big header"
+        # before a single body byte ever moves. This buffer is still used to
+        # read headers even with proxying off above.
+        proxy_buffer_size 16k;
         proxy_force_ranges on;
         proxy_read_timeout 60s;
         proxy_hide_header Content-Disposition;
