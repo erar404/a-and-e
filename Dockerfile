@@ -12,6 +12,13 @@ ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
 
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
+# the /reels/ proxy's hardcoded DNS resolver (8.8.8.8/1.1.1.1) can't be
+# reached from some hosts' sandboxed network — this patches the rendered
+# config to try the container's own resolver first, right after the base
+# image's own 20-envsubst-on-templates.sh has rendered the template above
+COPY docker/25-fix-reels-resolver.sh /docker-entrypoint.d/25-fix-reels-resolver.sh
+RUN chmod +x /docker-entrypoint.d/25-fix-reels-resolver.sh
+
 # yt-config.js.template holds the YOUTUBE_API_KEY placeholder for the
 # "play <text>" search feature; 40-yt-config.sh renders it into
 # yt-config.js at container startup, same envsubst trick as PORT above.
