@@ -55,7 +55,7 @@ server {
         set $reel_id $1;
         set $drive_host drive.usercontent.google.com;
 
-        proxy_pass https://$drive_host/download?id=$reel_id&export=download;
+        proxy_pass https://$drive_host/download?id=$reel_id&export=download&confirm=t;
         proxy_http_version 1.1;
         proxy_ssl_server_name on;
         proxy_ssl_name $drive_host;

@@ -54,7 +54,7 @@ const log = (...a) => DEBUG && console.log(new Date().toISOString().slice(11, 19
 // saves a DNS + handshake round trip on each of them
 const driveAgent = new https.Agent({ keepAlive: true, maxSockets: 8 });
 
-function proxyReel(req, res, id, url = `https://${DRIVE_HOST}/download?id=${id}&export=download`, hops = 0) {
+function proxyReel(req, res, id, url = `https://${DRIVE_HOST}/download?id=${id}&export=download&confirm=t`, hops = 0) {
   const headers = { "User-Agent": "walong-buwan-reels/1.0", Accept: "*/*" };
   if (req.headers.range) headers.Range = req.headers.range;
   log(`→ ${req.method} /reels/${id} range=${req.headers.range || "-"} dest=${req.headers["sec-fetch-dest"] || "-"}`);

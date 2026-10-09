@@ -463,6 +463,12 @@
     reel.el.classList.remove("paused");
   }
 
+  function rewind(reel) {
+    const v = reel.video;
+    if (v.getAttribute("src") && v.currentTime > 0) v.currentTime = 0;
+    reel.bar.style.transform = "scaleX(0)";
+  }
+
   function setActive(i, fromGesture) {
     if (i === active || !reels[i]) return;
     active = i;
@@ -471,7 +477,9 @@
       const d = k - i; // signed: positive = ahead, negative = behind
       const ad = Math.abs(d);
       if (ad <= 2) ensurePoster(r);
+      if (d !== 0) rewind(r); // leaving a reel (either direction) resets it to 00:00
       if (d === 0) {
+        if (r.video.currentTime > 0.1) r.video.currentTime = 0; // arriving always starts from the top
         if (modalOpen && (!reduced || soundOn)) play(r, { fromGesture: !!fromGesture });
         else ensureSrc(r, "auto");
       } else if (d === 1) {
