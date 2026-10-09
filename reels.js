@@ -122,7 +122,7 @@
   let built = false; // the reel elements exist yet (only ever built once)
   let entered = !document.getElementById("entry"); // curtains already open?
   let wantsOpen = false; // she tapped before reels.json was ready — open the instant it is
-  const MAX_REELS = 600; // ~40 rounds of 15 — "endless" without an unbounded DOM
+  const MAX_REELS = 600; // ~18 rounds of 33 — "endless" without an unbounded DOM
   const PRELOAD_COUNT = 5; // how many clips get buffered the moment she enters the site
 
   // ?reel=N previews a particular clip straight away (0-based) by opening
