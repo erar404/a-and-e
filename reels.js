@@ -17,9 +17,9 @@
    forwards Range and strips the headers Google objects to. Only the
    active reel and its two neighbours hold a src at any time (the next
    one buffers ahead while the current one plays, so a swipe never
-   waits); everything else stays a poster. A clip that still refuses to
-   stream (quota, permission, a >100 MB virus-scan page) falls back to
-   Drive's own embedded player.
+   waits); everything else stays a poster. A clip that refuses to
+   stream is retried, then swiped past — Drive's own embedded player (with
+   its play button and control bar) is never shown.
 
    Sound: the reels play *with* sound — while the modal is open the song
    fades to silence and any other clip pauses, and the reel's own audio
@@ -244,7 +244,7 @@
     progress.appendChild(bar);
     el.appendChild(progress);
 
-    const reel = { el, video, item, index, bar, snd, back, fallback: false, posterSet: false };
+    const reel = { el, video, item, index, bar, snd, back, fallback: false, posterSet: false, tries: 0, broken: false };
 
     video.addEventListener("waiting", () => el.classList.add("buffering"));
     video.addEventListener("playing", () => el.classList.remove("buffering", "paused"));
@@ -260,7 +260,15 @@
       if (landscape && !back.style.backgroundImage) back.style.backgroundImage = `url("${posterUrl(item.id, 320)}")`;
     });
     video.addEventListener("error", () => {
-      if (video.getAttribute("src")) useFallback(reel);
+      if (video.getAttribute("src")) retryOrSkip(reel);
+    });
+    // a clip that finished buffering while it is the one on screen must be
+    // moving — never wait on a play button
+    video.addEventListener("canplay", () => {
+      if (index === active && modalOpen && !document.hidden && video.paused && !video.ended) {
+        video.muted = true;
+        video.play().then(() => soundOn && unmuteReel(reel)).catch(() => {});
+      }
     });
     video.addEventListener("ended", () => {
       // loop=true should make this unreachable, but if some engine ever
@@ -373,6 +381,34 @@
     reel.el.classList.remove("buffering", "paused");
   }
 
+  // Drive occasionally refuses a stream (quota, a hiccup). Drive's own
+  // embedded player has a play button and a control bar, which breaks the
+  // reels illusion — so a failed clip is retried with a fresh request, and
+  // if it still will not load it is simply swiped past, never shown.
+  function retryOrSkip(reel) {
+    const v = reel.video;
+    if (reel.tries < 3) {
+      reel.tries++;
+      setTimeout(() => {
+        if (!v.getAttribute("src")) return;
+        v.src = streamUrl(reel.item.id) + "?r=" + reel.tries;
+        v.load();
+        if (reel.index === active && modalOpen) play(reel);
+      }, 600 * reel.tries);
+      return;
+    }
+    reel.broken = true;
+    v.removeAttribute("src");
+    v.load();
+    reel.el.classList.remove("buffering", "paused");
+    if (reel.index === active) skipBroken(reel.index);
+  }
+
+  function skipBroken(i) {
+    const next = reels[i + 1] && !reels[i + 1].broken ? i + 1 : i - 1;
+    if (reels[next]) scrollToReel(next);
+  }
+
   function useFallback(reel) {
     if (reel.fallback) return;
     reel.fallback = true;
@@ -472,6 +508,10 @@
   function setActive(i, fromGesture) {
     if (i === active || !reels[i]) return;
     active = i;
+    if (reels[i].broken) {
+      skipBroken(i);
+      return;
+    }
     if (i >= reels.length - 2) appendRound(); // keep the bottom out of reach
     reels.forEach((r, k) => {
       const d = k - i; // signed: positive = ahead, negative = behind
