@@ -135,6 +135,23 @@
         ],
         "sign": "Sobra, Umaapaw ♡"
       }
+    },
+    "13": {
+      "letter": {
+        "salutation": "Mahal ko,",
+        "titleLines": ["Happy 13th", "Monthsary!"],
+        "paragraphs": [
+          "Isang taon at isang buwan na tayo mahal! Ang bilis talaga ng panahon",
+          "Maraming salamat sa patuloy na pag laban satin at sa pagpili sakin. Araw araw.",
+          "Sorry uli kung wala tayong pang celebrate ngayong araw. Nawa nagustuhan mo yung hilot ko kanina.",
+          "Mahal na mahal kita, kung hindi ko man mapakita bawat oras. Nawa tandaan mo palagi.",
+          "Sana di pa mawala yung bisa ng gayuma ko sayo. Hahaha",
+          "Palagi padin kita pinagdadasal at lagi kong iniisip kung kumusta ka.",
+          { "aside": "Alagaan mo lagi ang sarili mo mahal ko." },
+          "Lubos parin akong nagpapasalamat kay Lord dahil binigyan niya tayo ng panahon na magkasama. Sobrang blessing ka sa buhay ko"
+        ],
+        "sign": "Mahal na mahal kita. Sobra. Umaapaw Alliah Edricah Hisita Jangas (Arellano. Siyempre naman. hehe) ♡"
+      }
     }
   }
 }
