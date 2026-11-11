@@ -712,6 +712,112 @@ function renderAll() {
   scrollDown(false);
 }
 
+/* ─── clickable links + previews ─── */
+
+const URL_RE = /\bhttps?:\/\/[^\s<>"']+/gi;
+
+function cleanUrl(raw) {
+  // trailing punctuation belongs to the sentence, not the link
+  const m = raw.match(/^(.*?)([.,!?;:)\]]*)$/);
+  return [m[1], m[2]];
+}
+
+function linkify(el, text) {
+  el.textContent = "";
+  let last = 0;
+  const urls = [];
+  for (const match of text.matchAll(URL_RE)) {
+    const [url, tail] = cleanUrl(match[0]);
+    if (match.index > last) el.append(text.slice(last, match.index));
+    const a = document.createElement("a");
+    a.className = "msg-link";
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = url;
+    el.appendChild(a);
+    if (tail) el.append(tail);
+    last = match.index + match[0].length;
+    urls.push(url);
+  }
+  if (last < text.length) el.append(text.slice(last));
+  return urls;
+}
+
+function youtubeId(u) {
+  const h = u.hostname.replace(/^(www|m)\./, "");
+  if (h === "youtu.be") return u.pathname.slice(1).split("/")[0] || null;
+  if (h === "youtube.com" || h === "music.youtube.com") {
+    if (u.pathname === "/watch") return u.searchParams.get("v");
+    const p = u.pathname.match(/^\/(shorts|embed|live)\/([\w-]+)/);
+    if (p) return p[2];
+  }
+  return null;
+}
+
+// only YouTube thumbnails/titles and direct image links are fetched — every
+// other link gets a local card, so no URL is ever sent to a third party
+function buildPreview(url) {
+  let u;
+  try { u = new URL(url); } catch { return null; }
+
+  const card = document.createElement("a");
+  card.className = "link-card";
+  card.href = url;
+  card.target = "_blank";
+  card.rel = "noopener noreferrer";
+
+  const yt = youtubeId(u);
+  if (yt && /^[\w-]{6,15}$/.test(yt)) {
+    const img = document.createElement("img");
+    img.className = "link-card-img";
+    img.loading = "lazy";
+    img.alt = "";
+    img.src = `https://i.ytimg.com/vi/${yt}/mqdefault.jpg`;
+    img.addEventListener("error", () => img.remove());
+    card.appendChild(img);
+    const body = document.createElement("div");
+    body.className = "link-card-body";
+    const title = document.createElement("div");
+    title.className = "link-card-title";
+    title.textContent = "YouTube";
+    const host = document.createElement("div");
+    host.className = "link-card-host";
+    host.textContent = u.hostname.replace(/^www\./, "");
+    body.append(title, host);
+    card.appendChild(body);
+    fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && d.title) title.textContent = d.title; })
+      .catch(() => {});
+    return card;
+  }
+
+  if (/\.(png|jpe?g|gif|webp|avif)$/i.test(u.pathname)) {
+    const img = document.createElement("img");
+    img.className = "link-card-img full";
+    img.loading = "lazy";
+    img.alt = "";
+    img.referrerPolicy = "no-referrer";
+    img.src = url;
+    img.addEventListener("error", () => card.remove());
+    card.appendChild(img);
+    return card;
+  }
+
+  const body = document.createElement("div");
+  body.className = "link-card-body";
+  const title = document.createElement("div");
+  title.className = "link-card-title";
+  title.textContent = u.hostname.replace(/^www\./, "");
+  const host = document.createElement("div");
+  host.className = "link-card-host";
+  host.textContent = (u.pathname + u.search).replace(/^\/$/, "") || url;
+  body.append(title, host);
+  card.appendChild(body);
+  return card;
+}
+
 function appendMsg(m, animate) {
   const date = new Date(m.created_at);
   const dayKey = date.toDateString();
@@ -754,7 +860,14 @@ function appendMsg(m, animate) {
   if (m.attachment_path) {
     renderImageBubble(bubble, m);
   } else {
-    bubble.textContent = m.body;
+    const urls = linkify(bubble, m.body || "");
+    if (urls.length) {
+      const card = buildPreview(urls[0]);
+      if (card) {
+        bubble.classList.add("has-link");
+        bubble.appendChild(card);
+      }
+    }
   }
 
   const meta = document.createElement("div");
@@ -2112,7 +2225,8 @@ function appendCallChatMsg(m, animate) {
 
   const bubble = document.createElement("div");
   bubble.className = "call-chat-bubble";
-  bubble.textContent = m.body || (m.attachment_path ? "📷 larawan" : "");
+  if (m.body) linkify(bubble, m.body);
+  else bubble.textContent = m.attachment_path ? "📷 larawan" : "";
 
   const date = new Date(m.created_at);
   const h = date.getHours() % 12 || 12;
